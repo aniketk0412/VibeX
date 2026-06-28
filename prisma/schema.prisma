@@ -102,6 +102,7 @@ model Run {
   status      RunStatus @default(RUNNING)
   currentStep Int       @default(0)
   totalSteps  Int       @default(0)
+  files       Json? // generated code: [{ path, content }]
   startedAt   DateTime  @default(now())
   endedAt     DateTime?
 

@@ -3,6 +3,7 @@
 
 import { prisma } from "@/lib/prisma";
 import { WINDOW_MS, type WindowKind } from "@/lib/usage";
+import type { GenFile } from "@/lib/steps";
 import type { Prisma } from "@prisma/client";
 
 export async function createProjectForUser(userId: string, spec: Record<string, unknown>) {
@@ -39,6 +40,14 @@ export async function setRunStep(runId: string, step: number) {
 
 export async function finishRun(runId: string, status: "COMPLETED" | "PAUSED" | "INTERRUPTED" | "FAILED") {
   return prisma.run.update({ where: { id: runId }, data: { status, endedAt: new Date() } });
+}
+
+// Complete a run and store its generated files (the real output).
+export async function saveRunOutput(runId: string, files: GenFile[]) {
+  return prisma.run.update({
+    where: { id: runId },
+    data: { status: "COMPLETED", endedAt: new Date(), files: files as unknown as Prisma.InputJsonValue },
+  });
 }
 
 // Mark a still-RUNNING run as interrupted (e.g. the client aborted the stream).

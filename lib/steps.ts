@@ -1,6 +1,9 @@
 // Client-safe (no server imports): turns a locked spec into a goal-driven build plan.
 // Shared by the execution engine (server) and the /run screen's local fallback (client).
 
+// A generated source file (the real output of a build).
+export type GenFile = { path: string; content: string };
+
 export type Spec = {
   idea?: string;
   name?: string;

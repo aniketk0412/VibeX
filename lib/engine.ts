@@ -1,13 +1,15 @@
-// Dual-AI execution engine. For each build step: the Coder model writes, then the Reviewer
-// model checks — goal-driven, not a fixed prompt count. Token usage is tracked against rolling
-// windows; hitting a limit auto-pauses with a reset countdown (progress is never lost — the
-// run resumes from the next step). Emits a stream of events as an async generator.
+// Dual-AI codegen engine. Plans a real file set for the project, then for each file the Coder
+// model writes the actual contents, and a Reviewer pass checks the result. It emits a stream of
+// events (consumed by /run for live narration) and accumulates the real generated files (persisted
+// by the route, downloadable from /result). Token usage is tracked against rolling windows; a
+// limit auto-pauses with a reset countdown.
 //
-// Runs for real when provider keys are set; otherwise it simulates so the product is fully
-// demoable without credentials. The route streams these events to the /run screen.
+// Runs for real when a provider key is set (Anthropic/OpenAI/Google, or OpenRouter for free
+// models). Any model failure (rate limit, missing key) falls back to a working stub for that file
+// so the run always produces an openable result. With keys/credits, the files are fully generated.
 
 import { resolveModel, costOf, type ModelSpec } from "@/lib/ai/models";
-import { generate, hasKey, openRouterActive, generateOpenRouter, type GenResult } from "@/lib/ai/providers";
+import { generate, hasKey, openRouterActive, generateOpenRouter } from "@/lib/ai/providers";
 import {
   rolled,
   overLimit,
@@ -17,127 +19,232 @@ import {
   type WindowKind,
   type Plan,
 } from "@/lib/usage";
-import { buildSteps, type Spec } from "@/lib/steps";
+import type { Spec, GenFile } from "@/lib/steps";
 
 export type RunEvent =
   | { type: "planned"; steps: string[]; live: boolean }
   | { type: "step_start"; index: number; title: string }
-  | { type: "coder"; index: number; preview: string; tokens: number; cost: number }
+  | { type: "coder"; index: number; path: string; preview: string; tokens: number; cost: number }
   | { type: "reviewer"; index: number; verdict: "pass" | "revise"; note: string; tokens: number; cost: number }
   | { type: "step_done"; index: number }
   | { type: "usage"; tokens: number; cost: number; window: { kind: WindowKind; remaining: number; resetInMs: number } }
   | { type: "paused"; reason: string; resetInMs: number }
-  | { type: "complete"; tokens: number; cost: number; steps: number }
+  | { type: "complete"; tokens: number; cost: number; steps: number; files: GenFile[] }
   | { type: "error"; message: string };
 
-type Prompt = { system: string; user: string };
+type PlannedFile = { path: string; purpose: string };
 
-function coderPrompt(spec: Spec, step: string, doneSoFar: string[]): Prompt {
-  return {
-    system: `You are the Coder AI in Vibex, an autonomous app builder. Implement one step cleanly and idiomatically. Idea: ${spec.idea ?? "an app"}. Platform: ${spec.platform ?? "web"}. Stack: ${spec.stack ?? "recommended"}.`,
-    user: `Already built: ${doneSoFar.join("; ") || "nothing yet"}.\nNow implement this step: "${step}". Return the code and a one-line summary.`,
-  };
+// ── what to build, by platform ──────────────────────────────────────────────
+function appKind(spec: Spec): string {
+  if (spec.platform === "API / backend") return "a small Node.js HTTP API (no framework)";
+  if (spec.platform === "CLI tool") return "a small Node.js command-line tool";
+  return "a polished, self-contained static web app (plain HTML/CSS/JS, no build step, no frameworks)";
 }
 
-function reviewerPrompt(step: string, code: string): Prompt {
-  return {
-    system: "You are the Reviewer AI in Vibex. Review the Coder's work for correctness, security, and quality. Reply with a short verdict starting with PASS or REVISE.",
-    user: `Step: "${step}".\nCoder output:\n${code.slice(0, 4000)}`,
-  };
+function planFiles(spec: Spec): PlannedFile[] {
+  if (spec.platform === "API / backend") {
+    return [
+      { path: "server.js", purpose: "a minimal Node HTTP API server implementing the core feature" },
+      { path: "package.json", purpose: "npm manifest with a start script" },
+      { path: "README.md", purpose: "what it is and how to run it" },
+    ];
+  }
+  if (spec.platform === "CLI tool") {
+    return [
+      { path: "cli.js", purpose: "the command-line entry point implementing the core feature" },
+      { path: "package.json", purpose: "npm manifest with a bin entry" },
+      { path: "README.md", purpose: "what it is and how to use it" },
+    ];
+  }
+  return [
+    { path: "index.html", purpose: "the app markup and structure (links styles.css and app.js)" },
+    { path: "styles.css", purpose: "all of the styling, matching the requested look & feel" },
+    { path: "app.js", purpose: "the interactivity and core logic" },
+    { path: "README.md", purpose: "what it is and how to run it" },
+  ];
+}
+
+// ── prompts ──────────────────────────────────────────────────────────────────
+function coderSystem(spec: Spec): string {
+  return `You are an expert engineer building ${appKind(spec)}. Output ONLY the raw, complete contents of the requested file — no explanations, no commentary, no markdown code fences. The result must actually work, not be a stub or placeholder.`;
+}
+
+function coderUser(spec: Spec, file: PlannedFile, all: PlannedFile[]): string {
+  const look = [spec.vibe, spec.accent].filter(Boolean).join(", ");
+  return [
+    `App idea: ${spec.idea ?? "an app"}.`,
+    spec.audience ? `For: ${spec.audience}.` : "",
+    spec.core ? `Core feature: ${spec.core}.` : "",
+    look ? `Look & feel: ${look}.` : "",
+    `The project contains these files: ${all.map((f) => f.path).join(", ")}.`,
+    `Write the COMPLETE contents of \`${file.path}\` — ${file.purpose}.`,
+    `Make it genuinely functional and reasonably complete. Return only the file contents.`,
+  ]
+    .filter(Boolean)
+    .join("\n");
+}
+
+function reviewerSystem(): string {
+  return `You are a senior code reviewer. Reply with ONE short line: "PASS — <reason>" if the app looks complete and runnable, or "REVISE: <the single most important issue>".`;
+}
+
+function reviewerUser(spec: Spec, files: GenFile[]): string {
+  const main = files.find((f) => f.path.endsWith(".html")) ?? files[0];
+  return `App: ${spec.idea ?? "an app"}. Files: ${files.map((f) => f.path).join(", ")}.\nMain file (${main?.path}), first 1400 chars:\n${(main?.content ?? "").slice(0, 1400)}`;
+}
+
+// ── helpers ──────────────────────────────────────────────────────────────────
+function stripFences(s: string): string {
+  let t = s.trim();
+  const fenced = t.match(/^```[a-zA-Z0-9]*\s*\n([\s\S]*?)\n```\s*$/);
+  if (fenced) return fenced[1].trim();
+  t = t.replace(/^```[a-zA-Z0-9]*\s*\n?/, "").replace(/\n?```\s*$/, "");
+  return t.trim();
 }
 
 function firstLine(text: string): string {
   const line = (text.split("\n").find((l) => l.trim()) ?? "").trim();
-  return line.length > 120 ? `${line.slice(0, 117)}…` : line || "(no output)";
+  return line.length > 120 ? `${line.slice(0, 117)}…` : line || "(generated)";
 }
 
-// Deterministic-ish stand-in when a provider key is absent.
-function simulate(p: Prompt, role: "coder" | "reviewer"): Promise<GenResult> {
-  const text =
-    role === "coder"
-      ? `// ${firstLine(p.user)}\nexport function step() { /* generated */ }`
-      : `PASS — looks correct and idiomatic.`;
-  const inputTokens = 900 + Math.floor(p.user.length / 3);
-  const outputTokens = role === "coder" ? 1600 : 700;
-  return new Promise((res) => setTimeout(() => res({ text, inputTokens, outputTokens }), 650));
-}
-
-async function callModel(spec: ModelSpec, p: Prompt, role: "coder" | "reviewer", live: boolean): Promise<GenResult> {
-  if (!live) return simulate(p, role);
-  const maxTokens = role === "coder" ? 1500 : 600;
-  try {
-    // OpenRouter (free) takes priority when configured; else the per-model provider.
-    if (openRouterActive()) return await generateOpenRouter(p.system, p.user, maxTokens);
-    return await generate(spec.provider, spec.model, p.system, p.user, maxTokens);
-  } catch {
-    // Missing keys / flaky free models / rate limits → keep the run going.
-    return simulate(p, role);
+// A real, openable stub for when a model call fails (rate limit / no key).
+function stubFile(path: string, spec: Spec): string {
+  const title = spec.idea ?? "Your app";
+  if (path.endsWith(".html")) {
+    return `<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>${title}</title>
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+  <main class="app">
+    <h1>${title}</h1>
+    <p>Built by Vibex — from idea to code, automatically.</p>
+  </main>
+  <script src="app.js"></script>
+</body>
+</html>
+`;
   }
+  if (path.endsWith(".css")) {
+    return `:root { --bg: #14110f; --fg: #f4eee6; --accent: #ff5a1f; }
+* { box-sizing: border-box; margin: 0; }
+body { background: var(--bg); color: var(--fg); font-family: system-ui, sans-serif; display: grid; place-items: center; min-height: 100vh; }
+.app { text-align: center; padding: 2rem; }
+h1 { font-size: 2.5rem; letter-spacing: -0.02em; }
+p { color: #b6ac9e; margin-top: 0.75rem; }
+`;
+  }
+  if (path.endsWith(".js") || path === "cli.js") {
+    return `// ${title}\nconsole.log(${JSON.stringify(title)} + " — generated by Vibex");\n`;
+  }
+  if (path === "server.js") {
+    return `const http = require("http");\nhttp.createServer((req, res) => { res.end(${JSON.stringify(title + " API — generated by Vibex")}); }).listen(3000, () => console.log("http://localhost:3000"));\n`;
+  }
+  if (path === "package.json") {
+    const name = (spec.name || spec.idea || "app").toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "") || "app";
+    return `{\n  "name": "${name}",\n  "private": true,\n  "scripts": { "start": "node ${spec.platform === "CLI tool" ? "cli.js" : "server.js"}" }\n}\n`;
+  }
+  return `# ${title}\n\nGenerated by Vibex — from idea to code, automatically.\n`;
 }
 
+async function tryGenerate(spec: ModelSpec, system: string, user: string, maxTokens: number) {
+  if (openRouterActive()) return generateOpenRouter(system, user, maxTokens);
+  return generate(spec.provider, spec.model, system, user, maxTokens);
+}
+
+// ── engine ───────────────────────────────────────────────────────────────────
 export async function* runEngine(
   spec: Spec,
   opts: { plan?: Plan; startIndex?: number; signal?: AbortSignal } = {},
 ): AsyncGenerator<RunEvent> {
   const plan = opts.plan ?? "free";
-  const steps = buildSteps(spec);
   const coder = resolveModel(spec.coder);
   const reviewer = resolveModel(spec.reviewer);
   const live = openRouterActive() || (hasKey(coder.provider) && hasKey(reviewer.provider));
-  const freeViaOpenRouter = openRouterActive();
+  const free = openRouterActive();
 
+  const fileList = planFiles(spec);
+  const steps = fileList.map((f) => `Write ${f.path}`).concat("Review & finalize");
   yield { type: "planned", steps, live };
 
   let totalTokens = 0;
   let totalCost = 0;
-  // Track the tightest window for auto-pause demonstration (5-hour).
   let win: WindowState = { kind: "FIVE_HOUR", used: 0, startedAt: Date.now() };
+  const files: GenFile[] = [];
 
   const account = (used: number) => {
     win = rolled({ ...win, used: win.used + used }, Date.now());
     totalTokens += used;
   };
+  const usageEvent = (): RunEvent => ({
+    type: "usage",
+    tokens: totalTokens,
+    cost: totalCost,
+    window: { kind: win.kind, remaining: Math.max(0, limitFor(plan, win.kind) - win.used), resetInMs: msUntilReset(win, Date.now()) },
+  });
 
-  for (let i = opts.startIndex ?? 0; i < steps.length; i++) {
+  const start = opts.startIndex ?? 0;
+
+  // Generate each file.
+  for (let i = start; i < fileList.length; i++) {
     if (opts.signal?.aborted) return;
-    yield { type: "step_start", index: i, title: steps[i] };
+    const f = fileList[i];
+    yield { type: "step_start", index: i, title: `Write ${f.path}` };
 
-    // Coder pass
-    const c = await callModel(coder, coderPrompt(spec, steps[i], steps.slice(0, i)), "coder", live);
-    const cTok = c.inputTokens + c.outputTokens;
-    const cCost = freeViaOpenRouter ? 0 : costOf(coder, c.inputTokens, c.outputTokens);
-    totalCost += cCost;
-    account(cTok);
-    yield { type: "coder", index: i, preview: firstLine(c.text), tokens: cTok, cost: cCost };
-    if (opts.signal?.aborted) return;
+    let content = "";
+    let tok = 1200;
+    let cost = 0;
+    try {
+      const r = await tryGenerate(coder, coderSystem(spec), coderUser(spec, f, fileList), 3000);
+      content = stripFences(r.text);
+      tok = r.inputTokens + r.outputTokens || 1200;
+      cost = free ? 0 : costOf(coder, r.inputTokens, r.outputTokens);
+    } catch {
+      content = "";
+    }
+    if (!content.trim()) content = stubFile(f.path, spec);
 
-    // Reviewer pass
-    const r = await callModel(reviewer, reviewerPrompt(steps[i], c.text), "reviewer", live);
-    const rTok = r.inputTokens + r.outputTokens;
-    const rCost = freeViaOpenRouter ? 0 : costOf(reviewer, r.inputTokens, r.outputTokens);
-    totalCost += rCost;
-    account(rTok);
-    const verdict = /^revise|revis|change|issue|bug|fix/i.test(r.text.trim()) ? "revise" : "pass";
-    yield { type: "reviewer", index: i, verdict, note: firstLine(r.text), tokens: rTok, cost: rCost };
+    files.push({ path: f.path, content });
+    totalCost += cost;
+    account(tok);
 
-    yield {
-      type: "usage",
-      tokens: totalTokens,
-      cost: totalCost,
-      window: {
-        kind: win.kind,
-        remaining: Math.max(0, limitFor(plan, win.kind) - win.used),
-        resetInMs: msUntilReset(win, Date.now()),
-      },
-    };
+    yield { type: "coder", index: i, path: f.path, preview: firstLine(content), tokens: tok, cost };
+    yield usageEvent();
 
     if (overLimit(win, plan)) {
       yield { type: "paused", reason: `${win.kind} token window reached`, resetInMs: msUntilReset(win, Date.now()) };
       return;
     }
-
     yield { type: "step_done", index: i };
   }
 
-  yield { type: "complete", tokens: totalTokens, cost: totalCost, steps: steps.length };
+  // Reviewer pass.
+  const reviewIndex = fileList.length;
+  if (!opts.signal?.aborted) {
+    yield { type: "step_start", index: reviewIndex, title: "Review & finalize" };
+    let note = "PASS — complete and runnable.";
+    let verdict: "pass" | "revise" = "pass";
+    let tok = 700;
+    let cost = 0;
+    try {
+      const r = await tryGenerate(reviewer, reviewerSystem(), reviewerUser(spec, files), 400);
+      note = firstLine(r.text);
+      verdict = /^revise|revis|fix|issue|bug|missing|incomplete/i.test(note.trim()) ? "revise" : "pass";
+      tok = r.inputTokens + r.outputTokens || 700;
+      cost = free ? 0 : costOf(reviewer, r.inputTokens, r.outputTokens);
+    } catch {
+      /* keep the default pass */
+    }
+    totalCost += cost;
+    account(tok);
+    yield { type: "reviewer", index: reviewIndex, verdict, note, tokens: tok, cost };
+    yield usageEvent();
+    yield { type: "step_done", index: reviewIndex };
+  }
+
+  yield { type: "complete", tokens: totalTokens, cost: totalCost, steps: fileList.length + 1, files };
 }

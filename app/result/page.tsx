@@ -1,10 +1,10 @@
 // Server entry for /result. With ?project=<id>, loads the signed-in user's project + its latest
-// run's prompts and renders the real prompt history. Otherwise falls back to the client view's
-// sessionStorage spec + sample history.
+// run's real generated files and prompt history. Otherwise falls back to the client view's
+// sessionStorage spec + sample output.
 
 import { auth } from "@/auth";
 import { prisma } from "@/lib/prisma";
-import { buildSteps, type Spec } from "@/lib/steps";
+import type { Spec, GenFile } from "@/lib/steps";
 import ResultView, { type HistoryRow } from "./ResultView";
 
 export const dynamic = "force-dynamic";
@@ -33,9 +33,10 @@ export default async function ResultPage({
   if (!project) return <ResultView />;
 
   const spec = project.spec as Spec;
-  const steps = buildSteps(spec);
-  const history: HistoryRow[] = (project.runs[0]?.prompts ?? []).map((p) => ({
-    step: steps[p.step] ?? `Step ${p.step + 1}`,
+  const run = project.runs[0];
+  const files = (run?.files as unknown as GenFile[] | null) ?? [];
+  const history: HistoryRow[] = (run?.prompts ?? []).map((p) => ({
+    step: p.content || (p.role === "CODER" ? "Wrote a file" : "Review"),
     role: p.role === "CODER" ? "Coder" : "Reviewer",
     tokens: p.tokens,
     cost: p.cost,
@@ -44,6 +45,7 @@ export default async function ResultPage({
   return (
     <ResultView
       spec={{ idea: spec.idea, platform: spec.platform, coder: spec.coder, reviewer: spec.reviewer }}
+      files={files}
       history={history}
     />
   );

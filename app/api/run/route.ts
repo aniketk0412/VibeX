@@ -6,7 +6,7 @@ import type { NextRequest } from "next/server";
 import { auth } from "@/auth";
 import { prisma } from "@/lib/prisma";
 import { runEngine } from "@/lib/engine";
-import { createRun, recordPrompt, setRunStep, finishRun, interruptIfRunning, recordUsage } from "@/lib/runs";
+import { createRun, recordPrompt, setRunStep, finishRun, saveRunOutput, interruptIfRunning, recordUsage } from "@/lib/runs";
 import { resolveModel } from "@/lib/ai/models";
 import type { Spec } from "@/lib/steps";
 
@@ -53,7 +53,7 @@ export async function POST(req: NextRequest) {
                 runId = (await createRun(projectId!, ev.steps.length)).id;
                 break;
               case "coder":
-                if (runId) await recordPrompt(runId, ev.index, "CODER", coderModel, ev.preview, ev.tokens, ev.cost);
+                if (runId) await recordPrompt(runId, ev.index, "CODER", coderModel, ev.path, ev.tokens, ev.cost);
                 break;
               case "reviewer":
                 if (runId) await recordPrompt(runId, ev.index, "REVIEWER", reviewerModel, ev.note, ev.tokens, ev.cost);
@@ -70,7 +70,7 @@ export async function POST(req: NextRequest) {
                 if (runId) await finishRun(runId, "PAUSED");
                 break;
               case "complete":
-                if (runId) await finishRun(runId, "COMPLETED");
+                if (runId) await saveRunOutput(runId, ev.files);
                 break;
               default:
                 break;
