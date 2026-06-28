@@ -93,6 +93,67 @@
 .tab:hover { color: var(--text); }
 .tab[data-active="true"] { color: var(--text); border-bottom-color: var(--accent); }
 
+/* ── live preview ──────────────────────────────────────── */
+.previewWrap {
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  overflow: hidden;
+  background: var(--surface);
+  display: flex;
+  flex-direction: column;
+  min-height: 520px;
+}
+.previewBar {
+  flex: none;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 11px 14px;
+  background: var(--bg-elev);
+  border-bottom: 1px solid var(--line-soft);
+}
+.previewDots {
+  display: flex;
+  gap: 6px;
+}
+.previewDots i {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  display: block;
+}
+.previewDots i:nth-child(1) { background: #e5533b; }
+.previewDots i:nth-child(2) { background: #e5a93b; }
+.previewDots i:nth-child(3) { background: #4fb477; }
+.previewLabel {
+  font-family: var(--mono);
+  font-size: 12px;
+  color: var(--faint);
+}
+.previewOpen {
+  margin-left: auto;
+  font-family: var(--mono);
+  font-size: 11.5px;
+  color: var(--dim);
+  background: var(--surface-2);
+  border: 1px solid var(--line-soft);
+  border-radius: 8px;
+  padding: 5px 10px;
+  cursor: pointer;
+  transition: border-color 0.2s ease, color 0.2s ease;
+}
+.previewOpen:hover {
+  border-color: var(--faint);
+  color: var(--text);
+}
+.preview {
+  flex: 1;
+  width: 100%;
+  border: none;
+  background: #fff;
+  min-height: 460px;
+}
+
 /* ── code view ─────────────────────────────────────────── */
 .codeWrap {
   display: grid;
