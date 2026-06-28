@@ -16,6 +16,7 @@ import BackLink from "@/components/BackLink";
 import styles from "./dashboard.module.css";
 
 export const dynamic = "force-dynamic";
+export const metadata = { title: "Dashboard", robots: { index: false } };
 
 export default async function DashboardPage() {
   const session = await auth();

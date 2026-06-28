@@ -7,8 +7,9 @@ import { billingConfigured } from "@/lib/billing";
 import styles from "./pricing.module.css";
 
 export const metadata: Metadata = {
-  title: "Pricing — Vibex",
+  title: "Pricing",
   description: "Start free. Time-based rolling limits, never credit top-ups. Starter $12, Pro $29, Scale $79, or bring your own key.",
+  alternates: { canonical: "/pricing" },
 };
 
 export default function PricingPage() {

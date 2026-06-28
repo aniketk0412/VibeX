@@ -12,6 +12,8 @@ import SubmitButton from "@/components/SubmitButton";
 import RememberMe from "@/components/RememberMe";
 import styles from "./signin.module.css";
 
+export const metadata = { title: "Sign in", description: "Sign in to Vibex — from idea to code, automatically." };
+
 function GoogleIcon() {
   return (
     <svg viewBox="0 0 24 24" width="18" height="18" aria-hidden>

@@ -9,6 +9,7 @@ import type { Spec } from "@/lib/steps";
 import RunWorkspace from "./RunWorkspace";
 
 export const dynamic = "force-dynamic";
+export const metadata = { title: "Building…", robots: { index: false } };
 
 export default async function RunPage({
   searchParams,

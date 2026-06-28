@@ -24,17 +24,55 @@ const mono = JetBrains_Mono({
   display: "swap",
 });
 
+const DESCRIPTION =
+  "You have the idea. You hate writing 20 prompts manually. We do it for you. Vibex automates the entire vibe-coding loop — idea to working code, hands-free.";
+
 export const metadata: Metadata = {
   metadataBase: new URL(process.env.NEXT_PUBLIC_APP_URL ?? "https://vibex.io"),
-  title: "Vibex — From idea to code, automatically",
-  description:
-    "You have the idea. You hate writing 20 prompts manually. We do it for you. Vibex automates the entire vibe-coding loop — idea to working code, hands-free.",
-  icons: { icon: "/vibex-mark.svg" },
+  title: {
+    default: "Vibex — From idea to code, automatically",
+    template: "%s · Vibex",
+  },
+  description: DESCRIPTION,
+  applicationName: "Vibex",
+  keywords: [
+    "AI code generation",
+    "vibe coding",
+    "idea to app",
+    "AI app builder",
+    "automated coding",
+    "AI developer tool",
+    "prompt to code",
+    "Claude code generation",
+    "AI website builder",
+    "no-code to code",
+  ],
+  authors: [{ name: "Vibex" }],
+  creator: "Vibex",
+  publisher: "Vibex",
+  icons: { icon: "/vibex-mark.svg", apple: "/vibex-mark.svg" },
+  manifest: "/manifest.webmanifest",
+  alternates: { canonical: "/" },
+  robots: {
+    index: true,
+    follow: true,
+    googleBot: { index: true, follow: true, "max-image-preview": "large", "max-snippet": -1 },
+  },
   openGraph: {
     title: "Vibex — From idea to code, automatically",
-    description: "You have the idea. You hate writing 20 prompts manually. We do it for you.",
+    description: DESCRIPTION,
+    url: "/",
+    siteName: "Vibex",
     type: "website",
+    locale: "en_US",
   },
+  twitter: {
+    card: "summary_large_image",
+    title: "Vibex — From idea to code, automatically",
+    description: "You have the idea. You hate writing 20 prompts manually. We do it for you.",
+    creator: "@vibex",
+  },
+  category: "technology",
 };
 
 // Set the theme before first paint to avoid a flash. Defaults to light.

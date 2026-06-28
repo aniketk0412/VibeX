@@ -10,6 +10,7 @@ import type { Spec, GenFile } from "@/lib/steps";
 import ResultView, { type HistoryRow } from "./ResultView";
 
 export const dynamic = "force-dynamic";
+export const metadata = { title: "Your project", robots: { index: false } };
 
 export default async function ResultPage({
   searchParams,

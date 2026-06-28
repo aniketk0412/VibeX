@@ -5,9 +5,29 @@ import CockpitPanel from "@/components/CockpitPanel";
 import PricingTable from "@/components/PricingTable";
 import styles from "./page.module.css";
 
+const SITE = process.env.NEXT_PUBLIC_APP_URL ?? "https://vibex.io";
+const JSON_LD = {
+  "@context": "https://schema.org",
+  "@graph": [
+    { "@type": "Organization", "@id": `${SITE}/#org`, name: "Vibex", url: SITE, logo: `${SITE}/vibex-mark.svg` },
+    { "@type": "WebSite", "@id": `${SITE}/#website`, url: SITE, name: "Vibex", publisher: { "@id": `${SITE}/#org` } },
+    {
+      "@type": "SoftwareApplication",
+      name: "Vibex",
+      applicationCategory: "DeveloperApplication",
+      operatingSystem: "Web",
+      url: SITE,
+      description:
+        "Vibex automates the entire vibe-coding loop — describe an idea once and it interviews you, locks the goal, then generates and runs every prompt until it's working code.",
+      offers: { "@type": "Offer", price: "0", priceCurrency: "USD" },
+    },
+  ],
+};
+
 export default function Home() {
   return (
     <>
+      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(JSON_LD) }} />
       <SiteHeader />
 
       <main className="wrap">

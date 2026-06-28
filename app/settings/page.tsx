@@ -16,6 +16,7 @@ import { saveApiKey, removeApiKey, devSetPlan, signOutAction } from "@/app/actio
 import styles from "./settings.module.css";
 
 export const dynamic = "force-dynamic";
+export const metadata = { title: "Settings", robots: { index: false } };
 
 function initials(name?: string | null, email?: string | null): string {
   const src = (name || email || "?").trim();
