@@ -37,7 +37,7 @@ export default function Logo({ size = 28, showWordmark = true, className }: Logo
       {showWordmark && (
         <span
           style={{
-            fontFamily: "var(--display)",
+            fontFamily: "var(--font)",
             fontWeight: 800,
             fontSize: Math.round(size * 0.86),
             letterSpacing: "-0.03em",

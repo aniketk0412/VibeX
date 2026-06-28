@@ -1,14 +1,20 @@
 import type { Metadata } from "next";
-import { Hanken_Grotesk, JetBrains_Mono } from "next/font/google";
+import { Hanken_Grotesk, JetBrains_Mono, Fraunces } from "next/font/google";
 import { Analytics } from "@vercel/analytics/next";
 import "./globals.css";
 
-// One UI font everywhere (body → bold headings) for a consistent type system; mono is kept
-// only for code and numeric/technical chips.
+// Type system: Hanken Grotesk for body/UI, a Fraunces serif for display headings (editorial
+// character against the techy charcoal), JetBrains Mono for code + numeric chips.
 const sans = Hanken_Grotesk({
   subsets: ["latin"],
   weight: ["400", "500", "600", "700", "800"],
   variable: "--font-sans",
+  display: "swap",
+});
+const display = Fraunces({
+  subsets: ["latin"],
+  style: ["normal", "italic"],
+  variable: "--font-display",
   display: "swap",
 });
 const mono = JetBrains_Mono({
@@ -45,7 +51,7 @@ const themeInit = `
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="en" data-theme="light" className={`${sans.variable} ${mono.variable}`}>
+    <html lang="en" data-theme="light" className={`${sans.variable} ${display.variable} ${mono.variable}`}>
       <head>
         <script dangerouslySetInnerHTML={{ __html: themeInit }} />
       </head>
