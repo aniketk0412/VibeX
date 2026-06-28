@@ -1,21 +1,29 @@
 "use client";
 
-// Output view — a LIVE PREVIEW of the generated app (the static files inlined and run in a
-// sandboxed iframe), the real file tree + viewer, the prompt history, and a real .zip download.
-// When opened from a saved project, `files`/`history` come from the DB; otherwise it falls back
-// to the sessionStorage spec and a sample.
+// Output view. Two layouts share one canvas (live preview + file tree + prompt history + .zip):
+//  • Saved project (opened from the dashboard) → a full app-shell: left sidebar with the user's
+//    projects + account, a workspace toolbar (back, title, status, actions), and the canvas.
+//  • Anonymous / sample run → a simple standalone page.
+// When opened from a saved project, files/history come from the DB; otherwise it falls back to the
+// sessionStorage spec and a sample.
 
 import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { zipSync, strToU8 } from "fflate";
 import Logo from "@/components/Logo";
 import ThemeToggle from "@/components/ThemeToggle";
+import UserMenu from "@/components/UserMenu";
+import BackLink from "@/components/BackLink";
+import ProjectActions from "@/components/ProjectActions";
 import type { GenFile } from "@/lib/steps";
 import styles from "./result.module.css";
 
 type Spec = { idea?: string; platform?: string; coder?: string; reviewer?: string };
 export type HistoryRow = { step: string; role: "Coder" | "Reviewer"; tokens: number; cost: number };
 type Tab = "preview" | "code" | "history";
+type ProjectLink = { id: string; title: string; status?: string | null };
+type CurrentMeta = { id: string; title: string; status?: string | null };
+type SessionUser = { name?: string | null; email?: string | null; image?: string | null };
 
 function escapeRe(s: string): string {
   return s.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
@@ -66,14 +74,21 @@ export default function ResultView({
   spec: specProp,
   files: filesProp,
   history: historyProp,
+  projects,
+  current,
+  user,
 }: {
   spec?: Spec;
   files?: GenFile[];
   history?: HistoryRow[];
+  projects?: ProjectLink[];
+  current?: CurrentMeta;
+  user?: SessionUser;
 }) {
   const [spec, setSpec] = useState<Spec>(specProp ?? {});
   const [active, setActive] = useState(0);
   const [tab, setTab] = useState<Tab>("preview");
+  const inShell = !!projects;
 
   useEffect(() => {
     if (specProp) return;
@@ -84,12 +99,19 @@ export default function ResultView({
     }
   }, [specProp]);
 
-  const files = useMemo(() => (filesProp && filesProp.length ? filesProp : sampleFiles(spec)), [filesProp, spec]);
+  // For a saved project we never fake sample files — an empty build shows a real empty state.
+  const files = useMemo<GenFile[]>(() => {
+    if (filesProp && filesProp.length) return filesProp;
+    if (current) return [];
+    return sampleFiles(spec);
+  }, [filesProp, spec, current]);
+
   const preview = useMemo(() => buildPreview(files), [files]);
-  const history = historyProp && historyProp.length ? historyProp : SAMPLE_HISTORY;
+  const history = historyProp && historyProp.length ? historyProp : current ? [] : SAMPLE_HISTORY;
   const totalTokens = history.reduce((s, h) => s + h.tokens, 0);
   const totalCost = history.reduce((s, h) => s + h.cost, 0);
-  const safeActive = Math.min(active, files.length - 1);
+  const safeActive = Math.min(active, Math.max(0, files.length - 1));
+  const isEmpty = files.length === 0;
 
   // If this project isn't previewable (no HTML), don't sit on an empty Preview tab.
   useEffect(() => {
@@ -116,12 +138,170 @@ export default function ResultView({
     setTimeout(() => URL.revokeObjectURL(url), 60_000);
   };
 
+  const title = current?.title ?? spec.idea ?? "Your project";
+  const status = current?.status ?? null;
+
+  // ── empty / failed build state (saved project with no files) ───────────
+  const emptyState = current && (
+    <div className={styles.emptyCanvas}>
+      <div className={styles.emptyIcon} aria-hidden>!</div>
+      <h2 className={styles.emptyTitle}>
+        {status === "FAILED"
+          ? "This build didn't finish"
+          : status === "INTERRUPTED"
+            ? "This build was interrupted"
+            : "No files yet"}
+      </h2>
+      <p className={styles.emptyText}>
+        {status === "FAILED" || status === "INTERRUPTED"
+          ? "The generation didn't produce any files. You can run it again from your locked goal."
+          : "This project hasn't produced any files yet. Start the build to generate code."}
+      </p>
+      <Link href={`/run?project=${current.id}`} className="btn btn-primary">
+        {status === "FAILED" || status === "INTERRUPTED" ? "Try again →" : "Start build →"}
+      </Link>
+    </div>
+  );
+
+  // ── shared canvas (tabs + body) ────────────────────────────────────────
+  const tabs = !isEmpty && (
+    <div className={styles.tabs} role="tablist">
+      {preview && (
+        <button type="button" role="tab" className={styles.tab} aria-selected={tab === "preview"} data-active={tab === "preview"} onClick={() => setTab("preview")}>
+          Preview
+        </button>
+      )}
+      <button type="button" role="tab" className={styles.tab} aria-selected={tab === "code"} data-active={tab === "code"} onClick={() => setTab("code")}>
+        Code
+      </button>
+      <button type="button" role="tab" className={styles.tab} aria-selected={tab === "history"} data-active={tab === "history"} onClick={() => setTab("history")}>
+        Prompt history
+      </button>
+    </div>
+  );
+
+  const body = isEmpty ? (
+    emptyState
+  ) : tab === "preview" && preview ? (
+    <div className={styles.previewWrap}>
+      <div className={styles.previewBar}>
+        <span className={styles.previewDots} aria-hidden><i /><i /><i /></span>
+        <span className={styles.previewLabel}>live preview · index.html</span>
+        <button type="button" className={styles.previewOpen} onClick={openPreview}>Open ↗</button>
+      </div>
+      <iframe
+        className={styles.preview}
+        srcDoc={preview}
+        title="Live preview"
+        sandbox="allow-scripts allow-same-origin allow-forms allow-modals allow-popups"
+      />
+    </div>
+  ) : tab === "history" ? (
+    <div className={styles.history}>
+      {history.map((h, i) => (
+        <div key={i} className={styles.hrow}>
+          <span className={styles.hnum}>{i + 1}</span>
+          <span className={styles.hstep}>{h.step}</span>
+          <span className={styles.hrole} data-role={h.role}>{h.role}</span>
+          <span className={styles.hmeta}>{(h.tokens / 1000).toFixed(1)}k · ${h.cost.toFixed(2)}</span>
+        </div>
+      ))}
+      <div className={styles.htotal}>
+        <span>Total</span>
+        <span>{(totalTokens / 1000).toFixed(1)}k tokens · ~${totalCost.toFixed(2)}</span>
+      </div>
+    </div>
+  ) : (
+    <div className={styles.codeWrap}>
+      <aside className={styles.tree}>
+        {files.map((f, i) => (
+          <button key={f.path} type="button" className={styles.treeItem} data-active={safeActive === i} onClick={() => setActive(i)}>
+            <span className={styles.fileIcon}>›</span>
+            {f.path}
+          </button>
+        ))}
+      </aside>
+      <div className={styles.viewer}>
+        <div className={styles.viewerBar}>{files[safeActive]?.path}</div>
+        <pre className={styles.code}>{files[safeActive]?.content}</pre>
+      </div>
+    </div>
+  );
+
+  // ── app-shell layout (saved project) ───────────────────────────────────
+  if (inShell) {
+    return (
+      <div className={styles.shell}>
+        <aside className={styles.sidebar}>
+          <Link href="/" aria-label="Vibex home" className={styles.sideLogo}>
+            <Logo size={26} />
+          </Link>
+          <Link href="/new" className={`btn btn-primary ${styles.sideNew}`}>New project →</Link>
+
+          <nav className={styles.sideNav}>
+            <Link href="/dashboard" className={styles.sideLink}>Dashboard</Link>
+            <Link href="/settings" className={styles.sideLink}>Settings</Link>
+          </nav>
+
+          <div className={styles.sideHead}>Projects</div>
+          <div className={styles.sideList}>
+            {projects!.map((p) => (
+              <Link
+                key={p.id}
+                href={`/result?project=${p.id}`}
+                className={styles.sideProj}
+                data-active={p.id === current?.id}
+                title={p.title}
+              >
+                <span className={styles.sideProjTitle}>{p.title}</span>
+                {p.status && <span className={styles.sideDot} data-s={p.status} aria-hidden />}
+              </Link>
+            ))}
+          </div>
+
+          <div className={styles.sideFoot}>
+            <ThemeToggle />
+            <UserMenu name={user?.name} email={user?.email} image={user?.image} />
+          </div>
+        </aside>
+
+        <div className={styles.workspace}>
+          <div className={styles.toolbar}>
+            <div className={styles.toolbarLeft}>
+              <BackLink href="/dashboard" label="Dashboard" />
+              <div className={styles.toolbarTitleWrap}>
+                <h1 className={styles.toolbarTitle}>{title}</h1>
+                {status && <span className={styles.statusBadge} data-s={status}>{status.toLowerCase()}</span>}
+              </div>
+            </div>
+            <div className={styles.toolbarActions}>
+              {!isEmpty && <button type="button" className="btn btn-ghost" onClick={download}>↓ Download .zip</button>}
+              <Link href={`/run?project=${current!.id}`} className="btn btn-ghost">Iterate</Link>
+              <ProjectActions projectId={current!.id} title={title} redirectAfterDelete="/dashboard" />
+            </div>
+          </div>
+          {!isEmpty && (
+            <p className={styles.workspaceSub}>
+              {files.length} files · {(totalTokens / 1000).toFixed(1)}k tokens · ~${totalCost.toFixed(2)} · {spec.coder ?? "Claude"} + {spec.reviewer ?? "Claude"}
+            </p>
+          )}
+          {tabs}
+          <div className={styles.canvas}>{body}</div>
+        </div>
+      </div>
+    );
+  }
+
+  // ── standalone layout (anonymous / sample) ─────────────────────────────
   return (
     <div className={styles.page}>
       <header className={styles.top}>
-        <Link href="/" aria-label="Vibex home">
-          <Logo size={28} />
-        </Link>
+        <div className={styles.left}>
+          <Link href="/" aria-label="Vibex home">
+            <Logo size={28} />
+          </Link>
+          <BackLink href="/" label="Home" />
+        </div>
         <ThemeToggle />
       </header>
 
@@ -129,7 +309,7 @@ export default function ResultView({
         <div className={styles.head}>
           <div>
             <span className={styles.eyebrow}><span className={styles.ok}>✓</span> Build complete</span>
-            <h1 className={styles.title}>{spec.idea ?? "Your project"}</h1>
+            <h1 className={styles.title}>{title}</h1>
             <p className={styles.sub}>
               {files.length} files · {(totalTokens / 1000).toFixed(1)}k tokens · ~${totalCost.toFixed(2)} ·
               {" "}{spec.coder ?? "Claude Sonnet"} + {spec.reviewer ?? "Claude Opus"}
@@ -141,71 +321,8 @@ export default function ResultView({
           </div>
         </div>
 
-        <div className={styles.tabs}>
-          {preview && (
-            <button type="button" className={styles.tab} data-active={tab === "preview"} onClick={() => setTab("preview")}>
-              Preview
-            </button>
-          )}
-          <button type="button" className={styles.tab} data-active={tab === "code"} onClick={() => setTab("code")}>
-            Code
-          </button>
-          <button type="button" className={styles.tab} data-active={tab === "history"} onClick={() => setTab("history")}>
-            Prompt history
-          </button>
-        </div>
-
-        {tab === "preview" && preview ? (
-          <div className={styles.previewWrap}>
-            <div className={styles.previewBar}>
-              <span className={styles.previewDots}><i /><i /><i /></span>
-              <span className={styles.previewLabel}>live preview · index.html</span>
-              <button type="button" className={styles.previewOpen} onClick={openPreview}>Open ↗</button>
-            </div>
-            <iframe
-              className={styles.preview}
-              srcDoc={preview}
-              title="Live preview"
-              sandbox="allow-scripts allow-same-origin allow-forms allow-modals allow-popups"
-            />
-          </div>
-        ) : tab === "history" ? (
-          <div className={styles.history}>
-            {history.map((h, i) => (
-              <div key={i} className={styles.hrow}>
-                <span className={styles.hnum}>{i + 1}</span>
-                <span className={styles.hstep}>{h.step}</span>
-                <span className={styles.hrole} data-role={h.role}>{h.role}</span>
-                <span className={styles.hmeta}>{(h.tokens / 1000).toFixed(1)}k · ${h.cost.toFixed(2)}</span>
-              </div>
-            ))}
-            <div className={styles.htotal}>
-              <span>Total</span>
-              <span>{(totalTokens / 1000).toFixed(1)}k tokens · ~${totalCost.toFixed(2)}</span>
-            </div>
-          </div>
-        ) : (
-          <div className={styles.codeWrap}>
-            <aside className={styles.tree}>
-              {files.map((f, i) => (
-                <button
-                  key={f.path}
-                  type="button"
-                  className={styles.treeItem}
-                  data-active={safeActive === i}
-                  onClick={() => setActive(i)}
-                >
-                  <span className={styles.fileIcon}>›</span>
-                  {f.path}
-                </button>
-              ))}
-            </aside>
-            <div className={styles.viewer}>
-              <div className={styles.viewerBar}>{files[safeActive]?.path}</div>
-              <pre className={styles.code}>{files[safeActive]?.content}</pre>
-            </div>
-          </div>
-        )}
+        {tabs}
+        {body}
       </main>
     </div>
   );

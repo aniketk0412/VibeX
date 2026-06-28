@@ -12,6 +12,7 @@ import Logo from "@/components/Logo";
 import ThemeToggle from "@/components/ThemeToggle";
 import { buildSteps, type Spec } from "@/lib/steps";
 import { AttachButton, Thumbs, type AttachedImage } from "@/components/ImageAttach";
+import BackLink from "@/components/BackLink";
 import styles from "./run.module.css";
 
 function Check() {
@@ -279,9 +280,12 @@ export default function RunWorkspace({ initialSpec, projectId }: { initialSpec?:
   return (
     <div className={styles.page}>
       <header className={styles.topbar}>
-        <Link href="/" aria-label="Vibex home">
-          <Logo size={26} />
-        </Link>
+        <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+          <Link href="/" aria-label="Vibex home">
+            <Logo size={26} />
+          </Link>
+          <BackLink href="/dashboard" label="Back" />
+        </div>
         <div className={styles.topRight}>
           <span className={styles.live} data-status={status}>
             <span className={styles.dot} /> {status}

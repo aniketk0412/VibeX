@@ -9,9 +9,12 @@ import { prisma } from "@/lib/prisma";
 
 export const { handlers, auth, signIn, signOut } = NextAuth({
   adapter: PrismaAdapter(prisma),
-  session: { strategy: "database" },
+  // Keep users signed in for 30 days, refreshing the window daily. The "keep me signed in"
+  // checkbox on /signin opts OUT by downgrading the session cookie to a session cookie
+  // (cleared on browser close) via middleware — see middleware.ts.
+  session: { strategy: "database", maxAge: 60 * 60 * 24 * 30, updateAge: 60 * 60 * 24 },
   trustHost: true,
-  pages: { signIn: "/signin" },
+  pages: { signIn: "/signin", verifyRequest: "/signin?verify=email", error: "/signin" },
   // Email (Resend) is only registered when its key is present — a half-configured
   // provider throws a Configuration error for the whole auth route, Google included.
   providers: [

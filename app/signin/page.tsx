@@ -1,11 +1,15 @@
 // Sign in — Google OAuth + email magic link. Server actions call Auth.js directly.
-// Already signed in → straight to the dashboard.
+// Handles ?error= (failed sign-in) and ?verify=email (magic-link sent) states, shows pending
+// states on submit, and offers "keep me signed in". Already signed in → straight to dashboard.
 
 import { redirect } from "next/navigation";
 import Link from "next/link";
 import { auth, signIn } from "@/auth";
 import Logo from "@/components/Logo";
 import ThemeToggle from "@/components/ThemeToggle";
+import BackLink from "@/components/BackLink";
+import SubmitButton from "@/components/SubmitButton";
+import RememberMe from "@/components/RememberMe";
 import styles from "./signin.module.css";
 
 function GoogleIcon() {
@@ -19,62 +23,117 @@ function GoogleIcon() {
   );
 }
 
-export default async function SignInPage() {
+// Only allow internal, non-protocol-relative paths as a post-login destination (no open redirect).
+function safeCallback(raw?: string | string[]): string {
+  const v = typeof raw === "string" ? raw : Array.isArray(raw) ? raw[0] : undefined;
+  if (!v || !v.startsWith("/") || v.startsWith("//")) return "/dashboard";
+  return v;
+}
+
+function errorMessage(code: string): string {
+  switch (code) {
+    case "OAuthAccountNotLinked":
+      return "That email is already linked to a different sign-in method. Use the method you signed up with.";
+    case "Verification":
+      return "That sign-in link is invalid or has expired. Request a new one below.";
+    case "Configuration":
+      return "Sign-in isn’t available right now. Please try again later.";
+    case "AccessDenied":
+      return "Access was denied. Please try a different account.";
+    default:
+      return "Something went wrong signing you in. Please try again.";
+  }
+}
+
+export default async function SignInPage({
+  searchParams,
+}: {
+  searchParams: { [key: string]: string | string[] | undefined };
+}) {
+  const callbackUrl = safeCallback(searchParams.callbackUrl);
+
   const session = await auth();
-  if (session?.user) redirect("/dashboard");
+  if (session?.user) redirect(callbackUrl);
+
+  const error = typeof searchParams.error === "string" ? searchParams.error : undefined;
+  const verifySent = searchParams.verify === "email";
 
   return (
     <div className={styles.page}>
       <header className={styles.top}>
-        <Link href="/" aria-label="Vibex home">
-          <Logo size={28} />
-        </Link>
+        <div className={styles.left}>
+          <Link href="/" aria-label="Vibex home">
+            <Logo size={28} />
+          </Link>
+          <BackLink href="/" label="Home" />
+        </div>
         <ThemeToggle />
       </header>
 
       <main className={styles.main}>
-        <div className={styles.card}>
-          <h1 className={styles.title}>Sign in to Vibex</h1>
-          <p className={styles.sub}>From idea to code, automatically.</p>
+        {verifySent ? (
+          <div className={styles.card}>
+            <div className={styles.verifyIcon} aria-hidden>✉</div>
+            <h1 className={styles.title}>Check your inbox</h1>
+            <p className={styles.sub}>
+              We sent a magic link to your email. Click it to finish signing in — you can close this tab.
+            </p>
+            <Link href="/signin" className="btn btn-ghost btn-lg" style={{ width: "100%", marginTop: 22, textAlign: "center" }}>
+              ← Use a different method
+            </Link>
+          </div>
+        ) : (
+          <div className={styles.card}>
+            <h1 className={styles.title}>Sign in to Vibex</h1>
+            <p className={styles.sub}>From idea to code, automatically.</p>
 
-          <form
-            action={async () => {
-              "use server";
-              await signIn("google", { redirectTo: "/dashboard" });
-            }}
-          >
-            <button type="submit" className={styles.google}>
-              <GoogleIcon /> Continue with Google
-            </button>
-          </form>
+            {error && (
+              <div className={styles.errBanner} role="alert">
+                {errorMessage(error)}
+              </div>
+            )}
 
-          <div className={styles.divider}><span>or</span></div>
+            <form
+              action={async () => {
+                "use server";
+                await signIn("google", { redirectTo: callbackUrl });
+              }}
+            >
+              <SubmitButton className={styles.google} pendingLabel="Connecting…">
+                <GoogleIcon /> Continue with Google
+              </SubmitButton>
+            </form>
 
-          <form
-            className={styles.emailForm}
-            action={async (formData) => {
-              "use server";
-              await signIn("resend", {
-                email: String(formData.get("email")),
-                redirectTo: "/dashboard",
-              });
-            }}
-          >
-            <input
-              className={styles.input}
-              type="email"
-              name="email"
-              required
-              placeholder="you@example.com"
-              aria-label="Email address"
-            />
-            <button type="submit" className="btn btn-primary btn-lg">
-              Email me a link →
-            </button>
-          </form>
+            <div className={styles.divider}><span>or</span></div>
 
-          <p className={styles.fine}>We&apos;ll email you a magic link — no password needed.</p>
-        </div>
+            <form
+              className={styles.emailForm}
+              action={async (formData) => {
+                "use server";
+                await signIn("resend", {
+                  email: String(formData.get("email")),
+                  redirectTo: callbackUrl,
+                });
+              }}
+            >
+              <input
+                className={styles.input}
+                type="email"
+                name="email"
+                required
+                placeholder="you@example.com"
+                aria-label="Email address"
+              />
+              <SubmitButton className="btn btn-primary btn-lg" pendingLabel="Sending link…">
+                Email me a link →
+              </SubmitButton>
+            </form>
+
+            <RememberMe />
+
+            <p className={styles.fine}>We&apos;ll email you a magic link — no password needed.</p>
+          </div>
+        )}
       </main>
     </div>
   );

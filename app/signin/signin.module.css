@@ -13,6 +13,11 @@
   margin: 0 auto;
   padding: 22px 28px;
 }
+.left {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
 
 .main {
   flex: 1;
@@ -44,6 +49,29 @@
   color: var(--dim);
 }
 
+.errBanner {
+  margin-top: 18px;
+  padding: 11px 14px;
+  border-radius: 11px;
+  font-size: 13.5px;
+  line-height: 1.45;
+  color: #e5755b;
+  background: color-mix(in srgb, #e5755b 9%, transparent);
+  border: 1px solid color-mix(in srgb, #e5755b 32%, transparent);
+}
+
+.verifyIcon {
+  width: 52px;
+  height: 52px;
+  border-radius: 14px;
+  display: grid;
+  place-items: center;
+  font-size: 24px;
+  background: var(--accent-soft);
+  color: var(--accent);
+  margin-bottom: 18px;
+}
+
 .google {
   width: 100%;
   margin-top: 24px;
@@ -63,6 +91,7 @@
   transition: border-color 0.2s ease, background 0.2s ease;
 }
 .google:hover { border-color: var(--faint); background: var(--surface-2); }
+.google:disabled { opacity: 0.55; cursor: not-allowed; }
 
 .divider {
   display: flex;

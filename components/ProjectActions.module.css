@@ -1,0 +1,192 @@
+.wrap {
+  position: relative;
+  display: inline-flex;
+}
+
+.trigger {
+  width: 32px;
+  height: 32px;
+  display: grid;
+  place-items: center;
+  border-radius: 8px;
+  border: 1px solid transparent;
+  background: transparent;
+  color: var(--dim);
+  cursor: pointer;
+  transition: background 0.15s ease, color 0.15s ease, border-color 0.15s ease;
+}
+.trigger:hover {
+  background: var(--surface-2);
+  color: var(--text);
+  border-color: var(--line);
+}
+
+.menu {
+  position: absolute;
+  top: calc(100% + 6px);
+  right: 0;
+  z-index: 40;
+  min-width: 152px;
+  background: var(--bg-elev);
+  border: 1px solid var(--line);
+  border-radius: 11px;
+  box-shadow: var(--shadow);
+  padding: 5px;
+  animation: menu-in 0.13s ease;
+}
+@keyframes menu-in {
+  from { opacity: 0; transform: translateY(-4px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+.item {
+  display: block;
+  width: 100%;
+  text-align: left;
+  font-family: var(--body);
+  font-weight: 500;
+  font-size: 13.5px;
+  color: var(--text);
+  background: transparent;
+  border: none;
+  border-radius: 7px;
+  padding: 8px 10px;
+  cursor: pointer;
+  transition: background 0.13s ease;
+}
+.item:hover { background: var(--surface-2); }
+.danger { color: #e5755b; }
+
+/* ── modals (rename / delete) ──────────────────────────── */
+.overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 100;
+  background: rgba(0, 0, 0, 0.45);
+  backdrop-filter: blur(2px);
+  display: grid;
+  place-items: center;
+  padding: 24px;
+  animation: overlay-in 0.15s ease;
+}
+@keyframes overlay-in {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+.dialog {
+  width: 100%;
+  max-width: 400px;
+  background: var(--bg-elev);
+  border: 1px solid var(--line);
+  border-radius: var(--r);
+  box-shadow: var(--shadow);
+  padding: 24px;
+  animation: dialog-in 0.16s ease;
+  text-align: left;
+}
+@keyframes dialog-in {
+  from { opacity: 0; transform: translateY(8px) scale(0.98); }
+  to { opacity: 1; transform: translateY(0) scale(1); }
+}
+.dTitle {
+  font-family: var(--display);
+  font-weight: 700;
+  font-size: 19px;
+  letter-spacing: -0.02em;
+}
+.dMsg {
+  margin-top: 8px;
+  font-size: 14px;
+  color: var(--dim);
+  line-height: 1.5;
+}
+.input {
+  width: 100%;
+  margin-top: 16px;
+  font-family: var(--body);
+  font-size: 15px;
+  color: var(--text);
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: 11px;
+  padding: 11px 13px;
+  transition: border-color 0.2s ease, box-shadow 0.2s ease;
+}
+.input:focus {
+  outline: none;
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px var(--accent-soft);
+}
+
+.actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+  margin-top: 22px;
+}
+.cancel {
+  font-family: var(--body);
+  font-weight: 600;
+  font-size: 14px;
+  color: var(--text);
+  background: transparent;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  padding: 9px 16px;
+  cursor: pointer;
+  transition: border-color 0.18s ease;
+}
+.cancel:hover { border-color: var(--faint); }
+.cancel:disabled { opacity: 0.5; cursor: not-allowed; }
+
+.save {
+  display: inline-grid;
+  place-items: center;
+  min-width: 86px;
+  font-family: var(--body);
+  font-weight: 600;
+  font-size: 14px;
+  color: var(--on-accent);
+  background: var(--accent);
+  border: none;
+  border-radius: 10px;
+  padding: 9px 16px;
+  cursor: pointer;
+  transition: background 0.18s ease;
+}
+.save:hover { background: var(--accent-press); }
+.save:disabled { opacity: 0.6; cursor: not-allowed; }
+
+.confirmDanger {
+  display: inline-grid;
+  place-items: center;
+  min-width: 86px;
+  font-family: var(--body);
+  font-weight: 600;
+  font-size: 14px;
+  color: #fff;
+  background: #e5553b;
+  border: none;
+  border-radius: 10px;
+  padding: 9px 16px;
+  cursor: pointer;
+  transition: background 0.18s ease;
+}
+.confirmDanger:hover { background: #d04428; }
+.confirmDanger:disabled { opacity: 0.7; cursor: not-allowed; }
+
+.toast {
+  position: fixed;
+  left: 50%;
+  bottom: 28px;
+  transform: translateX(-50%);
+  z-index: 120;
+  font-size: 13.5px;
+  font-weight: 500;
+  color: var(--text);
+  background: var(--bg-elev);
+  border: 1px solid var(--line);
+  border-radius: 11px;
+  box-shadow: var(--shadow);
+  padding: 11px 16px;
+  animation: dialog-in 0.18s ease;
+}

@@ -6,6 +6,7 @@ import Link from "next/link";
 import Logo from "@/components/Logo";
 import ThemeToggle from "@/components/ThemeToggle";
 import StepIndicator from "@/components/StepIndicator";
+import BackLink from "@/components/BackLink";
 import { AttachButton, Thumbs, type AttachedImage } from "@/components/ImageAttach";
 import styles from "./new.module.css";
 
@@ -72,9 +73,12 @@ export default function NewIdeaPage() {
   return (
     <div className={styles.page}>
       <header className={styles.top}>
-        <Link href="/" aria-label="Vibex home">
-          <Logo size={28} />
-        </Link>
+        <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+          <Link href="/" aria-label="Vibex home">
+            <Logo size={28} />
+          </Link>
+          <BackLink href="/" label="Back" />
+        </div>
         <ThemeToggle />
       </header>
 

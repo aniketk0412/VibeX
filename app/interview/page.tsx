@@ -12,6 +12,7 @@ import Logo from "@/components/Logo";
 import ThemeToggle from "@/components/ThemeToggle";
 import StepIndicator, { type FlowStep } from "@/components/StepIndicator";
 import QuestionCard, { type Question } from "@/components/QuestionCard";
+import BackLink from "@/components/BackLink";
 import { estimateProjectCost } from "@/lib/ai/models";
 import { startProject } from "@/app/actions";
 import styles from "./interview.module.css";
@@ -289,9 +290,12 @@ export default function InterviewPage() {
   return (
     <div className={styles.page}>
       <header className={styles.top}>
-        <Link href="/" aria-label="Vibex home">
-          <Logo size={28} />
-        </Link>
+        <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+          <Link href="/" aria-label="Vibex home">
+            <Logo size={28} />
+          </Link>
+          <BackLink href="/new" label="Back" />
+        </div>
         <ThemeToggle />
       </header>
 
