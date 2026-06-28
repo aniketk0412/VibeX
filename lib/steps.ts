@@ -3,10 +3,12 @@
 
 export type Spec = {
   idea?: string;
+  name?: string;
   platform?: string;
   audience?: string;
   core?: string;
   accounts?: string;
+  monetization?: string;
   vibe?: string;
   accent?: string;
   stack?: string;

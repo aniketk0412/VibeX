@@ -89,7 +89,7 @@ export const BYOK = {
   name: "Bring your own key",
   price: 5,
   tagline: "Use your own provider keys — we just run the loop.",
-  cta: { label: "Set up BYOK", href: "/signin" },
+  cta: { label: "Set up your own key", href: "/signin" },
   features: [
     "Your Anthropic / OpenAI / Google keys",
     "Provider rate limits apply",

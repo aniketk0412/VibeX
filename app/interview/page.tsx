@@ -23,9 +23,20 @@ const hasUI = (a: Answers) => !["CLI tool", "API / backend"].includes(a.platform
 
 const QUESTIONS: Question[] = [
   {
+    id: "name",
+    phase: "Scope",
+    prompt: "What should we call it?",
+    hint: "A working name for the project — you can rename it anytime.",
+    customPlaceholder: "Type a name…",
+    options: [
+      { label: "Decide later", desc: "Vibex uses a working name for now." },
+    ],
+  },
+  {
     id: "platform",
     phase: "Scope",
-    prompt: "What platform should this run on?",
+    prompt: "Where should it run?",
+    hint: "The kind of app we're building.",
     options: [
       { label: "Web app", desc: "Runs in the browser — the default for most ideas." },
       { label: "Mobile app", desc: "iOS / Android via React Native." },
@@ -37,7 +48,7 @@ const QUESTIONS: Question[] = [
   {
     id: "audience",
     phase: "Scope",
-    prompt: "Who is this for?",
+    prompt: "Who is it for?",
     hint: "Shapes how simple, polished, or powerful it needs to be.",
     options: [
       { label: "General consumers", desc: "Everyday people — keep it simple and polished." },
@@ -50,8 +61,8 @@ const QUESTIONS: Question[] = [
   {
     id: "core",
     phase: "Scope",
-    prompt: "What's the core feature for v1?",
-    hint: "Keep it to the one thing it must do well first.",
+    prompt: "What's the one thing it must do well first?",
+    hint: "The core of v1 — we build everything around this.",
     options: [
       { label: "Just the core loop", desc: "The single essential action — nothing extra." },
       { label: "Core + accounts", desc: "Add sign-in and saved, per-user data." },
@@ -68,6 +79,20 @@ const QUESTIONS: Question[] = [
       { label: "No login needed", desc: "Anyone can use it right away; nothing is saved per person." },
       { label: "Personal accounts", desc: "Each person logs in; their data stays private to them." },
       { label: "Accounts with admins & members", desc: "Different people get different access — e.g. an owner vs. users." },
+    ],
+    customPlaceholder: "Describe it…",
+  },
+  {
+    id: "monetization",
+    phase: "Scope",
+    prompt: "How will it make money?",
+    hint: "Decides whether we wire in plans, payments, or ads.",
+    options: [
+      { label: "Not yet — just build it", desc: "No monetization in v1." },
+      { label: "Subscription", desc: "Recurring monthly or yearly plans." },
+      { label: "One-time purchase", desc: "Pay once to unlock." },
+      { label: "Free + ads", desc: "Free to use, supported by ads." },
+      { label: "Marketplace fees", desc: "Take a cut of transactions." },
     ],
     customPlaceholder: "Describe it…",
   },
@@ -133,7 +158,7 @@ const QUESTIONS: Question[] = [
     phase: "Models",
     prompt: "Pick your Coder AI.",
     hint: "Writes the code, step by step.",
-    customPlaceholder: "Other model… (advanced / BYOK)",
+    customPlaceholder: "Other model… (advanced — Bring Your Own Key)",
     options: [
       { group: "Anthropic", label: "Claude Opus", desc: "Top-tier reasoning, highest quality." },
       { group: "Anthropic", label: "Claude Sonnet", desc: "Balanced speed and quality. Recommended." },
@@ -146,7 +171,7 @@ const QUESTIONS: Question[] = [
     phase: "Models",
     prompt: "Pick your Reviewer AI.",
     hint: "Checks each step before it ships.",
-    customPlaceholder: "Other model… (advanced / BYOK)",
+    customPlaceholder: "Other model… (advanced — Bring Your Own Key)",
     options: [
       { group: "Anthropic", label: "Claude Opus", desc: "Deepest reviews. Recommended." },
       { group: "Anthropic", label: "Claude Sonnet", desc: "Faster reviews, still sharp." },
@@ -214,11 +239,13 @@ export default function InterviewPage() {
 
   // Only summarize what was actually asked (adaptive questions may be absent).
   const summary: { k: string; v?: string }[] = [
+    { k: "Name", v: answers.name },
     { k: "Idea", v: idea },
-    { k: "Platform", v: answers.platform },
+    { k: "Where", v: answers.platform },
     { k: "Who for", v: answers.audience },
     { k: "Core (v1)", v: answers.core },
     { k: "Accounts", v: answers.accounts },
+    { k: "Earns by", v: answers.monetization },
     { k: "Look & feel", v: answers.vibe },
     { k: "Accent", v: answers.accent },
     { k: "Stack", v: answers.stack },
@@ -290,7 +317,13 @@ export default function InterviewPage() {
             {/* active question, or the goal-lock summary when finished */}
             {!done ? (
               <div className={styles.activeArea}>
-                <QuestionCard key={active!.id} question={active!} onAnswer={handleAnswer} />
+                <QuestionCard
+                  key={active!.id}
+                  question={active!}
+                  onAnswer={handleAnswer}
+                  number={current + 1}
+                  total={visible.length}
+                />
                 {current > 0 && (
                   <button type="button" className={styles.back} onClick={goBack}>
                     ← Back

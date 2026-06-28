@@ -30,9 +30,13 @@ export type Question = {
 export default function QuestionCard({
   question,
   onAnswer,
+  number,
+  total,
 }: {
   question: Question;
   onAnswer: (value: string) => void;
+  number?: number;
+  total?: number;
 }) {
   const { options, allowCustom = true, multi = false } = question;
   const customIndex = allowCustom ? options.length : -1;
@@ -127,7 +131,10 @@ export default function QuestionCard({
       role="group"
       aria-label={question.prompt}
     >
-      <div className={styles.phase}>{question.phase}</div>
+      <div className={styles.phase}>
+        {question.phase}
+        {number && total ? <span className={styles.count}> · Question {number} of ~{total}</span> : null}
+      </div>
       <h2 className={styles.prompt}>{question.prompt}</h2>
       {question.hint && <p className={styles.hint}>{question.hint}</p>}
 

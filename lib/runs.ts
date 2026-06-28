@@ -6,8 +6,10 @@ import { WINDOW_MS, type WindowKind } from "@/lib/usage";
 import type { Prisma } from "@prisma/client";
 
 export async function createProjectForUser(userId: string, spec: Record<string, unknown>) {
+  const name = typeof spec.name === "string" ? spec.name.trim() : "";
   const idea = typeof spec.idea === "string" ? spec.idea.trim() : "";
-  const title = idea ? idea.slice(0, 120) : "Untitled project";
+  const title =
+    name && name !== "Decide later" ? name.slice(0, 120) : idea ? idea.slice(0, 120) : "Untitled project";
   return prisma.project.create({
     data: { userId, title, spec: spec as Prisma.InputJsonValue },
   });
