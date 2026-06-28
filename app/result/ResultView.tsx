@@ -88,7 +88,28 @@ export default function ResultView({
   const [spec, setSpec] = useState<Spec>(specProp ?? {});
   const [active, setActive] = useState(0);
   const [tab, setTab] = useState<Tab>("preview");
+  const [collapsed, setCollapsed] = useState(false);
   const inShell = !!projects;
+
+  // Restore the sidebar's collapsed state (set after mount to avoid a hydration mismatch).
+  useEffect(() => {
+    try {
+      setCollapsed(localStorage.getItem("vibex-sidebar-collapsed") === "1");
+    } catch {
+      /* ignore */
+    }
+  }, []);
+
+  const toggleSidebar = () =>
+    setCollapsed((c) => {
+      const next = !c;
+      try {
+        localStorage.setItem("vibex-sidebar-collapsed", next ? "1" : "0");
+      } catch {
+        /* ignore */
+      }
+      return next;
+    });
 
   useEffect(() => {
     if (specProp) return;
@@ -142,23 +163,57 @@ export default function ResultView({
   const status = current?.status ?? null;
 
   // ── empty / failed build state (saved project with no files) ───────────
+  const failedBuild = status === "FAILED" || status === "INTERRUPTED";
+  const models = [spec.coder, spec.reviewer].filter(Boolean).join(" + ");
   const emptyState = current && (
     <div className={styles.emptyCanvas}>
-      <div className={styles.emptyIcon} aria-hidden>!</div>
+      <div className={styles.emptyIcon} data-tone={failedBuild ? "warn" : "ok"} aria-hidden>
+        {failedBuild ? (
+          "!"
+        ) : (
+          <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden>
+            <path d="M13 2 4.5 13.5H11l-1 8.5L18.5 10.5H12l1-8.5z" />
+          </svg>
+        )}
+      </div>
       <h2 className={styles.emptyTitle}>
         {status === "FAILED"
           ? "This build didn't finish"
           : status === "INTERRUPTED"
             ? "This build was interrupted"
-            : "No files yet"}
+            : "Ready to build"}
       </h2>
       <p className={styles.emptyText}>
-        {status === "FAILED" || status === "INTERRUPTED"
-          ? "The generation didn't produce any files. You can run it again from your locked goal."
-          : "This project hasn't produced any files yet. Start the build to generate code."}
+        {failedBuild
+          ? "The last run didn't produce any files. You can run it again from your locked goal below."
+          : "Your goal is locked in. Start the build and Vibex will generate the code step by step."}
       </p>
-      <Link href={`/run?project=${current.id}`} className="btn btn-primary">
-        {status === "FAILED" || status === "INTERRUPTED" ? "Try again →" : "Start build →"}
+
+      {(spec.idea || spec.platform || models) && (
+        <div className={styles.specCard}>
+          {spec.idea && (
+            <div className={styles.specRow}>
+              <span className={styles.specKey}>Goal</span>
+              <span className={styles.specVal}>{spec.idea}</span>
+            </div>
+          )}
+          {spec.platform && (
+            <div className={styles.specRow}>
+              <span className={styles.specKey}>Platform</span>
+              <span className={styles.specVal}>{spec.platform}</span>
+            </div>
+          )}
+          {models && (
+            <div className={styles.specRow}>
+              <span className={styles.specKey}>Models</span>
+              <span className={styles.specVal}>{models}</span>
+            </div>
+          )}
+        </div>
+      )}
+
+      <Link href={`/run?project=${current.id}`} className="btn btn-primary btn-lg">
+        {failedBuild ? "Try again →" : "Start build →"}
       </Link>
     </div>
   );
@@ -232,14 +287,22 @@ export default function ResultView({
   if (inShell) {
     return (
       <div className={styles.shell}>
-        <aside className={styles.sidebar}>
-          <Link href="/" aria-label="Vibex home" className={styles.sideLogo}>
-            <Logo size={26} />
-          </Link>
-          <Link href="/new" className={`btn btn-primary ${styles.sideNew}`}>New project →</Link>
+        <aside className={`${styles.sidebar} ${collapsed ? styles.sidebarCollapsed : ""}`}>
+          <div className={styles.sideInner}>
+            <div className={styles.sideTop}>
+              <Link href="/" aria-label="Vibex home" className={styles.sideLogo}>
+                <Logo size={26} />
+              </Link>
+              <button type="button" className={styles.collapseBtn} onClick={toggleSidebar} aria-label="Collapse sidebar" title="Collapse sidebar">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" aria-hidden><path d="M15 18l-6-6 6-6" /></svg>
+              </button>
+            </div>
+            <div className={styles.sideBack}>
+              <BackLink href="/dashboard" label="Dashboard" />
+            </div>
+            <Link href="/new" className={`btn btn-primary ${styles.sideNew}`}>New project →</Link>
 
           <nav className={styles.sideNav}>
-            <Link href="/dashboard" className={styles.sideLink}>Dashboard</Link>
             <Link href="/settings" className={styles.sideLink}>Settings</Link>
           </nav>
 
@@ -259,17 +322,22 @@ export default function ResultView({
             ))}
           </div>
 
-          <div className={styles.sideFoot}>
-            <ThemeToggle />
-            <UserMenu name={user?.name} email={user?.email} image={user?.image} />
+            <div className={styles.sideFoot}>
+              <ThemeToggle />
+              <UserMenu name={user?.name} email={user?.email} image={user?.image} />
+            </div>
           </div>
         </aside>
 
         <div className={styles.workspace}>
           <div className={styles.toolbar}>
             <div className={styles.toolbarLeft}>
-              <BackLink href="/dashboard" label="Dashboard" />
               <div className={styles.toolbarTitleWrap}>
+                {collapsed && (
+                  <button type="button" className={styles.expandBtn} onClick={toggleSidebar} aria-label="Show sidebar" title="Show sidebar">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden><rect x="3" y="4" width="18" height="16" rx="2" /><path d="M9 4v16" /></svg>
+                  </button>
+                )}
                 <h1 className={styles.toolbarTitle}>{title}</h1>
                 {status && <span className={styles.statusBadge} data-s={status}>{status.toLowerCase()}</span>}
               </div>
@@ -297,10 +365,10 @@ export default function ResultView({
     <div className={styles.page}>
       <header className={styles.top}>
         <div className={styles.left}>
+          <BackLink href="/" label="Home" />
           <Link href="/" aria-label="Vibex home">
             <Logo size={28} />
           </Link>
-          <BackLink href="/" label="Home" />
         </div>
         <ThemeToggle />
       </header>

@@ -291,10 +291,10 @@ export default function InterviewPage() {
     <div className={styles.page}>
       <header className={styles.top}>
         <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+          <BackLink href="/new" label="Back" />
           <Link href="/" aria-label="Vibex home">
             <Logo size={28} />
           </Link>
-          <BackLink href="/new" label="Back" />
         </div>
         <ThemeToggle />
       </header>

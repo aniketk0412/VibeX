@@ -13,6 +13,11 @@
   margin: 0 auto;
   padding: 20px 28px;
 }
+.left {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
 .right {
   display: flex;
   align-items: center;

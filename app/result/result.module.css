@@ -283,16 +283,58 @@
   height: 100dvh;
   position: sticky;
   top: 0;
+  border-right: 1px solid var(--line);
+  background: var(--bg-elev);
+  overflow: hidden;
+  transition: width 0.24s ease, border-color 0.24s ease;
+}
+.sidebarCollapsed {
+  width: 0;
+  border-right-color: transparent;
+}
+.sideInner {
+  width: 264px;
+  height: 100%;
   display: flex;
   flex-direction: column;
   gap: 14px;
   padding: 20px 16px;
-  border-right: 1px solid var(--line);
+}
+.sideTop {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+.collapseBtn,
+.expandBtn {
+  width: 30px;
+  height: 30px;
+  flex: none;
+  display: grid;
+  place-items: center;
+  border-radius: 8px;
+  border: 1px solid var(--line);
   background: var(--bg-elev);
-  overflow: hidden;
+  color: var(--dim);
+  cursor: pointer;
+  transition: border-color 0.15s ease, color 0.15s ease, background 0.15s ease;
+}
+.collapseBtn:hover,
+.expandBtn:hover {
+  color: var(--text);
+  border-color: var(--faint);
+  background: var(--surface-2);
 }
 .sideLogo {
   padding: 4px 6px;
+}
+.sideBack {
+  margin: -4px 0 -2px;
+}
+.sideBack :global(.back-link) {
+  width: 100%;
+  justify-content: flex-start;
 }
 .sideNew {
   width: 100%;
@@ -469,14 +511,24 @@
   background: var(--surface);
 }
 .emptyIcon {
-  width: 46px;
-  height: 46px;
-  border-radius: 12px;
+  width: 48px;
+  height: 48px;
+  border-radius: 13px;
   display: grid;
   place-items: center;
   font-family: var(--display);
   font-weight: 800;
   font-size: 22px;
+}
+.emptyIcon svg {
+  width: 24px;
+  height: 24px;
+}
+.emptyIcon[data-tone="ok"] {
+  color: var(--accent);
+  background: var(--accent-soft);
+}
+.emptyIcon[data-tone="warn"] {
   color: #e5755b;
   background: color-mix(in srgb, #e5755b 12%, transparent);
 }
@@ -488,8 +540,43 @@
 .emptyText {
   font-size: 14px;
   color: var(--dim);
-  max-width: 380px;
+  max-width: 400px;
   line-height: 1.5;
+}
+.specCard {
+  width: 100%;
+  max-width: 440px;
+  margin-top: 4px;
+  text-align: left;
+  background: var(--bg-elev);
+  border: 1px solid var(--line);
+  border-radius: 13px;
+  overflow: hidden;
+}
+.specRow {
+  display: flex;
+  gap: 14px;
+  padding: 11px 15px;
+  border-bottom: 1px solid var(--line-soft);
+  font-size: 13.5px;
+}
+.specRow:last-child {
+  border-bottom: none;
+}
+.specKey {
+  flex: none;
+  width: 72px;
+  font-family: var(--mono);
+  font-size: 11px;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--faint);
+  padding-top: 1px;
+}
+.specVal {
+  color: var(--text);
+  min-width: 0;
+  line-height: 1.45;
 }
 .emptyCanvas :global(.btn) {
   margin-top: 8px;
@@ -503,6 +590,13 @@
     position: static;
     border-right: none;
     border-bottom: 1px solid var(--line);
+    transition: none;
+  }
+  .sidebarCollapsed {
+    display: none;
+  }
+  .sideInner {
+    width: 100%;
   }
   .sideList {
     flex-direction: row;

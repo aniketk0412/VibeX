@@ -40,8 +40,47 @@
 .workspace {
   flex: 1;
   display: grid;
-  grid-template-columns: minmax(360px, 440px) 1fr;
+  grid-template-columns: var(--convo-w, 400px) 7px 1fr;
   min-height: 0;
+}
+.workspace.dragging {
+  cursor: col-resize;
+  user-select: none;
+}
+
+/* draggable divider between conversation and working canvas */
+.divider {
+  position: relative;
+  cursor: col-resize;
+  background: var(--line-soft);
+  transition: background 0.15s ease;
+}
+.divider::before {
+  /* widen the hit target without taking layout space */
+  content: "";
+  position: absolute;
+  inset: 0 -5px;
+}
+.divider::after {
+  /* grip dots */
+  content: "";
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 3px;
+  height: 26px;
+  transform: translate(-50%, -50%);
+  border-radius: 3px;
+  background: var(--line);
+  transition: background 0.15s ease;
+}
+.divider:hover,
+.workspace.dragging .divider {
+  background: color-mix(in srgb, var(--accent) 45%, transparent);
+}
+.divider:hover::after,
+.workspace.dragging .divider::after {
+  background: var(--accent);
 }
 
 .paneHead {
@@ -121,6 +160,16 @@
 .msg[data-role="coder"] .msgRole { color: var(--accent); }
 .msg[data-role="reviewer"] .msgRole { color: var(--good); }
 .msg[data-role="vibex"] .msgText { color: var(--dim); }
+
+/* role rail — distinguishes Vibex / Coder / Reviewer turns at a glance */
+.msg[data-role="vibex"],
+.msg[data-role="coder"],
+.msg[data-role="reviewer"] {
+  padding-left: 12px;
+  border-left: 2px solid var(--line-soft);
+}
+.msg[data-role="coder"] { border-left-color: color-mix(in srgb, var(--accent) 55%, transparent); }
+.msg[data-role="reviewer"] { border-left-color: color-mix(in srgb, var(--good) 55%, transparent); }
 
 .msg[data-role="user"] { align-self: flex-end; align-items: flex-end; max-width: 88%; }
 .msg[data-role="user"] .msgText {
@@ -257,8 +306,14 @@
   white-space: nowrap;
 }
 
-.progress { flex: none; height: 3px; background: var(--surface-2); overflow: hidden; }
-.progress i { display: block; height: 100%; background: var(--accent); transition: width 0.5s ease; }
+.progress { flex: none; height: 4px; background: var(--surface-2); overflow: hidden; }
+.progress i {
+  display: block;
+  height: 100%;
+  background: linear-gradient(90deg, var(--accent), var(--accent-press));
+  box-shadow: 0 0 10px color-mix(in srgb, var(--accent) 55%, transparent);
+  transition: width 0.5s ease;
+}
 
 .canvasBody {
   flex: 1;
@@ -270,10 +325,22 @@
 .stream {
   display: flex;
   flex-direction: column;
-  gap: 14px;
+  gap: 5px;
   max-width: 720px;
 }
-.line { display: flex; align-items: center; gap: 13px; }
+.line {
+  display: flex;
+  align-items: center;
+  gap: 13px;
+  padding: 9px 12px;
+  border-radius: 10px;
+  border: 1px solid transparent;
+  transition: background 0.2s ease, border-color 0.2s ease;
+}
+.line[data-state="active"] {
+  background: var(--accent-soft);
+  border-color: color-mix(in srgb, var(--accent) 22%, transparent);
+}
 .glyph { flex: none; width: 18px; height: 18px; display: grid; place-items: center; }
 .ltext { font-size: 15px; }
 .line[data-state="done"] .ltext { color: var(--dim); }
@@ -320,6 +387,7 @@
 @media (max-width: 900px) {
   .page { height: auto; min-height: 100dvh; overflow: visible; }
   .workspace { display: flex; flex-direction: column; }
+  .divider { display: none; }
   .convo { border-right: none; border-bottom: 1px solid var(--line); }
   .feed { max-height: 44vh; }
   .canvasBody { max-height: 60vh; }

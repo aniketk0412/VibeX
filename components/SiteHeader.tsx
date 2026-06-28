@@ -1,9 +1,16 @@
 import Link from "next/link";
+import { auth } from "@/auth";
 import Logo from "./Logo";
 import ThemeToggle from "./ThemeToggle";
+import UserMenu from "./UserMenu";
 import styles from "./SiteHeader.module.css";
 
-export default function SiteHeader() {
+// Auth-aware marketing header: signed-out visitors get Sign in / Start free; signed-in users
+// get a Dashboard shortcut + their account menu instead.
+export default async function SiteHeader() {
+  const session = await auth();
+  const user = session?.user;
+
   return (
     <header className={styles.nav}>
       <div className={`wrap ${styles.inner}`}>
@@ -17,8 +24,17 @@ export default function SiteHeader() {
             <a href="/#docs">Docs</a>
           </nav>
           <ThemeToggle />
-          <Link href="/signin" className="btn btn-ghost">Sign in</Link>
-          <Link href="/new" className="btn btn-primary">Start free</Link>
+          {user ? (
+            <>
+              <Link href="/dashboard" className="btn btn-primary">Dashboard →</Link>
+              <UserMenu name={user.name} email={user.email} image={user.image} />
+            </>
+          ) : (
+            <>
+              <Link href="/signin" className="btn btn-ghost">Sign in</Link>
+              <Link href="/new" className="btn btn-primary">Start free</Link>
+            </>
+          )}
         </div>
       </div>
     </header>

@@ -12,6 +12,7 @@ import Logo from "@/components/Logo";
 import ThemeToggle from "@/components/ThemeToggle";
 import UserMenu from "@/components/UserMenu";
 import ProjectGrid from "@/components/ProjectGrid";
+import BackLink from "@/components/BackLink";
 import styles from "./dashboard.module.css";
 
 export const dynamic = "force-dynamic";
@@ -40,9 +41,12 @@ export default async function DashboardPage() {
   return (
     <div className={styles.page}>
       <header className={styles.top}>
-        <Link href="/" aria-label="Vibex home">
-          <Logo size={28} />
-        </Link>
+        <div className={styles.left}>
+          <BackLink href="/" label="Home" />
+          <Link href="/" aria-label="Vibex home">
+            <Logo size={28} />
+          </Link>
+        </div>
         <div className={styles.right}>
           <ThemeToggle />
           <Link href="/new" className="btn btn-primary">New project →</Link>

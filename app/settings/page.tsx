@@ -40,10 +40,10 @@ export default async function SettingsPage() {
     <div className={styles.page}>
       <header className={styles.top}>
         <div className={styles.left}>
+          <BackLink href="/dashboard" label="Dashboard" />
           <Link href="/" aria-label="Vibex home">
             <Logo size={28} />
           </Link>
-          <BackLink href="/dashboard" label="Dashboard" />
         </div>
         <div className={styles.right}>
           <ThemeToggle />

@@ -87,6 +87,47 @@ export default function RunWorkspace({ initialSpec, projectId }: { initialSpec?:
   const steerRef = useRef<string[]>([]); // accumulated corrections
   const imagesRef = useRef<string[]>([]); // reference images (data URLs) for the build
 
+  // Resizable split between the conversation and the working canvas (persisted).
+  const workspaceRef = useRef<HTMLDivElement>(null);
+  const [convoW, setConvoW] = useState(400);
+  const [dragging, setDragging] = useState(false);
+
+  useEffect(() => {
+    try {
+      const saved = Number(localStorage.getItem("vibex-run-convo-w"));
+      if (saved >= 300 && saved <= 760) setConvoW(saved);
+    } catch {
+      /* ignore */
+    }
+  }, []);
+
+  const startDrag = (e: React.MouseEvent) => {
+    e.preventDefault();
+    setDragging(true);
+    const onMove = (ev: MouseEvent) => {
+      const rect = workspaceRef.current?.getBoundingClientRect();
+      if (!rect) return;
+      const max = Math.min(760, rect.width - 380);
+      const w = Math.max(300, Math.min(max, ev.clientX - rect.left));
+      setConvoW(w);
+    };
+    const onUp = () => {
+      setDragging(false);
+      document.removeEventListener("mousemove", onMove);
+      document.removeEventListener("mouseup", onUp);
+      setConvoW((w) => {
+        try {
+          localStorage.setItem("vibex-run-convo-w", String(Math.round(w)));
+        } catch {
+          /* ignore */
+        }
+        return w;
+      });
+    };
+    document.addEventListener("mousemove", onMove);
+    document.addEventListener("mouseup", onUp);
+  };
+
   const addMsg = (role: Role, text: string, verdict?: "pass" | "revise", images?: AttachedImage[]) =>
     setMessages((m) => [...m, { id: idRef.current++, role, text, verdict, images }]);
 
@@ -281,10 +322,10 @@ export default function RunWorkspace({ initialSpec, projectId }: { initialSpec?:
     <div className={styles.page}>
       <header className={styles.topbar}>
         <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+          <BackLink href="/dashboard" label="Back" />
           <Link href="/" aria-label="Vibex home">
             <Logo size={26} />
           </Link>
-          <BackLink href="/dashboard" label="Back" />
         </div>
         <div className={styles.topRight}>
           <span className={styles.live} data-status={status}>
@@ -294,7 +335,11 @@ export default function RunWorkspace({ initialSpec, projectId }: { initialSpec?:
         </div>
       </header>
 
-      <div className={styles.workspace}>
+      <div
+        ref={workspaceRef}
+        className={`${styles.workspace} ${dragging ? styles.dragging : ""}`}
+        style={{ "--convo-w": `${convoW}px` } as React.CSSProperties}
+      >
         {/* ── left: conversation ───────────────────────── */}
         <section className={styles.convo}>
           <div className={styles.paneHead}>
@@ -372,6 +417,14 @@ export default function RunWorkspace({ initialSpec, projectId }: { initialSpec?:
             </div>
           </div>
         </section>
+
+        <div
+          className={styles.divider}
+          role="separator"
+          aria-orientation="vertical"
+          aria-label="Drag to resize panels"
+          onMouseDown={startDrag}
+        />
 
         {/* ── right: working canvas ────────────────────── */}
         <section className={styles.canvas}>

@@ -26,7 +26,19 @@ export default function UserMenu({
   image?: string | null;
 }) {
   const [open, setOpen] = useState(false);
+  const [dropUp, setDropUp] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
+  const btnRef = useRef<HTMLButtonElement>(null);
+
+  const toggle = () => {
+    if (!open && btnRef.current) {
+      const rect = btnRef.current.getBoundingClientRect();
+      // Open upward when the avatar is near the bottom of the viewport (e.g. sidebar footer),
+      // so the menu doesn't spill off the bottom of the screen.
+      setDropUp(window.innerHeight - rect.bottom < 260);
+    }
+    setOpen((v) => !v);
+  };
 
   useEffect(() => {
     if (!open) return;
@@ -45,9 +57,10 @@ export default function UserMenu({
   return (
     <div className={styles.wrap} ref={ref}>
       <button
+        ref={btnRef}
         type="button"
         className={styles.avatar}
-        onClick={() => setOpen((v) => !v)}
+        onClick={toggle}
         aria-haspopup="menu"
         aria-expanded={open}
         aria-label="Account menu"
@@ -61,7 +74,7 @@ export default function UserMenu({
       </button>
 
       {open && (
-        <div className={styles.menu} role="menu">
+        <div className={`${styles.menu} ${dropUp ? styles.menuUp : ""}`} role="menu">
           <div className={styles.identity}>
             <span className={styles.name}>{name || "Signed in"}</span>
             {email && <span className={styles.email}>{email}</span>}
