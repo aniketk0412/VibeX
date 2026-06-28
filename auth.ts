@@ -10,10 +10,15 @@ import { prisma } from "@/lib/prisma";
 export const { handlers, auth, signIn, signOut } = NextAuth({
   adapter: PrismaAdapter(prisma),
   session: { strategy: "database" },
+  trustHost: true,
   pages: { signIn: "/signin" },
+  // Email (Resend) is only registered when its key is present — a half-configured
+  // provider throws a Configuration error for the whole auth route, Google included.
   providers: [
     Google,
-    Resend({ from: process.env.AUTH_EMAIL_FROM ?? "Vibex <onboarding@resend.dev>" }),
+    ...(process.env.AUTH_RESEND_KEY
+      ? [Resend({ from: process.env.AUTH_EMAIL_FROM ?? "Vibex <onboarding@resend.dev>" })]
+      : []),
   ],
   callbacks: {
     // Database sessions: expose the user id so server components can scope queries.

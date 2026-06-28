@@ -36,21 +36,21 @@ export const metadata: Metadata = {
   },
 };
 
-// Set the theme before first paint to avoid a flash. Defaults to dark.
+// Set the theme before first paint to avoid a flash. Defaults to light.
 const themeInit = `
 (function(){
   try {
-    var t = localStorage.getItem('vibex-theme') || 'dark';
+    var t = localStorage.getItem('vibex-theme') || 'light';
     document.documentElement.setAttribute('data-theme', t);
   } catch (e) {
-    document.documentElement.setAttribute('data-theme', 'dark');
+    document.documentElement.setAttribute('data-theme', 'light');
   }
 })();
 `;
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="en" data-theme="dark" className={`${display.variable} ${body.variable} ${mono.variable}`}>
+    <html lang="en" data-theme="light" className={`${display.variable} ${body.variable} ${mono.variable}`}>
       <head>
         <script dangerouslySetInnerHTML={{ __html: themeInit }} />
       </head>
