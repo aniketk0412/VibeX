@@ -13,6 +13,7 @@ import ThemeToggle from "@/components/ThemeToggle";
 import StepIndicator, { type FlowStep } from "@/components/StepIndicator";
 import QuestionCard, { type Question } from "@/components/QuestionCard";
 import { estimateProjectCost } from "@/lib/ai/models";
+import { startProject } from "@/app/actions";
 import styles from "./interview.module.css";
 
 type Answers = Record<string, string>;
@@ -227,11 +228,26 @@ export default function InterviewPage() {
     { k: "Billing", v: answers.billing },
   ];
 
-  const startBuilding = () => {
+  const [starting, setStarting] = useState(false);
+
+  const startBuilding = async () => {
+    if (starting) return;
+    setStarting(true);
+    const spec = { idea, ...answers, estimate: est.cost };
     try {
-      sessionStorage.setItem("vibex-spec", JSON.stringify({ idea, ...answers, estimate: est.cost }));
+      sessionStorage.setItem("vibex-spec", JSON.stringify(spec));
     } catch {
       /* ignore */
+    }
+    // Signed-in users get a saved Project; anonymous users run ephemerally.
+    try {
+      const { id } = await startProject(spec);
+      if (id) {
+        router.push(`/run?project=${id}`);
+        return;
+      }
+    } catch {
+      /* fall through to ephemeral run */
     }
     router.push("/run");
   };
@@ -325,8 +341,8 @@ export default function InterviewPage() {
                   <button type="button" className={styles.back} onClick={goBack}>
                     ← Back
                   </button>
-                  <button type="button" className="btn btn-primary btn-lg" onClick={startBuilding}>
-                    Start building →
+                  <button type="button" className="btn btn-primary btn-lg" onClick={startBuilding} disabled={starting}>
+                    {starting ? "Starting…" : "Start building →"}
                   </button>
                 </div>
               </div>

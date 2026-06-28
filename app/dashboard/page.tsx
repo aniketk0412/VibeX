@@ -44,7 +44,7 @@ export default async function DashboardPage() {
 
         <div className={styles.grid}>
           {projects.map((p) => (
-            <Link key={p.id} href={`/run?project=${p.id}`} className={styles.proj}>
+            <Link key={p.id} href={`/result?project=${p.id}`} className={styles.proj}>
               <div className={styles.projTitle}>{p.title}</div>
               <div className={styles.projMeta}>Updated {p.updatedAt.toLocaleDateString()}</div>
             </Link>

@@ -1,9 +1,13 @@
-// Streams the dual-AI engine to the /run screen as Server-Sent Events.
-// POST { spec, startIndex } → text/event-stream of RunEvent JSON.
-// Aborting the request (client interrupt) cancels the engine at the next step boundary.
+// Streams the dual-AI engine to the /run workspace as Server-Sent Events, and — when the caller
+// owns a project (signed-in) — persists the run: a Run row, a Prompt per Coder/Reviewer step,
+// rolling UsageWindow accounting, and a final status (COMPLETED / PAUSED / INTERRUPTED).
 
 import type { NextRequest } from "next/server";
+import { auth } from "@/auth";
+import { prisma } from "@/lib/prisma";
 import { runEngine } from "@/lib/engine";
+import { createRun, recordPrompt, setRunStep, finishRun, interruptIfRunning, recordUsage } from "@/lib/runs";
+import { resolveModel } from "@/lib/ai/models";
 import type { Spec } from "@/lib/steps";
 
 export const runtime = "nodejs";
@@ -11,20 +15,75 @@ export const dynamic = "force-dynamic";
 
 export async function POST(req: NextRequest) {
   const body = await req.json().catch(() => ({}));
-  const spec: Spec = body?.spec ?? {};
+  let spec: Spec = body?.spec ?? {};
   const startIndex = typeof body?.startIndex === "number" ? body.startIndex : 0;
+  const projectId: string | undefined = body?.projectId;
+
+  // If a project id is supplied, only persist when the signed-in user owns it.
+  let userId: string | null = null;
+  if (projectId) {
+    const session = await auth();
+    if (session?.user) {
+      const project = await prisma.project.findFirst({ where: { id: projectId, userId: session.user.id } });
+      if (project) {
+        userId = session.user.id;
+        spec = project.spec as Spec;
+      }
+    }
+  }
+
+  const coderModel = resolveModel(spec.coder).model;
+  const reviewerModel = resolveModel(spec.reviewer).model;
 
   const encoder = new TextEncoder();
   const stream = new ReadableStream<Uint8Array>({
     async start(controller) {
       const send = (e: unknown) => controller.enqueue(encoder.encode(`data: ${JSON.stringify(e)}\n\n`));
+      let runId: string | null = null;
+      let prevTokens = 0;
+      let prevCost = 0;
+
       try {
         for await (const ev of runEngine(spec, { startIndex, signal: req.signal })) {
           send(ev);
+          if (!userId) continue;
+          try {
+            switch (ev.type) {
+              case "planned":
+                runId = (await createRun(projectId!, ev.steps.length)).id;
+                break;
+              case "coder":
+                if (runId) await recordPrompt(runId, ev.index, "CODER", coderModel, ev.preview, ev.tokens, ev.cost);
+                break;
+              case "reviewer":
+                if (runId) await recordPrompt(runId, ev.index, "REVIEWER", reviewerModel, ev.note, ev.tokens, ev.cost);
+                break;
+              case "step_done":
+                if (runId) await setRunStep(runId, ev.index + 1);
+                break;
+              case "usage":
+                await recordUsage(userId, ev.tokens - prevTokens, ev.cost - prevCost);
+                prevTokens = ev.tokens;
+                prevCost = ev.cost;
+                break;
+              case "paused":
+                if (runId) await finishRun(runId, "PAUSED");
+                break;
+              case "complete":
+                if (runId) await finishRun(runId, "COMPLETED");
+                break;
+              default:
+                break;
+            }
+          } catch {
+            /* a persistence hiccup shouldn't kill the live stream */
+          }
         }
       } catch (e) {
         send({ type: "error", message: e instanceof Error ? e.message : "engine error" });
       } finally {
+        // If the stream ended without a terminal status (e.g. client interrupted), mark it.
+        if (userId && runId) await interruptIfRunning(runId).catch(() => {});
         controller.close();
       }
     },
