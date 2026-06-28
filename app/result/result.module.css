@@ -430,6 +430,11 @@
   padding-top: 14px;
   border-top: 1px solid var(--line-soft);
 }
+.sideFootLeft {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
 
 .workspace {
   flex: 1;
