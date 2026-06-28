@@ -46,7 +46,7 @@ export const PLANS: Plan[] = [
     price: 12,
     tagline: "For steady side-project building.",
     projects: "Unlimited projects",
-    cta: { label: "Choose Starter", href: "/signin" },
+    cta: { label: "Choose Starter", href: "/api/checkout?plan=starter" },
     features: [
       "Everything in Free",
       "Higher rolling limits",
@@ -60,7 +60,7 @@ export const PLANS: Plan[] = [
     price: 29,
     tagline: "For builders shipping every week.",
     projects: "Unlimited projects",
-    cta: { label: "Choose Pro", href: "/signin" },
+    cta: { label: "Choose Pro", href: "/api/checkout?plan=pro" },
     highlight: true,
     features: [
       "Everything in Starter",
@@ -75,7 +75,7 @@ export const PLANS: Plan[] = [
     price: 79,
     tagline: "For heavy, back-to-back runs.",
     projects: "Unlimited projects",
-    cta: { label: "Choose Scale", href: "/signin" },
+    cta: { label: "Choose Scale", href: "/api/checkout?plan=scale" },
     features: [
       "Everything in Pro",
       "Highest rolling limits",
@@ -89,7 +89,7 @@ export const BYOK = {
   name: "Bring your own key",
   price: 5,
   tagline: "Use your own provider keys — we just run the loop.",
-  cta: { label: "Set up your own key", href: "/signin" },
+  cta: { label: "Set up your own key", href: "/settings" },
   features: [
     "Your Anthropic / OpenAI / Google keys",
     "Provider rate limits apply",

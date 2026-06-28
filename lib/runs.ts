@@ -2,9 +2,23 @@
 // Coder/Reviewer step, and rolling UsageWindow accounting. Server-only (uses prisma).
 
 import { prisma } from "@/lib/prisma";
-import { WINDOW_MS, type WindowKind } from "@/lib/usage";
+import { WINDOW_MS, type WindowKind, type Plan, type WindowState } from "@/lib/usage";
 import type { GenFile } from "@/lib/steps";
 import type { Prisma } from "@prisma/client";
+
+export async function getUserPlan(userId: string): Promise<Plan> {
+  const u = await prisma.user.findUnique({ where: { id: userId }, select: { plan: true } });
+  const p = u?.plan;
+  return p === "starter" || p === "pro" || p === "scale" ? p : "free";
+}
+
+// The user's current 5-hour window (rolled if elapsed) — seeds the engine so limits are real.
+export async function getStartWindow(userId: string): Promise<WindowState> {
+  const w = await prisma.usageWindow.findUnique({ where: { userId_kind: { userId, kind: "FIVE_HOUR" } } });
+  const now = Date.now();
+  if (!w || now >= w.resetsAt.getTime()) return { kind: "FIVE_HOUR", used: 0, startedAt: now };
+  return { kind: "FIVE_HOUR", used: w.tokens, startedAt: w.startedAt.getTime() };
+}
 
 export async function createProjectForUser(userId: string, spec: Record<string, unknown>) {
   const name = typeof spec.name === "string" ? spec.name.trim() : "";

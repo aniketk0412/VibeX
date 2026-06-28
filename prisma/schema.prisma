@@ -18,6 +18,7 @@ model User {
   email         String?   @unique
   emailVerified DateTime?
   image         String?
+  plan          String    @default("free") // free | starter | pro | scale
   createdAt     DateTime  @default(now())
 
   accounts     Account[]

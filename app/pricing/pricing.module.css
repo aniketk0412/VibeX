@@ -20,6 +20,21 @@
   color: var(--text);
   font-weight: 600;
 }
+.note {
+  margin-top: 16px;
+  font-size: 14px;
+  color: var(--dim);
+  background: var(--accent-soft);
+  border: 1px solid color-mix(in srgb, var(--accent) 28%, transparent);
+  border-radius: 11px;
+  padding: 11px 14px;
+  display: inline-block;
+}
+.note a {
+  color: var(--accent);
+  font-weight: 600;
+  text-decoration: underline;
+}
 .tableWrap {
   padding: 38px 0 100px;
 }

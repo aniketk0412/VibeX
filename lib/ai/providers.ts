@@ -21,20 +21,28 @@ export function hasKey(provider: Provider): boolean {
   return !!process.env.GOOGLE_GENERATIVE_AI_API_KEY;
 }
 
+export function envKey(provider: Provider): string | undefined {
+  if (provider === "anthropic") return process.env.ANTHROPIC_API_KEY;
+  if (provider === "openai") return process.env.OPENAI_API_KEY;
+  return process.env.GOOGLE_GENERATIVE_AI_API_KEY;
+}
+
+// `apiKey` (BYOK) overrides the server env key when provided.
 export async function generate(
   provider: Provider,
   model: string,
   system: string,
   prompt: string,
   maxTokens = 1024,
+  apiKey?: string,
 ): Promise<GenResult> {
-  if (provider === "anthropic") return viaAnthropic(model, system, prompt, maxTokens);
-  if (provider === "openai") return viaOpenAI(model, system, prompt, maxTokens);
-  return viaGoogle(model, system, prompt, maxTokens);
+  if (provider === "anthropic") return viaAnthropic(model, system, prompt, maxTokens, apiKey);
+  if (provider === "openai") return viaOpenAI(model, system, prompt, maxTokens, apiKey);
+  return viaGoogle(model, system, prompt, maxTokens, apiKey);
 }
 
-async function viaAnthropic(model: string, system: string, prompt: string, maxTokens: number): Promise<GenResult> {
-  const apiKey = process.env.ANTHROPIC_API_KEY;
+async function viaAnthropic(model: string, system: string, prompt: string, maxTokens: number, key?: string): Promise<GenResult> {
+  const apiKey = key ?? process.env.ANTHROPIC_API_KEY;
   if (!apiKey) throw new MissingKeyError("anthropic");
   const client = new Anthropic({ apiKey });
   const res = await client.messages.create({
@@ -51,8 +59,8 @@ async function viaAnthropic(model: string, system: string, prompt: string, maxTo
   return { text, inputTokens: res.usage.input_tokens, outputTokens: res.usage.output_tokens };
 }
 
-async function viaOpenAI(model: string, system: string, prompt: string, maxTokens: number): Promise<GenResult> {
-  const apiKey = process.env.OPENAI_API_KEY;
+async function viaOpenAI(model: string, system: string, prompt: string, maxTokens: number, key?: string): Promise<GenResult> {
+  const apiKey = key ?? process.env.OPENAI_API_KEY;
   if (!apiKey) throw new MissingKeyError("openai");
   const r = await fetch("https://api.openai.com/v1/chat/completions", {
     method: "POST",
@@ -85,8 +93,8 @@ export function openRouterActive(): boolean {
 
 // Free models are heavily rate-limited, so retry on 429 (respecting Retry-After, capped)
 // before giving up — the engine then falls back to simulation so the run never breaks.
-export async function generateOpenRouter(system: string, prompt: string, maxTokens: number): Promise<GenResult> {
-  const apiKey = process.env.OPENROUTER_API_KEY;
+export async function generateOpenRouter(system: string, prompt: string, maxTokens: number, key?: string): Promise<GenResult> {
+  const apiKey = key ?? process.env.OPENROUTER_API_KEY;
   if (!apiKey) throw new Error("OPENROUTER_API_KEY not set");
   const model = process.env.OPENROUTER_MODEL ?? OPENROUTER_DEFAULT_MODEL;
 
@@ -124,8 +132,8 @@ export async function generateOpenRouter(system: string, prompt: string, maxToke
   throw new Error("OpenRouter rate-limited");
 }
 
-async function viaGoogle(model: string, system: string, prompt: string, maxTokens: number): Promise<GenResult> {
-  const apiKey = process.env.GOOGLE_GENERATIVE_AI_API_KEY;
+async function viaGoogle(model: string, system: string, prompt: string, maxTokens: number, key?: string): Promise<GenResult> {
+  const apiKey = key ?? process.env.GOOGLE_GENERATIVE_AI_API_KEY;
   if (!apiKey) throw new MissingKeyError("google");
   const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`;
   const r = await fetch(url, {

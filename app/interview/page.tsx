@@ -256,21 +256,28 @@ export default function InterviewPage() {
   ];
 
   const [starting, setStarting] = useState(false);
+  const [limitHit, setLimitHit] = useState(false);
 
   const startBuilding = async () => {
     if (starting) return;
     setStarting(true);
+    setLimitHit(false);
     const spec = { idea, ...answers, estimate: est.cost };
     try {
       sessionStorage.setItem("vibex-spec", JSON.stringify(spec));
     } catch {
       /* ignore */
     }
-    // Signed-in users get a saved Project; anonymous users run ephemerally.
+    // Signed-in users get a saved Project (free plan = 1 project); anonymous runs are ephemeral.
     try {
-      const { id } = await startProject(spec);
-      if (id) {
-        router.push(`/run?project=${id}`);
+      const res = await startProject(spec);
+      if (res.id) {
+        router.push(`/run?project=${res.id}`);
+        return;
+      }
+      if (res.error === "free_limit") {
+        setLimitHit(true);
+        setStarting(false);
         return;
       }
     } catch {
@@ -369,6 +376,12 @@ export default function InterviewPage() {
                     </span>
                   </div>
                 </div>
+
+                {limitHit && (
+                  <div className={styles.limitNotice}>
+                    You&apos;ve used your free project. <Link href="/pricing">Upgrade</Link> to keep building.
+                  </div>
+                )}
 
                 <div className={styles.goalFoot}>
                   <button type="button" className={styles.back} onClick={goBack}>

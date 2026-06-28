@@ -6,8 +6,11 @@ import type { NextRequest } from "next/server";
 import { auth } from "@/auth";
 import { prisma } from "@/lib/prisma";
 import { runEngine } from "@/lib/engine";
-import { createRun, recordPrompt, setRunStep, finishRun, saveRunOutput, interruptIfRunning, recordUsage } from "@/lib/runs";
+import { createRun, recordPrompt, setRunStep, finishRun, saveRunOutput, interruptIfRunning, recordUsage, getUserPlan, getStartWindow } from "@/lib/runs";
+import { getUserKeys } from "@/lib/keys";
 import { resolveModel } from "@/lib/ai/models";
+import type { Plan, WindowState } from "@/lib/usage";
+import type { UserKeys } from "@/lib/engine";
 import type { Spec } from "@/lib/steps";
 
 export const runtime = "nodejs";
@@ -32,6 +35,16 @@ export async function POST(req: NextRequest) {
     }
   }
 
+  // For an owned run: the user's plan (limit enforcement), BYOK keys, and real usage window.
+  let plan: Plan = "free";
+  let userKeys: UserKeys = {};
+  let startWindow: WindowState | undefined;
+  if (userId) {
+    plan = await getUserPlan(userId);
+    userKeys = await getUserKeys(userId);
+    startWindow = await getStartWindow(userId);
+  }
+
   const coderModel = resolveModel(spec.coder).model;
   const reviewerModel = resolveModel(spec.reviewer).model;
 
@@ -44,7 +57,7 @@ export async function POST(req: NextRequest) {
       let prevCost = 0;
 
       try {
-        for await (const ev of runEngine(spec, { startIndex, signal: req.signal })) {
+        for await (const ev of runEngine(spec, { startIndex, signal: req.signal, plan, userKeys, startWindow })) {
           send(ev);
           if (!userId) continue;
           try {
