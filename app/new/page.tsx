@@ -6,6 +6,7 @@ import Link from "next/link";
 import Logo from "@/components/Logo";
 import ThemeToggle from "@/components/ThemeToggle";
 import StepIndicator from "@/components/StepIndicator";
+import { AttachButton, Thumbs, type AttachedImage } from "@/components/ImageAttach";
 import styles from "./new.module.css";
 
 // Short chip label, richer fill — clicking drops a fully-formed idea into the box.
@@ -19,6 +20,7 @@ const EXAMPLES = [
 export default function NewIdeaPage() {
   const router = useRouter();
   const [idea, setIdea] = useState("");
+  const [refs, setRefs] = useState<AttachedImage[]>([]);
   const [mod, setMod] = useState("⌘");
   const taRef = useRef<HTMLTextAreaElement>(null);
 
@@ -53,6 +55,7 @@ export default function NewIdeaPage() {
     if (!canSubmit) return;
     try {
       sessionStorage.setItem("vibex-idea", idea.trim());
+      if (refs.length) sessionStorage.setItem("vibex-idea-refs", JSON.stringify(refs.map((r) => r.name)));
     } catch {
       /* sessionStorage may be unavailable — proceed anyway */
     }
@@ -98,6 +101,19 @@ export default function NewIdeaPage() {
               spellCheck
               aria-label="Describe what you want to build"
             />
+            {refs.length > 0 && (
+              <div className={styles.refStrip}>
+                <Thumbs images={refs} onRemove={(id) => setRefs((r) => r.filter((x) => x.id !== id))} />
+              </div>
+            )}
+          </div>
+
+          <div className={styles.attachRow}>
+            <AttachButton
+              className={styles.attachBtn}
+              onPick={(imgs) => setRefs((r) => [...r, ...imgs])}
+            />
+            <span className={styles.attachLabel}>Attach a reference image (optional)</span>
           </div>
 
           <div className={styles.chips}>

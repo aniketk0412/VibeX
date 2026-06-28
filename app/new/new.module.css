@@ -76,6 +76,42 @@
   box-shadow: 0 0 0 4px var(--accent-soft);
 }
 
+/* ── reference image attach ────────────────────────────── */
+.refStrip {
+  margin-top: 12px;
+}
+.attachRow {
+  margin-top: 14px;
+  display: flex;
+  align-items: center;
+  gap: 9px;
+}
+.attachBtn {
+  flex: none;
+  width: 34px;
+  height: 34px;
+  display: grid;
+  place-items: center;
+  border: 1px solid var(--line);
+  border-radius: 9px;
+  background: var(--bg-elev);
+  color: var(--dim);
+  cursor: pointer;
+  transition: border-color 0.2s ease, color 0.2s ease;
+}
+.attachBtn:hover {
+  border-color: var(--faint);
+  color: var(--text);
+}
+.attachBtn svg {
+  width: 16px;
+  height: 16px;
+}
+.attachLabel {
+  font-size: 13px;
+  color: var(--faint);
+}
+
 /* ── example chips ─────────────────────────────────────── */
 .chips {
   margin-top: 16px;

@@ -130,6 +130,21 @@
   padding: 8px 12px;
 }
 
+.msgImages {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 8px;
+}
+.msgImages img {
+  width: 96px;
+  height: 96px;
+  object-fit: cover;
+  border-radius: 8px;
+  border: 1px solid var(--line);
+  display: block;
+}
+
 .verdict {
   font-family: var(--mono);
   font-size: 10px;
@@ -150,14 +165,16 @@
   padding: 12px 14px;
   background: var(--bg-elev);
 }
+.attachStrip { margin-bottom: 9px; }
+
 .inputRow {
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: 6px;
   background: var(--surface);
   border: 1px solid var(--line);
   border-radius: 12px;
-  padding: 6px 6px 6px 12px;
+  padding: 6px;
   transition: border-color 0.2s ease, box-shadow 0.2s ease;
 }
 .inputRow:focus-within {

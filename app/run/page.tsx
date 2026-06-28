@@ -11,6 +11,7 @@ import Link from "next/link";
 import Logo from "@/components/Logo";
 import ThemeToggle from "@/components/ThemeToggle";
 import { buildSteps, type Spec } from "@/lib/steps";
+import { AttachButton, Thumbs, type AttachedImage } from "@/components/ImageAttach";
 import styles from "./run.module.css";
 
 function Check() {
@@ -35,7 +36,7 @@ function fmtMs(ms: number): string {
 }
 
 type Role = "vibex" | "coder" | "reviewer" | "user";
-type Msg = { id: number; role: Role; text: string; verdict?: "pass" | "revise" };
+type Msg = { id: number; role: Role; text: string; verdict?: "pass" | "revise"; images?: AttachedImage[] };
 
 type RunEvent =
   | { type: "planned"; steps: string[]; live: boolean }
@@ -65,6 +66,7 @@ export default function RunPage() {
 
   const [messages, setMessages] = useState<Msg[]>([]);
   const [draft, setDraft] = useState("");
+  const [attachments, setAttachments] = useState<AttachedImage[]>([]);
 
   const abortRef = useRef<AbortController | null>(null);
   const localTimer = useRef<ReturnType<typeof setInterval> | null>(null);
@@ -73,8 +75,8 @@ export default function RunPage() {
   const idRef = useRef(0);
   const feedEnd = useRef<HTMLDivElement>(null);
 
-  const addMsg = (role: Role, text: string, verdict?: "pass" | "revise") =>
-    setMessages((m) => [...m, { id: idRef.current++, role, text, verdict }]);
+  const addMsg = (role: Role, text: string, verdict?: "pass" | "revise", images?: AttachedImage[]) =>
+    setMessages((m) => [...m, { id: idRef.current++, role, text, verdict, images }]);
 
   useEffect(() => {
     let parsed: Spec = {};
@@ -221,9 +223,10 @@ export default function RunPage() {
 
   function send() {
     const text = draft.trim();
-    if (!text || done) return;
-    addMsg("user", text);
+    if ((!text && attachments.length === 0) || done) return;
+    addMsg("user", text || "(reference image)", undefined, attachments);
     setDraft("");
+    setAttachments([]);
     if (paused) {
       addMsg("vibex", "On it — resuming with that in mind.");
       void startStream(spec, completed);
@@ -280,6 +283,14 @@ export default function RunPage() {
                     <span className={styles.verdict} data-v={m.verdict}>{m.verdict === "revise" ? "REVISE" : "PASS"}</span>
                   )}
                   {m.text}
+                  {m.images && m.images.length > 0 && (
+                    <span className={styles.msgImages}>
+                      {m.images.map((im) => (
+                        // eslint-disable-next-line @next/next/no-img-element
+                        <img key={im.id} src={im.url} alt={im.name} />
+                      ))}
+                    </span>
+                  )}
                 </span>
               </div>
             ))}
@@ -287,7 +298,13 @@ export default function RunPage() {
           </div>
 
           <div className={styles.composer}>
+            {attachments.length > 0 && (
+              <div className={styles.attachStrip}>
+                <Thumbs images={attachments} onRemove={(id) => setAttachments((a) => a.filter((x) => x.id !== id))} />
+              </div>
+            )}
             <div className={styles.inputRow}>
+              <AttachButton onPick={(imgs) => setAttachments((a) => [...a, ...imgs])} />
               <input
                 className={styles.input}
                 value={draft}
@@ -302,7 +319,7 @@ export default function RunPage() {
                 disabled={done}
                 aria-label="Steer the build"
               />
-              <button type="button" className={styles.sendBtn} onClick={send} disabled={done || !draft.trim()} aria-label="Send">
+              <button type="button" className={styles.sendBtn} onClick={send} disabled={done || (!draft.trim() && attachments.length === 0)} aria-label="Send">
                 <Send />
               </button>
             </div>
