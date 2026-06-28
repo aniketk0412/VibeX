@@ -91,6 +91,7 @@ export default async function SettingsPage() {
                     message={`Your ${p.label} key will be deleted. Builds will fall back to Vibex's provider until you add it again.`}
                     confirmLabel="Remove key"
                     confirmAction={removeApiKey.bind(null, p.id)}
+                    successMessage={`${p.label} key removed`}
                   />
                 ) : (
                   <form

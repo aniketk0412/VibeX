@@ -5,6 +5,7 @@
 // Used for destructive actions — deleting a project, removing an API key.
 
 import { useEffect, useState, useTransition } from "react";
+import { toast } from "@/lib/toast";
 import styles from "./ConfirmDialog.module.css";
 
 export default function ConfirmDialog({
@@ -16,6 +17,7 @@ export default function ConfirmDialog({
   confirmLabel = "Confirm",
   confirmAction,
   onConfirmed,
+  successMessage,
 }: {
   triggerLabel: React.ReactNode;
   triggerClassName?: string;
@@ -25,6 +27,7 @@ export default function ConfirmDialog({
   confirmLabel?: string;
   confirmAction: () => Promise<unknown>;
   onConfirmed?: () => void;
+  successMessage?: string;
 }) {
   const [open, setOpen] = useState(false);
   const [pending, start] = useTransition();
@@ -40,6 +43,7 @@ export default function ConfirmDialog({
     start(async () => {
       await confirmAction();
       setOpen(false);
+      if (successMessage) toast.success(successMessage);
       onConfirmed?.();
     });
 

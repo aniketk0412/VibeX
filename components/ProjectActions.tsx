@@ -8,6 +8,7 @@
 import { useEffect, useRef, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { renameProject, deleteProject, duplicateProject } from "@/app/actions";
+import { toast } from "@/lib/toast";
 import styles from "./ProjectActions.module.css";
 
 export default function ProjectActions({
@@ -24,7 +25,6 @@ export default function ProjectActions({
   const [renameOpen, setRenameOpen] = useState(false);
   const [deleteOpen, setDeleteOpen] = useState(false);
   const [name, setName] = useState(title);
-  const [toast, setToast] = useState<string | null>(null);
   const [pending, start] = useTransition();
   const wrapRef = useRef<HTMLDivElement>(null);
 
@@ -39,16 +39,11 @@ export default function ProjectActions({
     return () => document.removeEventListener("mousedown", onDown);
   }, [menu]);
 
-  useEffect(() => {
-    if (!toast) return;
-    const t = setTimeout(() => setToast(null), 3500);
-    return () => clearTimeout(t);
-  }, [toast]);
-
   const doRename = () =>
     start(async () => {
       await renameProject(projectId, name);
       setRenameOpen(false);
+      toast.success("Project renamed");
       router.refresh();
     });
 
@@ -56,6 +51,7 @@ export default function ProjectActions({
     start(async () => {
       await deleteProject(projectId);
       setDeleteOpen(false);
+      toast.success("Project deleted");
       if (redirectAfterDelete) router.push(redirectAfterDelete);
       else router.refresh();
     });
@@ -64,9 +60,14 @@ export default function ProjectActions({
     setMenu(false);
     start(async () => {
       const res = await duplicateProject(projectId);
-      if (res.id) router.push(`/result?project=${res.id}`);
-      else if (res.error === "free_limit") setToast("Free plan is limited to 1 project — upgrade to duplicate.");
-      else setToast("Couldn’t duplicate this project.");
+      if (res.id) {
+        toast.success("Project duplicated");
+        router.push(`/result?project=${res.id}`);
+      } else if (res.error === "free_limit") {
+        toast.error("Free plan is limited to 1 project — upgrade to duplicate.");
+      } else {
+        toast.error("Couldn’t duplicate this project.");
+      }
     });
   };
 
@@ -139,8 +140,6 @@ export default function ProjectActions({
           </div>
         </div>
       )}
-
-      {toast && <div className={styles.toast} role="status">{toast}</div>}
     </div>
   );
 }
