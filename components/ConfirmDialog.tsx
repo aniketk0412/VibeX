@@ -39,6 +39,14 @@ export default function ConfirmDialog({
     return () => document.removeEventListener("keydown", onKey);
   }, [open, pending]);
 
+  // Return focus to the trigger when the dialog closes (a11y). Keyed on `open` only so a
+  // pending change mid-action doesn't yank focus.
+  useEffect(() => {
+    if (!open) return;
+    const prev = document.activeElement as HTMLElement | null;
+    return () => prev?.focus?.();
+  }, [open]);
+
   const confirm = () =>
     start(async () => {
       await confirmAction();

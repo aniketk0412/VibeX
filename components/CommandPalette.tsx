@@ -77,7 +77,14 @@ export default function CommandPalette() {
   }, []);
 
   useEffect(() => {
-    if (open) setTimeout(() => inputRef.current?.focus(), 20);
+    if (!open) return;
+    // Restore focus to wherever it was when the palette closes (a11y).
+    const prev = document.activeElement as HTMLElement | null;
+    const t = setTimeout(() => inputRef.current?.focus(), 20);
+    return () => {
+      clearTimeout(t);
+      prev?.focus?.();
+    };
   }, [open]);
 
   useEffect(() => {
