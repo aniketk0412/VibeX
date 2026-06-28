@@ -75,6 +75,55 @@ async function viaOpenAI(model: string, system: string, prompt: string, maxToken
   };
 }
 
+// ── OpenRouter (OpenAI-compatible aggregator; free models available) ──────────
+// When OPENROUTER_API_KEY is set, the engine routes everything here for a $0 demo.
+const OPENROUTER_DEFAULT_MODEL = "openai/gpt-oss-20b:free";
+
+export function openRouterActive(): boolean {
+  return !!process.env.OPENROUTER_API_KEY;
+}
+
+// Free models are heavily rate-limited, so retry on 429 (respecting Retry-After, capped)
+// before giving up — the engine then falls back to simulation so the run never breaks.
+export async function generateOpenRouter(system: string, prompt: string, maxTokens: number): Promise<GenResult> {
+  const apiKey = process.env.OPENROUTER_API_KEY;
+  if (!apiKey) throw new Error("OPENROUTER_API_KEY not set");
+  const model = process.env.OPENROUTER_MODEL ?? OPENROUTER_DEFAULT_MODEL;
+
+  for (let attempt = 0; attempt < 3; attempt++) {
+    const r = await fetch("https://openrouter.ai/api/v1/chat/completions", {
+      method: "POST",
+      headers: {
+        "content-type": "application/json",
+        authorization: `Bearer ${apiKey}`,
+        "X-Title": "Vibex",
+        "HTTP-Referer": process.env.NEXT_PUBLIC_APP_URL ?? "https://vibex.app",
+      },
+      body: JSON.stringify({
+        model,
+        max_tokens: maxTokens,
+        messages: [
+          { role: "system", content: system },
+          { role: "user", content: prompt },
+        ],
+      }),
+    });
+    if (r.status === 429) {
+      const retryAfter = Number(r.headers.get("retry-after")) || 2;
+      await new Promise((res) => setTimeout(res, Math.min(retryAfter, 6) * 1000));
+      continue;
+    }
+    if (!r.ok) throw new Error(`OpenRouter ${r.status}`);
+    const j = await r.json();
+    return {
+      text: j.choices?.[0]?.message?.content ?? "",
+      inputTokens: j.usage?.prompt_tokens ?? 0,
+      outputTokens: j.usage?.completion_tokens ?? 0,
+    };
+  }
+  throw new Error("OpenRouter rate-limited");
+}
+
 async function viaGoogle(model: string, system: string, prompt: string, maxTokens: number): Promise<GenResult> {
   const apiKey = process.env.GOOGLE_GENERATIVE_AI_API_KEY;
   if (!apiKey) throw new MissingKeyError("google");

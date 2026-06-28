@@ -7,7 +7,7 @@
 // demoable without credentials. The route streams these events to the /run screen.
 
 import { resolveModel, costOf, type ModelSpec } from "@/lib/ai/models";
-import { generate, hasKey, MissingKeyError, type GenResult } from "@/lib/ai/providers";
+import { generate, hasKey, openRouterActive, generateOpenRouter, type GenResult } from "@/lib/ai/providers";
 import {
   rolled,
   overLimit,
@@ -64,11 +64,14 @@ function simulate(p: Prompt, role: "coder" | "reviewer"): Promise<GenResult> {
 
 async function callModel(spec: ModelSpec, p: Prompt, role: "coder" | "reviewer", live: boolean): Promise<GenResult> {
   if (!live) return simulate(p, role);
+  const maxTokens = role === "coder" ? 1500 : 600;
   try {
-    return await generate(spec.provider, spec.model, p.system, p.user, role === "coder" ? 1500 : 600);
-  } catch (e) {
-    if (e instanceof MissingKeyError) return simulate(p, role);
-    throw e;
+    // OpenRouter (free) takes priority when configured; else the per-model provider.
+    if (openRouterActive()) return await generateOpenRouter(p.system, p.user, maxTokens);
+    return await generate(spec.provider, spec.model, p.system, p.user, maxTokens);
+  } catch {
+    // Missing keys / flaky free models / rate limits → keep the run going.
+    return simulate(p, role);
   }
 }
 
@@ -80,7 +83,8 @@ export async function* runEngine(
   const steps = buildSteps(spec);
   const coder = resolveModel(spec.coder);
   const reviewer = resolveModel(spec.reviewer);
-  const live = hasKey(coder.provider) && hasKey(reviewer.provider);
+  const live = openRouterActive() || (hasKey(coder.provider) && hasKey(reviewer.provider));
+  const freeViaOpenRouter = openRouterActive();
 
   yield { type: "planned", steps, live };
 
@@ -101,7 +105,7 @@ export async function* runEngine(
     // Coder pass
     const c = await callModel(coder, coderPrompt(spec, steps[i], steps.slice(0, i)), "coder", live);
     const cTok = c.inputTokens + c.outputTokens;
-    const cCost = costOf(coder, c.inputTokens, c.outputTokens);
+    const cCost = freeViaOpenRouter ? 0 : costOf(coder, c.inputTokens, c.outputTokens);
     totalCost += cCost;
     account(cTok);
     yield { type: "coder", index: i, preview: firstLine(c.text), tokens: cTok, cost: cCost };
@@ -110,7 +114,7 @@ export async function* runEngine(
     // Reviewer pass
     const r = await callModel(reviewer, reviewerPrompt(steps[i], c.text), "reviewer", live);
     const rTok = r.inputTokens + r.outputTokens;
-    const rCost = costOf(reviewer, r.inputTokens, r.outputTokens);
+    const rCost = freeViaOpenRouter ? 0 : costOf(reviewer, r.inputTokens, r.outputTokens);
     totalCost += rCost;
     account(rTok);
     const verdict = /^revise|revis|change|issue|bug|fix/i.test(r.text.trim()) ? "revise" : "pass";
