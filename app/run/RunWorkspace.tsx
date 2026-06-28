@@ -35,6 +35,15 @@ function fmtMs(ms: number): string {
   return h > 0 ? `${h}h ${m % 60}m` : `${m}m`;
 }
 
+function fileToDataUrl(file: File): Promise<string> {
+  return new Promise((resolve, reject) => {
+    const r = new FileReader();
+    r.onload = () => resolve(String(r.result));
+    r.onerror = () => reject(new Error("read failed"));
+    r.readAsDataURL(file);
+  });
+}
+
 type Role = "vibex" | "coder" | "reviewer" | "user";
 type Msg = { id: number; role: Role; text: string; verdict?: "pass" | "revise"; images?: AttachedImage[] };
 
@@ -74,6 +83,8 @@ export default function RunWorkspace({ initialSpec, projectId }: { initialSpec?:
   const stepsRef = useRef<string[]>([]);
   const idRef = useRef(0);
   const feedEnd = useRef<HTMLDivElement>(null);
+  const steerRef = useRef<string[]>([]); // accumulated corrections
+  const imagesRef = useRef<string[]>([]); // reference images (data URLs) for the build
 
   const addMsg = (role: Role, text: string, verdict?: "pass" | "revise", images?: AttachedImage[]) =>
     setMessages((m) => [...m, { id: idRef.current++, role, text, verdict, images }]);
@@ -156,7 +167,13 @@ export default function RunWorkspace({ initialSpec, projectId }: { initialSpec?:
       const res = await fetch("/api/run", {
         method: "POST",
         headers: { "content-type": "application/json" },
-        body: JSON.stringify({ spec: theSpec, startIndex: fromIndex, projectId }),
+        body: JSON.stringify({
+          spec: theSpec,
+          startIndex: fromIndex,
+          projectId,
+          steer: steerRef.current.join(" — ") || undefined,
+          images: imagesRef.current.length ? imagesRef.current : undefined,
+        }),
         signal: ctrl.signal,
       });
       if (!res.ok || !res.body) throw new Error("no stream");
@@ -225,20 +242,31 @@ export default function RunWorkspace({ initialSpec, projectId }: { initialSpec?:
     void startStream(spec, completed);
   }
 
-  function send() {
+  // A correction (text and/or an image) re-runs the build from the top with the new direction
+  // (and the image's description) folded into every file.
+  async function send() {
     const text = draft.trim();
     if ((!text && attachments.length === 0) || done) return;
     addMsg("user", text || "(reference image)", undefined, attachments);
+    if (attachments.length) {
+      try {
+        imagesRef.current = await Promise.all(attachments.slice(0, 2).map((a) => fileToDataUrl(a.file)));
+      } catch {
+        imagesRef.current = [];
+      }
+    }
+    if (text) steerRef.current.push(text);
     setDraft("");
     setAttachments([]);
-    if (paused) {
-      addMsg("vibex", "On it — resuming with that in mind.");
-      void startStream(spec, completed);
-      setPaused(false);
-      setLimitPause(false);
-    } else {
-      addMsg("vibex", "Noted — I'll fold that into the upcoming steps.");
-    }
+
+    abortRef.current?.abort();
+    if (localTimer.current) clearInterval(localTimer.current);
+    setCompleted(0);
+    setDone(false);
+    setPaused(false);
+    setLimitPause(false);
+    addMsg("vibex", "On it — rebuilding with that change folded in.");
+    void startStream(spec, 0);
   }
 
   const total = steps.length || 1;

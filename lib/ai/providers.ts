@@ -132,6 +132,67 @@ export async function generateOpenRouter(system: string, prompt: string, maxToke
   throw new Error("OpenRouter rate-limited");
 }
 
+// Describe a reference image for the codegen prompts. Best-effort: tries an OpenRouter vision
+// model (free) first, then Anthropic vision, then gives up. Never throws.
+export async function describeImage(
+  dataUrl: string,
+  keys: { anthropic?: string; openrouter?: string },
+): Promise<string> {
+  const ask = "Describe this UI / reference image for a developer in 2-3 concrete sentences: layout, colors, key components, and overall style.";
+
+  const orKey = keys.openrouter ?? process.env.OPENROUTER_API_KEY;
+  if (orKey) {
+    try {
+      const model = process.env.OPENROUTER_VISION_MODEL ?? "nvidia/nemotron-nano-12b-v2-vl:free";
+      const r = await fetch("https://openrouter.ai/api/v1/chat/completions", {
+        method: "POST",
+        headers: { "content-type": "application/json", authorization: `Bearer ${orKey}`, "X-Title": "Vibex" },
+        body: JSON.stringify({
+          model,
+          max_tokens: 300,
+          messages: [{ role: "user", content: [{ type: "text", text: ask }, { type: "image_url", image_url: { url: dataUrl } }] }],
+        }),
+      });
+      if (r.ok) {
+        const j = await r.json();
+        const text = (j.choices?.[0]?.message?.content ?? "").trim();
+        if (text) return text;
+      }
+    } catch {
+      /* fall through to Anthropic */
+    }
+  }
+
+  const aKey = keys.anthropic ?? process.env.ANTHROPIC_API_KEY;
+  const m = dataUrl.match(/^data:(image\/[a-zA-Z0-9.+-]+);base64,(.*)$/);
+  if (aKey && m) {
+    try {
+      const client = new Anthropic({ apiKey: aKey });
+      const res = await client.messages.create({
+        model: "claude-sonnet-4-6",
+        max_tokens: 300,
+        messages: [
+          {
+            role: "user",
+            content: [
+              { type: "image", source: { type: "base64", media_type: m[1] as "image/png" | "image/jpeg" | "image/gif" | "image/webp", data: m[2] } },
+              { type: "text", text: ask },
+            ],
+          },
+        ],
+      });
+      return res.content
+        .filter((b): b is Anthropic.TextBlock => b.type === "text")
+        .map((b) => b.text)
+        .join(" ")
+        .trim();
+    } catch {
+      /* give up */
+    }
+  }
+  return "";
+}
+
 async function viaGoogle(model: string, system: string, prompt: string, maxTokens: number, key?: string): Promise<GenResult> {
   const apiKey = key ?? process.env.GOOGLE_GENERATIVE_AI_API_KEY;
   if (!apiKey) throw new MissingKeyError("google");

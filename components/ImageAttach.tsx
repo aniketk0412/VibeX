@@ -7,13 +7,13 @@
 import { useRef } from "react";
 import styles from "./ImageAttach.module.css";
 
-export type AttachedImage = { id: string; name: string; url: string };
+export type AttachedImage = { id: string; name: string; url: string; file: File };
 
 let counter = 0;
 export function filesToImages(files: FileList): AttachedImage[] {
   return Array.from(files)
     .filter((f) => f.type.startsWith("image/"))
-    .map((f) => ({ id: `att-${counter++}`, name: f.name, url: URL.createObjectURL(f) }));
+    .map((f) => ({ id: `att-${counter++}`, name: f.name, url: URL.createObjectURL(f), file: f }));
 }
 
 function Clip() {

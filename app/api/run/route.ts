@@ -21,6 +21,10 @@ export async function POST(req: NextRequest) {
   let spec: Spec = body?.spec ?? {};
   const startIndex = typeof body?.startIndex === "number" ? body.startIndex : 0;
   const projectId: string | undefined = body?.projectId;
+  const steer: string | undefined = typeof body?.steer === "string" && body.steer.trim() ? body.steer : undefined;
+  const images: string[] | undefined = Array.isArray(body?.images)
+    ? body.images.filter((x: unknown): x is string => typeof x === "string" && x.startsWith("data:image")).slice(0, 2)
+    : undefined;
 
   // If a project id is supplied, only persist when the signed-in user owns it.
   let userId: string | null = null;
@@ -57,7 +61,7 @@ export async function POST(req: NextRequest) {
       let prevCost = 0;
 
       try {
-        for await (const ev of runEngine(spec, { startIndex, signal: req.signal, plan, userKeys, startWindow })) {
+        for await (const ev of runEngine(spec, { startIndex, signal: req.signal, plan, userKeys, startWindow, steer, images })) {
           send(ev);
           if (!userId) continue;
           try {

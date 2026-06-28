@@ -9,7 +9,7 @@
 // so the run always produces an openable result. With keys/credits, the files are fully generated.
 
 import { resolveModel, costOf, type ModelSpec } from "@/lib/ai/models";
-import { generate, generateOpenRouter, envKey, type GenResult } from "@/lib/ai/providers";
+import { generate, generateOpenRouter, envKey, describeImage, type GenResult } from "@/lib/ai/providers";
 import {
   rolled,
   overLimit,
@@ -69,13 +69,14 @@ function coderSystem(spec: Spec): string {
   return `You are an expert engineer building ${appKind(spec)}. Output ONLY the raw, complete contents of the requested file — no explanations, no commentary, no markdown code fences. The result must actually work, not be a stub or placeholder.`;
 }
 
-function coderUser(spec: Spec, file: PlannedFile, all: PlannedFile[]): string {
+function coderUser(spec: Spec, file: PlannedFile, all: PlannedFile[], directions: string): string {
   const look = [spec.vibe, spec.accent].filter(Boolean).join(", ");
   return [
     `App idea: ${spec.idea ?? "an app"}.`,
     spec.audience ? `For: ${spec.audience}.` : "",
     spec.core ? `Core feature: ${spec.core}.` : "",
     look ? `Look & feel: ${look}.` : "",
+    directions ? `IMPORTANT — apply this direction from the user:\n${directions}` : "",
     `The project contains these files: ${all.map((f) => f.path).join(", ")}.`,
     `Write the COMPLETE contents of \`${file.path}\` — ${file.purpose}.`,
     `Make it genuinely functional and reasonably complete. Return only the file contents.`,
@@ -167,7 +168,15 @@ function buildCall(spec: ModelSpec, keys: UserKeys): { call: CallFn | null; free
 // ── engine ───────────────────────────────────────────────────────────────────
 export async function* runEngine(
   spec: Spec,
-  opts: { plan?: Plan; startIndex?: number; signal?: AbortSignal; userKeys?: UserKeys; startWindow?: WindowState } = {},
+  opts: {
+    plan?: Plan;
+    startIndex?: number;
+    signal?: AbortSignal;
+    userKeys?: UserKeys;
+    startWindow?: WindowState;
+    steer?: string;
+    images?: string[];
+  } = {},
 ): AsyncGenerator<RunEvent> {
   const plan = opts.plan ?? "free";
   const coder = resolveModel(spec.coder);
@@ -176,6 +185,17 @@ export async function* runEngine(
   const coderC = buildCall(coder, userKeys);
   const reviewerC = buildCall(reviewer, userKeys);
   const live = !!coderC.call;
+
+  // Steering: the user's correction + a description of any attached reference image.
+  let directions = opts.steer?.trim() ?? "";
+  if (opts.images && opts.images.length) {
+    try {
+      const desc = await describeImage(opts.images[0], { anthropic: userKeys.anthropic, openrouter: userKeys.openrouter });
+      if (desc) directions = [directions, `Match this reference image: ${desc}`].filter(Boolean).join("\n");
+    } catch {
+      /* vision is best-effort */
+    }
+  }
 
   const fileList = planFiles(spec);
   const steps = fileList.map((f) => `Write ${f.path}`).concat("Review & finalize");
@@ -214,7 +234,7 @@ export async function* runEngine(
     let cost = 0;
     try {
       if (!coderC.call) throw new Error("no model");
-      const r = await coderC.call(coderSystem(spec), coderUser(spec, f, fileList), 3000);
+      const r = await coderC.call(coderSystem(spec), coderUser(spec, f, fileList, directions), 3000);
       content = stripFences(r.text);
       tok = r.inputTokens + r.outputTokens || 1200;
       cost = coderC.free ? 0 : costOf(coder, r.inputTokens, r.outputTokens);
