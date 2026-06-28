@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { Hanken_Grotesk, JetBrains_Mono, Fraunces } from "next/font/google";
 import { Analytics } from "@vercel/analytics/next";
 import Toaster from "@/components/Toaster";
+import CommandPalette from "@/components/CommandPalette";
 import "./globals.css";
 
 // Type system: Hanken Grotesk for body/UI, a Fraunces serif for display headings (editorial
@@ -96,6 +97,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
       </head>
       <body>
         {children}
+        <CommandPalette />
         <Toaster />
         <Analytics />
       </body>

@@ -1,0 +1,112 @@
+.overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 300;
+  background: rgba(0, 0, 0, 0.5);
+  backdrop-filter: blur(3px);
+  display: flex;
+  justify-content: center;
+  align-items: flex-start;
+  padding: 14vh 20px 20px;
+  animation: cp-overlay 0.14s ease;
+}
+@keyframes cp-overlay {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+.panel {
+  width: 100%;
+  max-width: 560px;
+  background: var(--bg-elev);
+  border: 1px solid var(--line);
+  border-radius: 16px;
+  box-shadow: var(--shadow);
+  overflow: hidden;
+  animation: cp-panel 0.16s ease;
+}
+@keyframes cp-panel {
+  from { opacity: 0; transform: translateY(-8px) scale(0.99); }
+  to { opacity: 1; transform: translateY(0) scale(1); }
+}
+
+.input {
+  width: 100%;
+  border: none;
+  border-bottom: 1px solid var(--line-soft);
+  background: transparent;
+  color: var(--text);
+  font-family: var(--font);
+  font-size: 16px;
+  padding: 17px 18px;
+  outline: none;
+}
+.input::placeholder { color: var(--faint); }
+
+.list {
+  max-height: 320px;
+  overflow-y: auto;
+  padding: 8px;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  width: 100%;
+  text-align: left;
+  background: transparent;
+  border: none;
+  border-radius: 9px;
+  padding: 11px 12px;
+  cursor: pointer;
+  color: var(--text);
+}
+.item[data-active="true"] {
+  background: var(--accent-soft);
+}
+.itemLabel {
+  font-size: 14.5px;
+  font-weight: 500;
+}
+.item[data-active="true"] .itemLabel { color: var(--accent); }
+.itemHint {
+  flex: none;
+  font-family: var(--mono);
+  font-size: 10px;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--faint);
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  padding: 2px 7px;
+}
+.empty {
+  padding: 20px 12px;
+  text-align: center;
+  color: var(--faint);
+  font-size: 14px;
+}
+
+.footer {
+  display: flex;
+  gap: 16px;
+  padding: 10px 16px;
+  border-top: 1px solid var(--line-soft);
+  background: var(--surface);
+  font-size: 11.5px;
+  color: var(--faint);
+}
+.footer kbd {
+  font-family: var(--mono);
+  font-size: 10.5px;
+  background: var(--surface-2);
+  border: 1px solid var(--line);
+  border-radius: 5px;
+  padding: 1px 5px;
+  margin-right: 3px;
+  color: var(--dim);
+}
