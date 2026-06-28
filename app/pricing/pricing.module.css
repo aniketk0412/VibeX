@@ -1,0 +1,25 @@
+.head {
+  padding: 48px 0 0;
+  max-width: 64ch;
+}
+.title {
+  margin-top: 18px;
+  font-family: var(--display);
+  font-weight: 800;
+  letter-spacing: -0.035em;
+  line-height: 1.04;
+  font-size: clamp(34px, 5vw, 52px);
+}
+.sub {
+  margin-top: 18px;
+  font-size: 18px;
+  color: var(--dim);
+  line-height: 1.5;
+}
+.sub b {
+  color: var(--text);
+  font-weight: 600;
+}
+.tableWrap {
+  padding: 38px 0 100px;
+}

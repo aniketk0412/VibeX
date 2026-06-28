@@ -1,0 +1,140 @@
+/* ============================================================
+   VIBEX — design system  ·  Ember on warm charcoal
+   Tokens, base styles, and primitives. No generic templates.
+   ============================================================ */
+
+:root {
+  /* dark is the default (premium dev-tool feel) */
+  --bg: #14110F;
+  --bg-elev: #1A1613;
+  --surface: #201B17;
+  --surface-2: #2A231E;
+  --surface-3: #332B24;
+  --line: #352D26;
+  --line-soft: #2A231E;
+
+  --text: #F4EEE6;
+  --dim: #B6AC9E;
+  --faint: #7E7368;
+
+  --accent: #FF5A1F;
+  --accent-press: #FF7038;
+  --accent-soft: rgba(255, 90, 31, 0.13);
+  --on-accent: #FFFFFF;
+  --glyph: #FFF6EF;
+
+  --good: #46C08C;
+  --good-soft: rgba(70, 192, 140, 0.14);
+
+  --shadow: 0 26px 64px -32px rgba(0, 0, 0, 0.7);
+  --r: 16px;
+  --r-sm: 11px;
+  --maxw: 1180px;
+
+  /* font variables are injected by next/font in layout.tsx */
+  --display: var(--font-display), system-ui, sans-serif;
+  --body: var(--font-body), system-ui, sans-serif;
+  --mono: var(--font-mono), ui-monospace, monospace;
+}
+
+[data-theme="light"] {
+  --bg: #F6F1E9;
+  --bg-elev: #FFFFFF;
+  --surface: #FFFFFF;
+  --surface-2: #F1EADF;
+  --surface-3: #E9E0D2;
+  --line: #E4DACB;
+  --line-soft: #EDE5D8;
+
+  --text: #1A1512;
+  --dim: #665B50;
+  --faint: #98897B;
+
+  --accent: #E8480D;
+  --accent-press: #C73A06;
+  --accent-soft: rgba(232, 72, 13, 0.10);
+  --on-accent: #FFFFFF;
+  --glyph: #FFF6EF;
+
+  --good: #1F9D6E;
+  --good-soft: rgba(31, 157, 110, 0.12);
+
+  --shadow: 0 24px 60px -30px rgba(60, 40, 20, 0.28);
+}
+
+* { box-sizing: border-box; margin: 0; padding: 0; }
+
+html { scroll-behavior: smooth; }
+
+body {
+  background: var(--bg);
+  color: var(--text);
+  font-family: var(--body);
+  font-size: 17px;
+  line-height: 1.55;
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+  transition: background 0.35s ease, color 0.35s ease;
+  overflow-x: hidden;
+}
+
+a { color: inherit; text-decoration: none; }
+
+.wrap { max-width: var(--maxw); margin: 0 auto; padding: 0 28px; }
+
+/* ── buttons ───────────────────────────────────────────── */
+.btn {
+  font-family: var(--body);
+  font-weight: 600;
+  font-size: 15px;
+  border: none;
+  cursor: pointer;
+  border-radius: 11px;
+  padding: 11px 18px;
+  transition: transform 0.12s ease, background 0.2s ease, border-color 0.2s ease;
+}
+.btn:active { transform: translateY(1px); }
+.btn:disabled { opacity: 0.4; cursor: not-allowed; }
+.btn:disabled:active { transform: none; }
+.btn-primary { background: var(--accent); color: var(--on-accent); }
+.btn-primary:hover { background: var(--accent-press); }
+.btn-ghost { background: transparent; color: var(--text); border: 1px solid var(--line); }
+.btn-ghost:hover { border-color: var(--faint); }
+.btn-lg { padding: 15px 26px; font-size: 17px; border-radius: 13px; }
+
+/* ── theme toggle (shared icon button) ─────────────────── */
+.theme-toggle {
+  width: 42px;
+  height: 42px;
+  border-radius: 11px;
+  border: 1px solid var(--line);
+  background: var(--bg-elev);
+  color: var(--text);
+  cursor: pointer;
+  display: grid;
+  place-items: center;
+  transition: border-color 0.2s ease, background 0.2s ease;
+}
+.theme-toggle:hover { border-color: var(--faint); }
+
+/* ── small shared bits ─────────────────────────────────── */
+.eyebrow {
+  display: inline-flex; align-items: center; gap: 9px;
+  font-family: var(--mono); font-size: 12.5px; letter-spacing: 0.04em;
+  text-transform: uppercase; color: var(--dim);
+  border: 1px solid var(--line); background: var(--bg-elev);
+  padding: 7px 13px; border-radius: 999px;
+}
+.eyebrow .dot {
+  width: 7px; height: 7px; border-radius: 50%; background: var(--accent);
+  animation: pulse 2.2s infinite;
+}
+@keyframes pulse {
+  0% { box-shadow: 0 0 0 0 var(--accent-soft); }
+  70% { box-shadow: 0 0 0 9px transparent; }
+  100% { box-shadow: 0 0 0 0 transparent; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  * { animation-duration: 0.01ms !important; transition-duration: 0.05ms !important; }
+}

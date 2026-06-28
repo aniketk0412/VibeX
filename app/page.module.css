@@ -1,0 +1,44 @@
+/* ── hero ──────────────────────────────────────────────── */
+.hero {
+  padding: 72px 0 80px;
+  display: grid;
+  grid-template-columns: 1.02fr 1.05fr;
+  gap: 54px;
+  align-items: center;
+}
+
+.headline {
+  font-family: var(--display);
+  font-weight: 800;
+  letter-spacing: -0.035em;
+  line-height: 1.02;
+  font-size: clamp(40px, 5.4vw, 67px);
+  margin-top: 26px;
+}
+.lead, .pain, .punch { display: block; }
+.lead { color: var(--text); }
+.pain { color: var(--dim); font-weight: 700; }
+.punch { color: var(--accent); }
+
+.sub { margin-top: 24px; font-size: 19px; color: var(--dim); max-width: 30ch; line-height: 1.5; }
+.tag { margin-top: 8px; font-family: var(--mono); font-size: 13px; color: var(--faint); }
+.ctaRow { margin-top: 34px; display: flex; align-items: center; gap: 14px; flex-wrap: wrap; }
+.note { margin-top: 18px; font-size: 14px; color: var(--faint); }
+.note b { color: var(--dim); font-weight: 600; }
+
+/* ── trust strip ───────────────────────────────────────── */
+.trust { padding: 8px 0 64px; display: flex; gap: 30px; flex-wrap: wrap; align-items: center; color: var(--faint); font-size: 14px; font-family: var(--mono); }
+.trust b { color: var(--dim); font-weight: 500; }
+.sep { width: 4px; height: 4px; border-radius: 50%; background: var(--line); }
+
+/* ── pricing ───────────────────────────────────────────── */
+.pricing { padding: 36px 0 96px; scroll-margin-top: 84px; }
+.pricingHead { margin-bottom: 30px; }
+.h2 { margin-top: 16px; font-family: var(--display); font-weight: 800; letter-spacing: -0.03em; font-size: clamp(28px, 4vw, 40px); line-height: 1.05; }
+.h2sub { margin-top: 12px; font-size: 16px; color: var(--dim); max-width: 60ch; line-height: 1.5; }
+.h2sub b { color: var(--text); font-weight: 600; }
+
+@media (max-width: 920px) {
+  .hero { grid-template-columns: 1fr; gap: 40px; padding: 46px 0 60px; }
+  .sub { max-width: none; }
+}

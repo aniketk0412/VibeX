@@ -1,0 +1,85 @@
+.steps {
+  width: 100%;
+}
+
+.list {
+  display: flex;
+  align-items: center;
+  list-style: none;
+}
+
+/* Each step is fixed-width (badge + label); the connector bars flex to fill,
+   so the rail always spans its container and never overflows. */
+.item {
+  display: flex;
+  align-items: center;
+  min-width: 0;
+}
+
+.badge {
+  flex: none;
+  width: 26px;
+  height: 26px;
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+  font-family: var(--mono);
+  font-size: 12px;
+  font-weight: 600;
+  border: 1px solid var(--line);
+  background: var(--bg-elev);
+  color: var(--faint);
+  transition: border-color 0.25s ease, background 0.25s ease, color 0.25s ease;
+}
+.badge svg {
+  width: 12px;
+  height: 12px;
+}
+
+.label {
+  margin-left: 9px;
+  white-space: nowrap;
+  font-family: var(--mono);
+  font-size: 12.5px;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--faint);
+  transition: color 0.25s ease;
+}
+
+.bar {
+  flex: 1 1 auto;
+  min-width: 18px;
+  height: 1px;
+  background: var(--line);
+  margin: 0 14px;
+}
+
+.item[data-state="active"] .badge {
+  border-color: var(--accent);
+  background: var(--accent-soft);
+  color: var(--accent);
+}
+.item[data-state="active"] .label {
+  color: var(--text);
+}
+
+.item[data-state="done"] .badge {
+  border-color: var(--good);
+  background: var(--good-soft);
+  color: var(--good);
+}
+.item[data-state="done"] .label {
+  color: var(--dim);
+}
+
+/* On narrow screens, collapse to badges only — keep the active step labelled. */
+@media (max-width: 520px) {
+  .item:not([data-state="active"]) .label {
+    display: none;
+  }
+  .bar {
+    min-width: 10px;
+    margin: 0 8px;
+  }
+}
