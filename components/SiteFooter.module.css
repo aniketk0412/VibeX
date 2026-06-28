@@ -1,13 +1,70 @@
 .footer {
   border-top: 1px solid var(--line-soft);
-  padding: 26px 0;
+  margin-top: 40px;
+  padding: 44px 0 28px;
 }
 
 .inner {
   display: flex;
   justify-content: space-between;
   flex-wrap: wrap;
-  gap: 10px;
+  gap: 36px;
+}
+
+.brand {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  max-width: 280px;
+}
+.tagline {
+  font-size: 14px;
+  color: var(--dim);
+  line-height: 1.5;
+}
+
+.cols {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 48px;
+}
+.col {
+  display: flex;
+  flex-direction: column;
+  gap: 9px;
+}
+.colHead {
+  font-family: var(--mono);
+  font-size: 11px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
   color: var(--faint);
-  font-size: 13.5px;
+  margin-bottom: 3px;
+}
+.col a {
+  font-size: 14px;
+  color: var(--dim);
+  transition: color 0.15s ease;
+}
+.col a:hover {
+  color: var(--accent);
+}
+
+.bottom {
+  display: flex;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-top: 40px;
+  padding-top: 20px;
+  border-top: 1px solid var(--line-soft);
+  font-size: 13px;
+  color: var(--faint);
+}
+.made {
+  font-family: var(--mono);
+}
+
+@media (max-width: 640px) {
+  .cols { gap: 32px; }
 }

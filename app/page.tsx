@@ -6,6 +6,34 @@ import PricingTable from "@/components/PricingTable";
 import styles from "./page.module.css";
 
 const SITE = process.env.NEXT_PUBLIC_APP_URL ?? "https://vibex.io";
+
+const FAQS: { q: string; a: string }[] = [
+  {
+    q: "What is Vibex?",
+    a: "Vibex turns an idea into working code. You describe it once; Vibex interviews you to lock the goal, then a Coder AI writes each file and a Reviewer AI checks it — generating and running every prompt until it's done.",
+  },
+  {
+    q: "Do I have to write prompts?",
+    a: "No — that's the whole point. You answer a short interview in plain language and Vibex writes and runs all the prompts for you, hands-free.",
+  },
+  {
+    q: "Can I bring my own API key?",
+    a: "Yes. Add your Anthropic, OpenAI, or OpenRouter key in Settings and builds run on your key — or use a Vibex plan. OpenRouter's free models cost $0.",
+  },
+  {
+    q: "How do usage limits work?",
+    a: "They're time-based rolling windows, not credit top-ups. When you hit a window the build pauses and auto-resumes when it resets, so you never lose progress.",
+  },
+  {
+    q: "What can Vibex build?",
+    a: "Web apps, APIs, and CLI tools. You get a live preview, the real file tree, and a downloadable .zip of working code.",
+  },
+  {
+    q: "Is there a free plan?",
+    a: "Yes — one free project lets you run the entire loop end to end, no card required.",
+  },
+];
+
 const JSON_LD = {
   "@context": "https://schema.org",
   "@graph": [
@@ -20,6 +48,15 @@ const JSON_LD = {
       description:
         "Vibex automates the entire vibe-coding loop — describe an idea once and it interviews you, locks the goal, then generates and runs every prompt until it's working code.",
       offers: { "@type": "Offer", price: "0", priceCurrency: "USD" },
+    },
+    {
+      "@type": "FAQPage",
+      "@id": `${SITE}/#faq`,
+      mainEntity: FAQS.map((f) => ({
+        "@type": "Question",
+        name: f.q,
+        acceptedAnswer: { "@type": "Answer", text: f.a },
+      })),
     },
   ],
 };
@@ -71,6 +108,24 @@ export default function Home() {
             </p>
           </div>
           <PricingTable />
+        </section>
+
+        <section className={styles.faq} id="faq">
+          <div className={styles.faqHead}>
+            <span className="eyebrow"><span className="dot" /> FAQ</span>
+            <h2 className={styles.h2}>Questions, answered</h2>
+          </div>
+          <div className={styles.faqList}>
+            {FAQS.map((f) => (
+              <details key={f.q} className={styles.faqItem}>
+                <summary className={styles.faqQ}>
+                  {f.q}
+                  <span className={styles.faqMark} aria-hidden>+</span>
+                </summary>
+                <p className={styles.faqA}>{f.a}</p>
+              </details>
+            ))}
+          </div>
         </section>
       </main>
 
