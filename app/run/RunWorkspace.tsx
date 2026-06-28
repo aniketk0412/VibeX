@@ -13,6 +13,7 @@ import ThemeToggle from "@/components/ThemeToggle";
 import { buildSteps, type Spec, type GenFile } from "@/lib/steps";
 import { AttachButton, Thumbs, type AttachedImage } from "@/components/ImageAttach";
 import BackLink from "@/components/BackLink";
+import CopyButton from "@/components/CopyButton";
 import styles from "./run.module.css";
 
 function Check() {
@@ -578,8 +579,9 @@ export default function RunWorkspace({ initialSpec, projectId }: { initialSpec?:
                 </aside>
                 <div className={styles.ideViewer}>
                   <div className={styles.ideBar}>
-                    {canvasFiles[safeFile]?.path}
+                    <span className={styles.ideBarPath}>{canvasFiles[safeFile]?.path}</span>
                     {!files.length && <span className={styles.ideLive}>writing…</span>}
+                    {canvasFiles[safeFile]?.content && <CopyButton text={canvasFiles[safeFile].content} />}
                   </div>
                   <pre className={styles.ideCode}>{canvasFiles[safeFile]?.content}</pre>
                 </div>

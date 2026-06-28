@@ -199,11 +199,21 @@
 
 .viewer { display: flex; flex-direction: column; min-width: 0; }
 .viewerBar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
   font-family: var(--mono);
   font-size: 11.5px;
   color: var(--faint);
-  padding: 11px 16px;
+  padding: 9px 12px 9px 16px;
   border-bottom: 1px solid var(--line-soft);
+}
+.viewerPath {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 .code {
   flex: 1;

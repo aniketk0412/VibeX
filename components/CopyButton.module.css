@@ -1,0 +1,20 @@
+.copy {
+  flex: none;
+  font-family: var(--mono);
+  font-size: 11px;
+  color: var(--dim);
+  background: var(--surface-2);
+  border: 1px solid var(--line);
+  border-radius: 7px;
+  padding: 4px 10px;
+  cursor: pointer;
+  transition: color 0.15s ease, border-color 0.15s ease, background 0.15s ease;
+}
+.copy:hover {
+  color: var(--text);
+  border-color: var(--faint);
+}
+.copy[data-copied="true"] {
+  color: var(--good);
+  border-color: color-mix(in srgb, var(--good) 40%, transparent);
+}

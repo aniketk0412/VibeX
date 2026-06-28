@@ -501,6 +501,13 @@
   padding: 10px 16px;
   border-bottom: 1px solid var(--line-soft);
 }
+.ideBarPath {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
 .ideLive {
   color: var(--accent);
   font-size: 10.5px;

@@ -15,6 +15,7 @@ import ThemeToggle from "@/components/ThemeToggle";
 import UserMenu from "@/components/UserMenu";
 import BackLink from "@/components/BackLink";
 import ProjectActions from "@/components/ProjectActions";
+import CopyButton from "@/components/CopyButton";
 import type { GenFile } from "@/lib/steps";
 import styles from "./result.module.css";
 
@@ -277,7 +278,10 @@ export default function ResultView({
         ))}
       </aside>
       <div className={styles.viewer}>
-        <div className={styles.viewerBar}>{files[safeActive]?.path}</div>
+        <div className={styles.viewerBar}>
+          <span className={styles.viewerPath}>{files[safeActive]?.path}</span>
+          {files[safeActive] && <CopyButton text={files[safeActive].content} />}
+        </div>
         <pre className={styles.code}>{files[safeActive]?.content}</pre>
       </div>
     </div>
