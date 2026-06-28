@@ -344,7 +344,7 @@ export default function ResultView({
             </div>
             <div className={styles.toolbarActions}>
               {!isEmpty && <button type="button" className="btn btn-ghost" onClick={download}>↓ Download .zip</button>}
-              <Link href={`/run?project=${current!.id}`} className="btn btn-ghost">Iterate</Link>
+              {!isEmpty && <Link href={`/run?project=${current!.id}`} className="btn btn-ghost">Iterate</Link>}
               <ProjectActions projectId={current!.id} title={title} redirectAfterDelete="/dashboard" />
             </div>
           </div>
@@ -364,13 +364,13 @@ export default function ResultView({
   return (
     <div className={styles.page}>
       <header className={styles.top}>
+        <Link href="/" aria-label="Vibex home">
+          <Logo size={28} />
+        </Link>
         <div className={styles.left}>
           <BackLink href="/" label="Home" />
-          <Link href="/" aria-label="Vibex home">
-            <Logo size={28} />
-          </Link>
+          <ThemeToggle />
         </div>
-        <ThemeToggle />
       </header>
 
       <main className={styles.main}>

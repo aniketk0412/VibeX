@@ -32,9 +32,12 @@
   --maxw: 1180px;
 
   /* font variables are injected by next/font in layout.tsx */
-  --display: var(--font-display), system-ui, sans-serif;
-  --body: var(--font-body), system-ui, sans-serif;
+  /* one UI font, one source of truth */
+  --font: var(--font-sans), system-ui, sans-serif;
   --mono: var(--font-mono), ui-monospace, monospace;
+  /* legacy aliases kept so headings + body can never diverge again */
+  --display: var(--font);
+  --body: var(--font);
 }
 
 [data-theme="light"] {

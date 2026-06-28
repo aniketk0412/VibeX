@@ -73,13 +73,13 @@ export default function NewIdeaPage() {
   return (
     <div className={styles.page}>
       <header className={styles.top}>
-        <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+        <Link href="/" aria-label="Vibex home">
+          <Logo size={28} />
+        </Link>
+        <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
           <BackLink href="/" label="Back" />
-          <Link href="/" aria-label="Vibex home">
-            <Logo size={28} />
-          </Link>
+          <ThemeToggle />
         </div>
-        <ThemeToggle />
       </header>
 
       <main className={styles.main}>

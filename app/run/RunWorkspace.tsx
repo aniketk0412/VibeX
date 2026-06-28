@@ -10,7 +10,7 @@ import { useRouter } from "next/navigation";
 import Link from "next/link";
 import Logo from "@/components/Logo";
 import ThemeToggle from "@/components/ThemeToggle";
-import { buildSteps, type Spec } from "@/lib/steps";
+import { buildSteps, type Spec, type GenFile } from "@/lib/steps";
 import { AttachButton, Thumbs, type AttachedImage } from "@/components/ImageAttach";
 import BackLink from "@/components/BackLink";
 import styles from "./run.module.css";
@@ -45,18 +45,38 @@ function fileToDataUrl(file: File): Promise<string> {
   });
 }
 
+function escapeRe(s: string): string {
+  return s.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+}
+
+// Inline CSS/JS into the HTML so the generated app previews standalone in an iframe.
+function buildPreview(files: GenFile[]): string | null {
+  const html = files.find((f) => /\.html$/i.test(f.path));
+  if (!html) return null;
+  let doc = html.content;
+  for (const f of files.filter((x) => /\.css$/i.test(x.path))) {
+    const name = f.path.split("/").pop() ?? f.path;
+    doc = doc.replace(new RegExp(`<link[^>]*href=["'][^"']*${escapeRe(name)}["'][^>]*>`, "gi"), `<style>\n${f.content}\n</style>`);
+  }
+  for (const f of files.filter((x) => /\.js$/i.test(x.path))) {
+    const name = f.path.split("/").pop() ?? f.path;
+    doc = doc.replace(new RegExp(`<script[^>]*src=["'][^"']*${escapeRe(name)}["'][^>]*>\\s*</script>`, "gi"), `<script>\n${f.content}\n</script>`);
+  }
+  return doc;
+}
+
 type Role = "vibex" | "coder" | "reviewer" | "user";
 type Msg = { id: number; role: Role; text: string; verdict?: "pass" | "revise"; images?: AttachedImage[] };
 
 type RunEvent =
   | { type: "planned"; steps: string[]; live: boolean }
   | { type: "step_start"; index: number; title: string }
-  | { type: "coder"; index: number; preview: string; tokens: number; cost: number }
+  | { type: "coder"; index: number; path: string; preview: string; tokens: number; cost: number }
   | { type: "reviewer"; index: number; verdict: "pass" | "revise"; note: string; tokens: number; cost: number }
   | { type: "step_done"; index: number }
   | { type: "usage"; tokens: number; cost: number; window: { kind: string; remaining: number; resetInMs: number } }
   | { type: "paused"; reason: string; resetInMs: number }
-  | { type: "complete"; tokens: number; cost: number; steps: number }
+  | { type: "complete"; tokens: number; cost: number; steps: number; files: GenFile[] }
   | { type: "error"; message: string };
 
 export default function RunWorkspace({ initialSpec, projectId }: { initialSpec?: Spec; projectId?: string }) {
@@ -77,6 +97,18 @@ export default function RunWorkspace({ initialSpec, projectId }: { initialSpec?:
   const [messages, setMessages] = useState<Msg[]>([]);
   const [draft, setDraft] = useState("");
   const [attachments, setAttachments] = useState<AttachedImage[]>([]);
+
+  // Working canvas: Preview ⇄ Code over the generated files (live previews while building,
+  // full contents once the run completes).
+  const [canvasTab, setCanvasTab] = useState<"preview" | "code">("code");
+  const [files, setFiles] = useState<GenFile[]>([]);
+  const [streamPaths, setStreamPaths] = useState<{ path: string; preview: string }[]>([]);
+  const [activeFile, setActiveFile] = useState(0);
+  const autoSwitched = useRef(false);
+  const [remaining, setRemaining] = useState<number | null>(null);
+  const [usageOpen, setUsageOpen] = useState(false);
+  const [canvasMode, setCanvasMode] = useState<"normal" | "min" | "max">("normal");
+  const canvasRef = useRef<HTMLElement>(null);
 
   const abortRef = useRef<AbortController | null>(null);
   const localTimer = useRef<ReturnType<typeof setInterval> | null>(null);
@@ -133,6 +165,13 @@ export default function RunWorkspace({ initialSpec, projectId }: { initialSpec?:
 
   const viewOutput = () => router.push(projectId ? `/result?project=${projectId}` : "/result");
 
+  const toggleFullscreen = () => {
+    const el = canvasRef.current;
+    if (!el) return;
+    if (document.fullscreenElement) void document.exitFullscreen();
+    else void el.requestFullscreen?.();
+  };
+
   useEffect(() => {
     let parsed: Spec = initialSpec ?? {};
     if (!initialSpec) {
@@ -172,6 +211,13 @@ export default function RunWorkspace({ initialSpec, projectId }: { initialSpec?:
       case "coder": {
         const title = stepsRef.current[ev.index] ?? `Step ${ev.index + 1}`;
         addMsg("coder", `${title} — ${ev.preview}`);
+        if (ev.path) {
+          setStreamPaths((p) =>
+            p.some((x) => x.path === ev.path)
+              ? p.map((x) => (x.path === ev.path ? { path: ev.path, preview: ev.preview } : x))
+              : [...p, { path: ev.path, preview: ev.preview }],
+          );
+        }
         break;
       }
       case "reviewer":
@@ -184,6 +230,7 @@ export default function RunWorkspace({ initialSpec, projectId }: { initialSpec?:
         setTokens(ev.tokens);
         setCost(ev.cost);
         setResetInMs(ev.window.resetInMs);
+        setRemaining(ev.window.remaining);
         break;
       case "paused":
         setLimitPause(true);
@@ -195,7 +242,8 @@ export default function RunWorkspace({ initialSpec, projectId }: { initialSpec?:
         setTokens(ev.tokens);
         setCost(ev.cost);
         setDone(true);
-        addMsg("vibex", `Build complete — ${ev.steps} steps · ~$${ev.cost.toFixed(2)}. Open the output on the canvas.`);
+        if (ev.files?.length) setFiles(ev.files);
+        addMsg("vibex", `Build complete — ${ev.steps} steps · ~$${ev.cost.toFixed(2)}. Preview is on the canvas →`);
         break;
       default:
         break;
@@ -263,8 +311,15 @@ export default function RunWorkspace({ initialSpec, projectId }: { initialSpec?:
       setCost((c) => c + 0.04);
       if (i >= plan.length) {
         if (localTimer.current) clearInterval(localTimer.current);
+        const title = theSpec.idea ?? "Your app";
+        setFiles([
+          {
+            path: "index.html",
+            content: `<!doctype html>\n<html lang="en"><head><meta charset="utf-8"><title>${title}</title></head>\n<body style="font-family:system-ui;display:grid;place-items:center;min-height:100vh;margin:0;background:#14110f;color:#f4eee6"><main style="text-align:center"><h1 style="color:#ff5a1f">${title}</h1><p>Built by Vibex.</p></main></body></html>\n`,
+          },
+        ]);
         setDone(true);
-        addMsg("vibex", "Build complete. Open the output on the canvas.");
+        addMsg("vibex", "Build complete. Preview is on the canvas →");
       }
     }, 1000);
   }
@@ -307,27 +362,42 @@ export default function RunWorkspace({ initialSpec, projectId }: { initialSpec?:
     setDone(false);
     setPaused(false);
     setLimitPause(false);
+    setFiles([]);
+    setStreamPaths([]);
+    setActiveFile(0);
+    autoSwitched.current = false;
+    setCanvasTab("code");
     addMsg("vibex", "On it — rebuilding with that change folded in.");
     void startStream(spec, 0);
   }
 
   const total = steps.length || 1;
-  const currentStep = done ? null : steps[completed];
   const pct = Math.round((completed / total) * 100);
   const status = done ? "DONE" : paused ? "PAUSED" : "LIVE";
 
   const roleLabel: Record<Role, string> = { vibex: "Vibex", coder: "Coder", reviewer: "Reviewer", user: "You" };
 
+  // Canvas content: full files once complete, otherwise the live per-file previews as they stream.
+  const canvasFiles: GenFile[] = files.length ? files : streamPaths.map((s) => ({ path: s.path, content: s.preview }));
+  const safeFile = Math.min(activeFile, Math.max(0, canvasFiles.length - 1));
+  const previewDoc = files.length ? buildPreview(files) : null;
+
+  // When the build finishes and there's something previewable, flip the canvas to Preview once.
+  useEffect(() => {
+    if (done && previewDoc && !autoSwitched.current) {
+      autoSwitched.current = true;
+      setCanvasTab("preview");
+    }
+  }, [done, previewDoc]);
+
   return (
     <div className={styles.page}>
       <header className={styles.topbar}>
-        <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
-          <BackLink href="/dashboard" label="Back" />
-          <Link href="/" aria-label="Vibex home">
-            <Logo size={26} />
-          </Link>
-        </div>
+        <Link href="/" aria-label="Vibex home">
+          <Logo size={26} />
+        </Link>
         <div className={styles.topRight}>
+          <BackLink href="/dashboard" label="Back" />
           <span className={styles.live} data-status={status}>
             <span className={styles.dot} /> {status}
           </span>
@@ -337,6 +407,7 @@ export default function RunWorkspace({ initialSpec, projectId }: { initialSpec?:
 
       <div
         ref={workspaceRef}
+        data-canvas={canvasMode}
         className={`${styles.workspace} ${dragging ? styles.dragging : ""}`}
         style={{ "--convo-w": `${convoW}px` } as React.CSSProperties}
       >
@@ -353,6 +424,36 @@ export default function RunWorkspace({ initialSpec, projectId }: { initialSpec?:
               <b>{spec.idea ?? "Your project"}</b>
               {spec.coder ? ` · ${spec.coder} + ${spec.reviewer}` : ""}
             </span>
+          </div>
+
+          <div className={styles.buildTrack}>
+            <div className={styles.buildTrackHead}>
+              <span className={styles.paneLabel}>Build</span>
+              <span className={styles.steppill} data-done={done}>
+                {done ? "done" : `step ${Math.min(completed + 1, total)} of ~${total}`}
+              </span>
+            </div>
+            <div className={styles.progress}><i style={{ width: `${done ? 100 : pct}%` }} /></div>
+            <div className={styles.steps}>
+              {steps.map((s, i) => {
+                const state = i < completed ? "done" : i === completed && !done ? "active" : "upcoming";
+                return (
+                  <div key={`${i}-${s}`} className={styles.line} data-state={state}>
+                    <span className={styles.glyph}>
+                      {state === "done" ? (
+                        <span className={styles.chk}><Check /></span>
+                      ) : state === "active" && !paused ? (
+                        <span className={styles.spin} />
+                      ) : (
+                        <span className={styles.pending} />
+                      )}
+                    </span>
+                    <span className={styles.ltext}>{s}</span>
+                    {state === "active" && !paused && <span className={styles.tag}>running…</span>}
+                  </div>
+                );
+              })}
+            </div>
           </div>
 
           <div className={styles.feed}>
@@ -427,58 +528,86 @@ export default function RunWorkspace({ initialSpec, projectId }: { initialSpec?:
         />
 
         {/* ── right: working canvas ────────────────────── */}
-        <section className={styles.canvas}>
+        <section className={styles.canvas} ref={canvasRef}>
           <div className={styles.paneHead}>
-            <span className={styles.paneLabel}>Working canvas</span>
-            <div className={styles.canvasMeta}>
-              <span className={styles.usageChip}>{(tokens / 1000).toFixed(1)}k · ~${cost.toFixed(2)} · resets {fmtMs(resetInMs)}</span>
-              {!done && <span className={styles.steppill}>step {Math.min(completed + 1, total)} of ~{total}</span>}
+            <div className={styles.canvasTabs} role="tablist">
+              <button type="button" role="tab" aria-selected={canvasTab === "preview"} className={styles.canvasTab} data-active={canvasTab === "preview"} onClick={() => setCanvasTab("preview")}>
+                Preview
+              </button>
+              <button type="button" role="tab" aria-selected={canvasTab === "code"} className={styles.canvasTab} data-active={canvasTab === "code"} onClick={() => setCanvasTab("code")}>
+                Code
+              </button>
+            </div>
+            <div className={styles.canvasCtrls}>
+              <button type="button" className={styles.ctrlBtn} onClick={() => setCanvasMode((m) => (m === "min" ? "normal" : "min"))} aria-label="Minimize canvas" title="Minimize">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" aria-hidden><path d="M6 12h12" /></svg>
+              </button>
+              <button type="button" className={styles.ctrlBtn} data-active={canvasMode === "max"} onClick={() => setCanvasMode((m) => (m === "max" ? "normal" : "max"))} aria-label="Maximize canvas" title="Maximize">
+                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden><rect x="4" y="4" width="16" height="16" rx="2" /></svg>
+              </button>
+              <button type="button" className={styles.ctrlBtn} onClick={toggleFullscreen} aria-label="Fullscreen canvas" title="Fullscreen">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden><path d="M8 3H5a2 2 0 0 0-2 2v3M16 3h3a2 2 0 0 1 2 2v3M21 16v3a2 2 0 0 1-2 2h-3M3 16v3a2 2 0 0 0 2 2h3" /></svg>
+              </button>
             </div>
           </div>
 
-          <div className={styles.progress}><i style={{ width: `${done ? 100 : pct}%` }} /></div>
-
           <div className={styles.canvasBody}>
-            <div className={styles.stream}>
-              {steps.map((s, i) => {
-                const state = i < completed ? "done" : i === completed && !done ? "active" : "upcoming";
-                return (
-                  <div key={`${i}-${s}`} className={styles.line} data-state={state}>
-                    <span className={styles.glyph}>
-                      {state === "done" ? (
-                        <span className={styles.chk}><Check /></span>
-                      ) : state === "active" && !paused ? (
-                        <span className={styles.spin} />
-                      ) : (
-                        <span className={styles.pending} />
-                      )}
-                    </span>
-                    <span className={styles.ltext}>{s}</span>
-                    {state === "active" && !paused && <span className={styles.tag}>running…</span>}
-                  </div>
-                );
-              })}
-            </div>
-
-            {done && (
-              <div className={styles.complete}>
-                <div className={styles.completeIcon}><Check /></div>
-                <div>
-                  <div className={styles.completeTitle}>Build complete</div>
-                  <div className={styles.completeSub}>{total} steps · {(tokens / 1000).toFixed(1)}k tokens · ~${cost.toFixed(2)}</div>
+            {canvasTab === "preview" ? (
+              previewDoc ? (
+                <iframe
+                  className={styles.previewFrame}
+                  srcDoc={previewDoc}
+                  title="Live preview"
+                  sandbox="allow-scripts allow-same-origin allow-forms allow-modals allow-popups"
+                />
+              ) : (
+                <div className={styles.canvasEmpty}>
+                  <div className={styles.canvasEmptyIcon} aria-hidden>◴</div>
+                  <p>{done ? "No previewable HTML — check the Code tab." : "Live preview appears once the build produces the files."}</p>
                 </div>
-                <button type="button" className="btn btn-primary" onClick={viewOutput}>
-                  View output →
-                </button>
+              )
+            ) : canvasFiles.length ? (
+              <div className={styles.ide}>
+                <aside className={styles.ideTree}>
+                  {canvasFiles.map((f, i) => (
+                    <button key={f.path} type="button" className={styles.ideItem} data-active={safeFile === i} onClick={() => setActiveFile(i)}>
+                      <span className={styles.ideIcon}>›</span>
+                      {f.path}
+                    </button>
+                  ))}
+                </aside>
+                <div className={styles.ideViewer}>
+                  <div className={styles.ideBar}>
+                    {canvasFiles[safeFile]?.path}
+                    {!files.length && <span className={styles.ideLive}>writing…</span>}
+                  </div>
+                  <pre className={styles.ideCode}>{canvasFiles[safeFile]?.content}</pre>
+                </div>
+              </div>
+            ) : (
+              <div className={styles.canvasEmpty}>
+                <div className={styles.canvasEmptyIcon} aria-hidden>{"›_"}</div>
+                <p>Files appear here as the build writes them.</p>
               </div>
             )}
           </div>
 
-          <div className={styles.canvasFoot}>
-            <span className={styles.gear}>{done ? "✓" : "⚙"}</span>
-            <span className={styles.footLabel}>{done ? "Build complete" : currentStep ?? "Working…"}</span>
-          </div>
+          <button type="button" className={styles.usageDock} data-open={usageOpen} onClick={() => setUsageOpen((o) => !o)} aria-label="Token usage">
+            <span className={styles.usageDockMain}>
+              {(tokens / 1000).toFixed(1)}k used{remaining != null ? ` · ${Math.max(0, remaining / 1000).toFixed(0)}k left` : ""}
+            </span>
+            {usageOpen && (
+              <span className={styles.usageDockDetail}>~${cost.toFixed(2)} · resets in {fmtMs(resetInMs)}</span>
+            )}
+          </button>
         </section>
+
+        {canvasMode === "min" && (
+          <button type="button" className={styles.restoreCanvas} onClick={() => setCanvasMode("normal")}>
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinejoin="round" aria-hidden><rect x="4" y="4" width="16" height="16" rx="2" /></svg>
+            Show canvas
+          </button>
+        )}
       </div>
     </div>
   );

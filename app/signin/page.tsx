@@ -61,13 +61,13 @@ export default async function SignInPage({
   return (
     <div className={styles.page}>
       <header className={styles.top}>
+        <Link href="/" aria-label="Vibex home">
+          <Logo size={28} />
+        </Link>
         <div className={styles.left}>
           <BackLink href="/" label="Home" />
-          <Link href="/" aria-label="Vibex home">
-            <Logo size={28} />
-          </Link>
+          <ThemeToggle />
         </div>
-        <ThemeToggle />
       </header>
 
       <main className={styles.main}>

@@ -39,13 +39,11 @@ export default async function SettingsPage() {
   return (
     <div className={styles.page}>
       <header className={styles.top}>
-        <div className={styles.left}>
-          <BackLink href="/dashboard" label="Dashboard" />
-          <Link href="/" aria-label="Vibex home">
-            <Logo size={28} />
-          </Link>
-        </div>
+        <Link href="/" aria-label="Vibex home">
+          <Logo size={28} />
+        </Link>
         <div className={styles.right}>
+          <BackLink href="/dashboard" label="Dashboard" />
           <ThemeToggle />
           <UserMenu name={user.name} email={user.email} image={user.image} />
         </div>

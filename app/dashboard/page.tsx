@@ -41,13 +41,11 @@ export default async function DashboardPage() {
   return (
     <div className={styles.page}>
       <header className={styles.top}>
-        <div className={styles.left}>
-          <BackLink href="/" label="Home" />
-          <Link href="/" aria-label="Vibex home">
-            <Logo size={28} />
-          </Link>
-        </div>
+        <Link href="/" aria-label="Vibex home">
+          <Logo size={28} />
+        </Link>
         <div className={styles.right}>
+          <BackLink href="/" label="Home" />
           <ThemeToggle />
           <Link href="/new" className="btn btn-primary">New project →</Link>
           <UserMenu name={user.name} email={user.email} image={user.image} />
