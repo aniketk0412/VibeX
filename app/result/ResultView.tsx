@@ -17,6 +17,7 @@ import BackLink from "@/components/BackLink";
 import ProjectActions from "@/components/ProjectActions";
 import CopyButton from "@/components/CopyButton";
 import CommandHint from "@/components/CommandHint";
+import OpenInStackBlitz from "@/components/OpenInStackBlitz";
 import type { GenFile } from "@/lib/steps";
 import styles from "./result.module.css";
 
@@ -352,6 +353,7 @@ export default function ResultView({
             </div>
             <div className={styles.toolbarActions}>
               {!isEmpty && <button type="button" className="btn btn-ghost" onClick={download}>↓ Download .zip</button>}
+              {!isEmpty && <OpenInStackBlitz files={files} title={title} />}
               {!isEmpty && <Link href={`/run?project=${current!.id}`} className="btn btn-ghost">Iterate</Link>}
               <ProjectActions projectId={current!.id} title={title} redirectAfterDelete="/dashboard" />
             </div>
@@ -393,6 +395,7 @@ export default function ResultView({
           </div>
           <div className={styles.headActions}>
             <button type="button" className="btn btn-ghost" onClick={download}>↓ Download .zip</button>
+            <OpenInStackBlitz files={files} title={title} />
             <Link href="/new" className="btn btn-primary">New project →</Link>
           </div>
         </div>

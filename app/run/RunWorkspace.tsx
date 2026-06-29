@@ -14,6 +14,7 @@ import { buildSteps, type Spec, type GenFile } from "@/lib/steps";
 import { AttachButton, Thumbs, type AttachedImage } from "@/components/ImageAttach";
 import BackLink from "@/components/BackLink";
 import CopyButton from "@/components/CopyButton";
+import OpenInStackBlitz from "@/components/OpenInStackBlitz";
 import styles from "./run.module.css";
 
 function Check() {
@@ -508,9 +509,12 @@ export default function RunWorkspace({ initialSpec, projectId }: { initialSpec?:
             </div>
             <div className={styles.actions}>
               {done ? (
-                <button type="button" className="btn btn-primary" onClick={viewOutput}>
-                  View output →
-                </button>
+                <>
+                  <button type="button" className="btn btn-primary" onClick={viewOutput}>
+                    View output →
+                  </button>
+                  {files.length > 0 && <OpenInStackBlitz files={files} title={spec.idea} />}
+                </>
               ) : paused ? (
                 <button type="button" className={styles.resumeBtn} onClick={resume}>▶ Resume</button>
               ) : (
