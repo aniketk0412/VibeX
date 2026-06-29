@@ -3,6 +3,7 @@ import SiteHeader from "@/components/SiteHeader";
 import SiteFooter from "@/components/SiteFooter";
 import CockpitPanel from "@/components/CockpitPanel";
 import PricingTable from "@/components/PricingTable";
+import Reveal from "@/components/Reveal";
 import styles from "./page.module.css";
 
 const SITE = process.env.NEXT_PUBLIC_APP_URL ?? "https://vibex.io";
@@ -133,87 +134,99 @@ export default function Home() {
           <b>OpenRouter</b>
         </div>
 
-        <section className={styles.how} id="how">
-          <div className={styles.sectionHead}>
-            <span className="eyebrow"><span className="dot" /> How it works</span>
-            <h2 className={styles.h2}>Three steps. Zero prompts.</h2>
-            <p className={styles.h2sub}>From a sentence to running code, without you writing or babysitting a single prompt.</p>
-          </div>
-          <ol className={styles.steps}>
-            {HOW.map((s) => (
-              <li key={s.n} className={styles.step}>
-                <span className={styles.stepNum}>{s.n}</span>
-                <h3 className={styles.stepTitle}>{s.t}</h3>
-                <p className={styles.stepBody}>{s.d}</p>
-              </li>
-            ))}
-          </ol>
-        </section>
-
-        <div className={styles.stats}>
-          {STATS.map((s) => (
-            <div key={s.l} className={styles.statCell}>
-              <span className={styles.statV}>{s.v}</span>
-              <span className={styles.statL}>{s.l}</span>
+        <Reveal>
+          <section className={styles.how} id="how">
+            <div className={styles.sectionHead}>
+              <span className="eyebrow"><span className="dot" /> How it works</span>
+              <h2 className={styles.h2}>Three steps. Zero prompts.</h2>
+              <p className={styles.h2sub}>From a sentence to running code, without you writing or babysitting a single prompt.</p>
             </div>
-          ))}
-        </div>
+            <ol className={styles.steps}>
+              {HOW.map((s) => (
+                <li key={s.n} className={styles.step}>
+                  <span className={styles.stepNum}>{s.n}</span>
+                  <h3 className={styles.stepTitle}>{s.t}</h3>
+                  <p className={styles.stepBody}>{s.d}</p>
+                </li>
+              ))}
+            </ol>
+          </section>
+        </Reveal>
 
-        <section className={styles.features} id="features">
-          <div className={styles.sectionHead}>
-            <span className="eyebrow"><span className="dot" /> What you get</span>
-            <h2 className={styles.h2}>Everything to go from idea to shipped</h2>
-          </div>
-          <div className={styles.featGrid}>
-            {FEATURES.map((f) => (
-              <div key={f.t} className={styles.feat}>
-                <span className={styles.featIcon} aria-hidden>{f.icon}</span>
-                <h3 className={styles.featTitle}>{f.t}</h3>
-                <p className={styles.featBody}>{f.d}</p>
+        <Reveal>
+          <div className={styles.stats}>
+            {STATS.map((s) => (
+              <div key={s.l} className={styles.statCell}>
+                <span className={styles.statV}>{s.v}</span>
+                <span className={styles.statL}>{s.l}</span>
               </div>
             ))}
           </div>
-        </section>
+        </Reveal>
 
-        <section className={styles.pricing} id="pricing">
-          <div className={styles.pricingHead}>
-            <span className="eyebrow"><span className="dot" /> Plans</span>
-            <h2 className={styles.h2}>Simple, usage-based plans</h2>
-            <p className={styles.h2sub}>
-              Start free. Limits are <b>time-based rolling windows</b> — never credit top-ups — so a run
-              auto-pauses and resumes, and you never lose progress.
-            </p>
-          </div>
-          <PricingTable />
-        </section>
+        <Reveal>
+          <section className={styles.features} id="features">
+            <div className={styles.sectionHead}>
+              <span className="eyebrow"><span className="dot" /> What you get</span>
+              <h2 className={styles.h2}>Everything to go from idea to shipped</h2>
+            </div>
+            <div className={styles.featGrid}>
+              {FEATURES.map((f) => (
+                <div key={f.t} className={styles.feat}>
+                  <span className={styles.featIcon} aria-hidden>{f.icon}</span>
+                  <h3 className={styles.featTitle}>{f.t}</h3>
+                  <p className={styles.featBody}>{f.d}</p>
+                </div>
+              ))}
+            </div>
+          </section>
+        </Reveal>
 
-        <section className={styles.faq} id="faq">
-          <div className={styles.faqHead}>
-            <span className="eyebrow"><span className="dot" /> FAQ</span>
-            <h2 className={styles.h2}>Questions, answered</h2>
-          </div>
-          <div className={styles.faqList}>
-            {FAQS.map((f) => (
-              <details key={f.q} className={styles.faqItem}>
-                <summary className={styles.faqQ}>
-                  {f.q}
-                  <span className={styles.faqMark} aria-hidden>+</span>
-                </summary>
-                <p className={styles.faqA}>{f.a}</p>
-              </details>
-            ))}
-          </div>
-        </section>
+        <Reveal>
+          <section className={styles.pricing} id="pricing">
+            <div className={styles.pricingHead}>
+              <span className="eyebrow"><span className="dot" /> Plans</span>
+              <h2 className={styles.h2}>Simple, usage-based plans</h2>
+              <p className={styles.h2sub}>
+                Start free. Limits are <b>time-based rolling windows</b> — never credit top-ups — so a run
+                auto-pauses and resumes, and you never lose progress.
+              </p>
+            </div>
+            <PricingTable />
+          </section>
+        </Reveal>
 
-        <section className={styles.cta}>
-          <h2 className={styles.ctaTitle}>Ready to stop writing prompts?</h2>
-          <p className={styles.ctaSub}>Describe your idea once and watch Vibex build it — live, end to end.</p>
-          <div className={styles.ctaRow}>
-            <Link href="/new" className="btn btn-primary btn-lg">Build something →</Link>
-            <Link href="/pricing" className="btn btn-ghost btn-lg">See plans</Link>
-          </div>
-          <p className={styles.note}><b>1 free project</b> — no card, interrupt anytime.</p>
-        </section>
+        <Reveal>
+          <section className={styles.faq} id="faq">
+            <div className={styles.faqHead}>
+              <span className="eyebrow"><span className="dot" /> FAQ</span>
+              <h2 className={styles.h2}>Questions, answered</h2>
+            </div>
+            <div className={styles.faqList}>
+              {FAQS.map((f) => (
+                <details key={f.q} className={styles.faqItem}>
+                  <summary className={styles.faqQ}>
+                    {f.q}
+                    <span className={styles.faqMark} aria-hidden>+</span>
+                  </summary>
+                  <p className={styles.faqA}>{f.a}</p>
+                </details>
+              ))}
+            </div>
+          </section>
+        </Reveal>
+
+        <Reveal>
+          <section className={styles.cta}>
+            <h2 className={styles.ctaTitle}>Ready to stop writing prompts?</h2>
+            <p className={styles.ctaSub}>Describe your idea once and watch Vibex build it — live, end to end.</p>
+            <div className={styles.ctaRow}>
+              <Link href="/new" className="btn btn-primary btn-lg">Build something →</Link>
+              <Link href="/pricing" className="btn btn-ghost btn-lg">See plans</Link>
+            </div>
+            <p className={styles.note}><b>1 free project</b> — no card, interrupt anytime.</p>
+          </section>
+        </Reveal>
       </main>
 
       <SiteFooter />
