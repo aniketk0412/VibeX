@@ -26,7 +26,7 @@ const mono = JetBrains_Mono({
 });
 
 const DESCRIPTION =
-  "You have the idea. You hate writing 20 prompts manually. We do it for you. Vibex automates the entire vibe-coding loop — idea to working code, hands-free.";
+  "You have the idea. Other AI coders stop at a rough draft — Vibex writes every prompt and reviews every file until it actually runs. Idea to working code, hands-free.";
 
 export const metadata: Metadata = {
   metadataBase: new URL(process.env.NEXT_PUBLIC_APP_URL ?? "https://vibex.io"),
@@ -71,7 +71,7 @@ export const metadata: Metadata = {
   twitter: {
     card: "summary_large_image",
     title: "Vibex — From idea to code, automatically",
-    description: "You have the idea. You hate writing 20 prompts manually. We do it for you.",
+    description: "Other AI coders stop at a rough draft. Vibex reviews every file until it runs.",
     creator: "@vibex",
     images: ["/og.png"],
   },

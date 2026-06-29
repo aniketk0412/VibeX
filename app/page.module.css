@@ -97,6 +97,43 @@
 .featTitle { margin-top: 14px; font-family: var(--display); font-weight: 700; letter-spacing: -0.015em; font-size: 18px; }
 .featBody { margin-top: 7px; font-size: 14.5px; color: var(--dim); line-height: 1.55; }
 
+/* ── testimonials (placeholder scaffold) ───────────────── */
+.testimonials { padding: 56px 0 32px; scroll-margin-top: 84px; }
+.tGrid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; }
+.tCard {
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: var(--r);
+  box-shadow: var(--shadow-sm);
+  padding: 22px;
+}
+.tQuote { font-size: 15.5px; line-height: 1.55; color: var(--text); font-style: italic; }
+.tWho { display: flex; align-items: center; gap: 11px; margin-top: auto; }
+.tAvatar {
+  width: 36px;
+  height: 36px;
+  flex: none;
+  display: grid;
+  place-items: center;
+  border-radius: 50%;
+  background: var(--accent-soft);
+  color: var(--accent);
+  border: 1px solid color-mix(in srgb, var(--accent) 22%, transparent);
+  font-family: var(--mono);
+  font-weight: 600;
+  font-size: 14px;
+}
+.tMeta { display: flex; flex-direction: column; min-width: 0; }
+.tName { font-weight: 600; font-size: 14px; }
+.tRole { font-family: var(--mono); font-size: 11.5px; color: var(--faint); }
+
+@media (max-width: 920px) {
+  .tGrid { grid-template-columns: 1fr; }
+}
+
 /* ── closing CTA ───────────────────────────────────────── */
 .cta {
   text-align: center;

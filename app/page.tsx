@@ -69,6 +69,14 @@ const STATS: { v: string; l: string }[] = [
   { v: "1", l: "free project, no card" },
 ];
 
+// PLACEHOLDER testimonials — replace each entry with a real customer quote before launch.
+// The section auto-hides when this array is empty, so clear it to remove the block entirely.
+const TESTIMONIALS: { quote: string; name: string; role: string }[] = [
+  { quote: "Placeholder — drop a real quote here: what they were stuck on, and what changed after Vibex.", name: "Name Surname", role: "Role · Company" },
+  { quote: "Placeholder — a second quote lands best when it speaks to a different win (speed, code quality, shipping).", name: "Name Surname", role: "Role · Company" },
+  { quote: "Placeholder — keep it short and specific; one concrete outcome beats three vague adjectives.", name: "Name Surname", role: "Role · Company" },
+];
+
 const JSON_LD = {
   "@context": "https://schema.org",
   "@graph": [
@@ -108,13 +116,13 @@ export default function Home() {
             <span className="eyebrow"><span className="dot" /> Automated vibe coding</span>
             <h1 className={styles.headline}>
               <span className={styles.lead}>You have the idea.</span>
-              <span className={styles.pain}>You hate writing 20 prompts manually.</span>
-              <span className={styles.punch}>We do it for you.</span>
+              <span className={styles.pain}>Other AI coders stop at a rough draft.</span>
+              <span className={styles.punch}>Vibex reviews every file until it runs.</span>
             </h1>
             <p className={styles.sub}>
-              Describe it once. Vibex interviews you, locks the goal, then generates and runs every prompt until it&apos;s done.
+              Describe it once. Vibex writes the prompts and a Reviewer AI checks every file — so you ship working code, not a rough draft.
             </p>
-            <p className={styles.tag}>// from idea to code, automatically</p>
+            <p className={styles.tag}>// automated vibe coding that actually runs</p>
             <div className={styles.ctaRow}>
               <Link href="/new" className="btn btn-primary btn-lg">Build something →</Link>
               <button className="btn btn-ghost btn-lg" type="button">Watch a run</button>
@@ -181,6 +189,31 @@ export default function Home() {
             </div>
           </section>
         </Reveal>
+
+        {TESTIMONIALS.length > 0 && (
+          <Reveal>
+            <section className={styles.testimonials} id="testimonials">
+              <div className={styles.sectionHead}>
+                <span className="eyebrow"><span className="dot" /> Testimonials</span>
+                <h2 className={styles.h2}>What builders say</h2>
+              </div>
+              <div className={styles.tGrid}>
+                {TESTIMONIALS.map((t, i) => (
+                  <figure key={i} className={styles.tCard}>
+                    <blockquote className={styles.tQuote}>“{t.quote}”</blockquote>
+                    <figcaption className={styles.tWho}>
+                      <span className={styles.tAvatar} aria-hidden>{t.name.slice(0, 1)}</span>
+                      <span className={styles.tMeta}>
+                        <span className={styles.tName}>{t.name}</span>
+                        <span className={styles.tRole}>{t.role}</span>
+                      </span>
+                    </figcaption>
+                  </figure>
+                ))}
+              </div>
+            </section>
+          </Reveal>
+        )}
 
         <Reveal>
           <section className={styles.pricing} id="pricing">
