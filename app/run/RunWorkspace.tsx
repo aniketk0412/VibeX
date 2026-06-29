@@ -51,6 +51,23 @@ function escapeRe(s: string): string {
   return s.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 }
 
+// Claude-Code-style collapsible "wrote a file" card shown in the conversation.
+function FileCard({ path, code }: { path: string; code: string }) {
+  const [open, setOpen] = useState(false);
+  const lines = code ? code.split("\n").length : 0;
+  return (
+    <div className={styles.fileCard}>
+      <button type="button" className={styles.fileCardHead} onClick={() => setOpen((o) => !o)} aria-expanded={open}>
+        <span className={styles.fileCardIcon} aria-hidden>✎</span>
+        <span className={styles.fileCardName}>Wrote <b>{path}</b></span>
+        {lines > 0 && <span className={styles.fileCardMeta}>+{lines}</span>}
+        <span className={styles.fileCardChevron} data-open={open} aria-hidden>▾</span>
+      </button>
+      {open && <pre className={styles.fileCardCode}>{code}</pre>}
+    </div>
+  );
+}
+
 // Inline CSS/JS into the HTML so the generated app previews standalone in an iframe.
 function buildPreview(files: GenFile[]): string | null {
   const html = files.find((f) => /\.html$/i.test(f.path));
@@ -68,7 +85,7 @@ function buildPreview(files: GenFile[]): string | null {
 }
 
 type Role = "vibex" | "coder" | "reviewer" | "user";
-type Msg = { id: number; role: Role; text: string; verdict?: "pass" | "revise"; images?: AttachedImage[] };
+type Msg = { id: number; role: Role; text: string; verdict?: "pass" | "revise"; images?: AttachedImage[]; file?: { path: string; code: string } };
 
 type RunEvent =
   | { type: "planned"; steps: string[]; live: boolean }
@@ -162,8 +179,8 @@ export default function RunWorkspace({ initialSpec, projectId }: { initialSpec?:
     document.addEventListener("mouseup", onUp);
   };
 
-  const addMsg = (role: Role, text: string, verdict?: "pass" | "revise", images?: AttachedImage[]) =>
-    setMessages((m) => [...m, { id: idRef.current++, role, text, verdict, images }]);
+  const addMsg = (role: Role, text: string, verdict?: "pass" | "revise", images?: AttachedImage[], file?: { path: string; code: string }) =>
+    setMessages((m) => [...m, { id: idRef.current++, role, text, verdict, images, file }]);
 
   const viewOutput = () => router.push(projectId ? `/result?project=${projectId}` : "/result");
 
@@ -216,14 +233,16 @@ export default function RunWorkspace({ initialSpec, projectId }: { initialSpec?:
         addMsg("vibex", `Goal locked. Planned ${ev.steps.length} steps — building now${ev.live ? "" : " (simulated — no API key set)"}.`);
         break;
       case "coder": {
-        const title = stepsRef.current[ev.index] ?? `Step ${ev.index + 1}`;
-        addMsg("coder", `${title} — ${ev.preview}`);
         if (ev.path) {
+          addMsg("coder", ev.path, undefined, undefined, { path: ev.path, code: ev.preview });
           setStreamPaths((p) =>
             p.some((x) => x.path === ev.path)
               ? p.map((x) => (x.path === ev.path ? { path: ev.path, preview: ev.preview } : x))
               : [...p, { path: ev.path, preview: ev.preview }],
           );
+        } else {
+          const title = stepsRef.current[ev.index] ?? `Step ${ev.index + 1}`;
+          addMsg("coder", `${title} — ${ev.preview}`);
         }
         break;
       }
@@ -471,22 +490,32 @@ export default function RunWorkspace({ initialSpec, projectId }: { initialSpec?:
             {messages.map((m) => (
               <div key={m.id} className={styles.msg} data-role={m.role}>
                 <span className={styles.msgRole}>{roleLabel[m.role]}</span>
-                <span className={styles.msgText}>
-                  {m.role === "reviewer" && (
-                    <span className={styles.verdict} data-v={m.verdict}>{m.verdict === "revise" ? "REVISE" : "PASS"}</span>
-                  )}
-                  {m.text}
-                  {m.images && m.images.length > 0 && (
-                    <span className={styles.msgImages}>
-                      {m.images.map((im) => (
-                        // eslint-disable-next-line @next/next/no-img-element
-                        <img key={im.id} src={im.url} alt={im.name} />
-                      ))}
-                    </span>
-                  )}
-                </span>
+                {m.file ? (
+                  <FileCard path={m.file.path} code={m.file.code} />
+                ) : (
+                  <span className={styles.msgText}>
+                    {m.role === "reviewer" && (
+                      <span className={styles.verdict} data-v={m.verdict}>{m.verdict === "revise" ? "REVISE" : "PASS"}</span>
+                    )}
+                    {m.text}
+                    {m.images && m.images.length > 0 && (
+                      <span className={styles.msgImages}>
+                        {m.images.map((im) => (
+                          // eslint-disable-next-line @next/next/no-img-element
+                          <img key={im.id} src={im.url} alt={im.name} />
+                        ))}
+                      </span>
+                    )}
+                  </span>
+                )}
               </div>
             ))}
+            {!done && !paused && (
+              <div className={styles.typing} aria-hidden>
+                <span className={styles.typingRole}>{roleLabel.coder}</span>
+                <span className={styles.typingDots}><i /><i /><i /></span>
+              </div>
+            )}
             <div ref={feedEnd} />
           </div>
 
