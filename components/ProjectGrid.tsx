@@ -8,6 +8,7 @@ import { useMemo, useState } from "react";
 import Link from "next/link";
 import { timeAgo } from "@/lib/format";
 import ProjectActions from "./ProjectActions";
+import EmptyState from "./EmptyState";
 import styles from "./ProjectGrid.module.css";
 
 type Row = { id: string; title: string; status: string | null; updatedAt: number };
@@ -54,9 +55,39 @@ export default function ProjectGrid({ projects }: { projects: Row[] }) {
       </div>
 
       {shown.length === 0 ? (
-        <div className={styles.empty}>
-          {q ? <>No projects match “{q}”.</> : "No projects yet."}
-        </div>
+        q ? (
+          <EmptyState
+            icon={
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
+                <circle cx="11" cy="11" r="7" />
+                <path d="M21 21l-4.3-4.3" />
+              </svg>
+            }
+            title="No matches"
+            body={<>Nothing matches “{q}”. Try a different name or clear the search.</>}
+            actions={
+              <button type="button" className="btn btn-secondary btn-sm" onClick={() => setQ("")}>
+                Clear search
+              </button>
+            }
+          />
+        ) : (
+          <EmptyState
+            icon={
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
+                <path d="M3 7a2 2 0 0 1 2-2h4l2 2h8a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z" />
+                <path d="M12 11v5M9.5 13.5h5" />
+              </svg>
+            }
+            title="No projects yet"
+            body="Start your first build and it’ll show up here."
+            actions={
+              <Link href="/new" className="btn btn-primary btn-sm">
+                New project →
+              </Link>
+            }
+          />
+        )
       ) : (
         <div className={styles.grid}>
           {shown.map((p) => (

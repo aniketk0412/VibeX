@@ -123,14 +123,3 @@
   top: 12px;
   right: 10px;
 }
-
-.empty {
-  margin-top: 24px;
-  padding: 40px 24px;
-  text-align: center;
-  font-size: 14px;
-  color: var(--dim);
-  border: 1px dashed var(--line);
-  border-radius: 13px;
-  background: var(--surface);
-}

@@ -39,3 +39,30 @@ export default function AppHeader({
     </header>
   );
 }
+
+// Matching skeleton chrome for route-level loading.tsx — reuses the same header/inner/right
+// classes so the bar doesn't shift when real content swaps in. `action` mirrors a primary
+// button slot; `user` mirrors the account avatar.
+export function AppHeaderSkeleton({
+  maxWidth = 960,
+  user = false,
+  action = false,
+}: {
+  maxWidth?: number;
+  user?: boolean;
+  action?: boolean;
+}) {
+  return (
+    <header className={styles.header} aria-hidden>
+      <div className={styles.inner} style={{ "--hw": `${maxWidth}px` } as React.CSSProperties}>
+        <div className="skeleton" style={{ width: 92, height: 28, borderRadius: 8 }} />
+        <div className={styles.right}>
+          <div className="skeleton" style={{ width: 66, height: 30, borderRadius: 999 }} />
+          {action && <div className="skeleton" style={{ width: 116, height: 32, borderRadius: 9 }} />}
+          <div className="skeleton" style={{ width: 42, height: 42, borderRadius: 11 }} />
+          {user && <div className="skeleton" style={{ width: 38, height: 38, borderRadius: "50%" }} />}
+        </div>
+      </div>
+    </header>
+  );
+}
