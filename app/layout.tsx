@@ -67,12 +67,14 @@ export const metadata: Metadata = {
     siteName: "Vibex",
     type: "website",
     locale: "en_US",
+    images: [{ url: "/og.png", width: 1200, height: 630, alt: "Vibex — From idea to code, automatically" }],
   },
   twitter: {
     card: "summary_large_image",
     title: "Vibex — From idea to code, automatically",
     description: "You have the idea. You hate writing 20 prompts manually. We do it for you.",
     creator: "@vibex",
+    images: ["/og.png"],
   },
   category: "technology",
 };
