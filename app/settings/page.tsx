@@ -4,10 +4,7 @@
 import { redirect } from "next/navigation";
 import Link from "next/link";
 import { auth } from "@/auth";
-import Logo from "@/components/Logo";
-import ThemeToggle from "@/components/ThemeToggle";
-import BackLink from "@/components/BackLink";
-import UserMenu from "@/components/UserMenu";
+import AppHeader from "@/components/AppHeader";
 import SubmitButton from "@/components/SubmitButton";
 import ConfirmDialog from "@/components/ConfirmDialog";
 import { KEY_PROVIDERS, listKeyProviders, type ProviderId } from "@/lib/keys";
@@ -39,16 +36,7 @@ export default async function SettingsPage() {
 
   return (
     <div className={styles.page}>
-      <header className={styles.top}>
-        <Link href="/" aria-label="Vibex home">
-          <Logo size={28} />
-        </Link>
-        <div className={styles.right}>
-          <BackLink href="/dashboard" label="Dashboard" />
-          <ThemeToggle />
-          <UserMenu name={user.name} email={user.email} image={user.image} />
-        </div>
-      </header>
+      <AppHeader back={{ href: "/dashboard", label: "Dashboard" }} user={user} maxWidth={720} />
 
       <main className={styles.main}>
         <h1 className={styles.title}>Settings</h1>

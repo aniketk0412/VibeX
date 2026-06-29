@@ -8,11 +8,8 @@ import { prisma } from "@/lib/prisma";
 import { getUserPlan } from "@/lib/runs";
 import { TOKEN_LIMITS } from "@/lib/usage";
 import { greeting, firstName } from "@/lib/format";
-import Logo from "@/components/Logo";
-import ThemeToggle from "@/components/ThemeToggle";
-import UserMenu from "@/components/UserMenu";
+import AppHeader from "@/components/AppHeader";
 import ProjectGrid from "@/components/ProjectGrid";
-import BackLink from "@/components/BackLink";
 import styles from "./dashboard.module.css";
 
 export const dynamic = "force-dynamic";
@@ -41,17 +38,12 @@ export default async function DashboardPage() {
 
   return (
     <div className={styles.page}>
-      <header className={styles.top}>
-        <Link href="/" aria-label="Vibex home">
-          <Logo size={28} />
-        </Link>
-        <div className={styles.right}>
-          <BackLink href="/" label="Home" />
-          <ThemeToggle />
-          <Link href="/new" className="btn btn-primary">New project →</Link>
-          <UserMenu name={user.name} email={user.email} image={user.image} />
-        </div>
-      </header>
+      <AppHeader
+        back={{ href: "/", label: "Home" }}
+        user={user}
+        maxWidth={980}
+        actions={<Link href="/new" className="btn btn-primary btn-sm">New project →</Link>}
+      />
 
       <main className={styles.main}>
         <div className={styles.greeting}>

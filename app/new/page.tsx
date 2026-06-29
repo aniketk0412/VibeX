@@ -2,11 +2,8 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
-import Link from "next/link";
-import Logo from "@/components/Logo";
-import ThemeToggle from "@/components/ThemeToggle";
+import AppHeader from "@/components/AppHeader";
 import StepIndicator from "@/components/StepIndicator";
-import BackLink from "@/components/BackLink";
 import { AttachButton, Thumbs, type AttachedImage } from "@/components/ImageAttach";
 import styles from "./new.module.css";
 
@@ -110,15 +107,7 @@ export default function NewIdeaPage() {
 
   return (
     <div className={styles.page}>
-      <header className={styles.top}>
-        <Link href="/" aria-label="Vibex home">
-          <Logo size={28} />
-        </Link>
-        <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-          <BackLink href="/" label="Back" />
-          <ThemeToggle />
-        </div>
-      </header>
+      <AppHeader back={{ href: "/", label: "Back" }} maxWidth={760} />
 
       <main className={styles.main}>
         <StepIndicator active="Idea" />

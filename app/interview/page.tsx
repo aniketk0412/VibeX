@@ -8,12 +8,10 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import Logo from "@/components/Logo";
-import ThemeToggle from "@/components/ThemeToggle";
+import AppHeader from "@/components/AppHeader";
 import StepIndicator, { type FlowStep } from "@/components/StepIndicator";
 import QuestionCard, { type Question } from "@/components/QuestionCard";
 import AnimatedBackground from "@/components/AnimatedBackground";
-import BackLink from "@/components/BackLink";
 import { estimateProjectCost } from "@/lib/ai/models";
 import { startProject } from "@/app/actions";
 import styles from "./interview.module.css";
@@ -291,15 +289,7 @@ export default function InterviewPage() {
   return (
     <div className={styles.page}>
       <AnimatedBackground />
-      <header className={styles.top}>
-        <Link href="/" aria-label="Vibex home">
-          <Logo size={28} />
-        </Link>
-        <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-          <BackLink href="/new" label="Back" />
-          <ThemeToggle />
-        </div>
-      </header>
+      <AppHeader back={{ href: "/new", label: "Back" }} maxWidth={720} className={styles.appHeader} />
 
       <main className={styles.main}>
         <StepIndicator active={mounted ? activeStep : "Scope"} steps={steps} />

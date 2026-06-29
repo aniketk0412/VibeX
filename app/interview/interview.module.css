@@ -5,16 +5,13 @@
   flex-direction: column;
 }
 
-.top {
+/* AppHeader sits above the fixed AnimatedBackground (z-index:0); stay transparent
+   so the aurora reads through, and drop the divider this page doesn't want. */
+.appHeader {
   position: relative;
   z-index: 1;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  width: 100%;
-  max-width: 720px;
-  margin: 0 auto;
-  padding: 22px 28px;
+  background: transparent;
+  border-bottom: none;
 }
 
 .main {
