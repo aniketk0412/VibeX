@@ -43,6 +43,7 @@
   border: 1px solid var(--line-soft);
   border-radius: 12px;
   background: var(--bg-elev);
+  box-shadow: var(--shadow-sm);
 }
 .seed {
   border-left: 2px solid var(--accent);

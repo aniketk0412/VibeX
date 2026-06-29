@@ -75,11 +75,13 @@
   background: var(--surface);
   border: 1px solid var(--line);
   border-radius: 13px;
-  transition: border-color 0.2s ease, transform 0.12s ease;
+  box-shadow: var(--shadow-sm);
+  transition: border-color 0.2s ease, transform 0.12s ease, box-shadow 0.2s ease;
 }
 .proj:hover {
   border-color: var(--accent);
   transform: translateY(-2px);
+  box-shadow: var(--shadow-md);
 }
 .projLink {
   display: block;
