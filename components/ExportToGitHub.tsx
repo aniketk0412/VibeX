@@ -1,9 +1,9 @@
 "use client";
 
-// Exports a saved project's generated files to a new GitHub repo via the exportToGitHub server
-// action (uses the user's encrypted PAT). Routes to Settings if no token is connected.
+// Exports a saved project's files to a new GitHub repo (exportToGitHub server action, encrypted
+// PAT). After a successful export, swaps in a "Deploy to Vercel" link for the created repo.
 
-import { useTransition } from "react";
+import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { exportToGitHub } from "@/app/actions";
 import { toast } from "@/lib/toast";
@@ -17,11 +17,13 @@ export default function ExportToGitHub({
 }) {
   const router = useRouter();
   const [pending, start] = useTransition();
+  const [repoUrl, setRepoUrl] = useState<string | null>(null);
 
   const run = () =>
     start(async () => {
       const res = await exportToGitHub(projectId);
       if (res.url && !res.error) {
+        setRepoUrl(res.url);
         toast.success(`Pushed to ${res.repo ?? "GitHub"}`);
         window.open(res.url, "_blank", "noopener");
       } else if (res.error === "no_key") {
@@ -32,12 +34,28 @@ export default function ExportToGitHub({
       } else if (res.error === "no_files") {
         toast.error("No files to export yet");
       } else if (res.error === "push_failed" && res.url) {
+        setRepoUrl(res.url);
         toast.error("Repo created, but some files failed to push");
         window.open(res.url, "_blank", "noopener");
       } else {
         toast.error(`GitHub export failed${res.message ? `: ${res.message}` : ""}`);
       }
     });
+
+  // Once a repo exists, offer the repo + a one-click Vercel deploy.
+  if (repoUrl) {
+    const vercel = `https://vercel.com/new/clone?repository-url=${encodeURIComponent(repoUrl)}`;
+    return (
+      <>
+        <a href={repoUrl} target="_blank" rel="noopener noreferrer" className={className}>
+          ✓ GitHub repo ↗
+        </a>
+        <a href={vercel} target="_blank" rel="noopener noreferrer" className={className}>
+          ▲ Deploy to Vercel ↗
+        </a>
+      </>
+    );
+  }
 
   return (
     <button type="button" className={className} onClick={run} disabled={pending} aria-busy={pending}>
