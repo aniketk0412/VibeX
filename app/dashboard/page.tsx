@@ -13,7 +13,6 @@ import ThemeToggle from "@/components/ThemeToggle";
 import UserMenu from "@/components/UserMenu";
 import ProjectGrid from "@/components/ProjectGrid";
 import BackLink from "@/components/BackLink";
-import CommandHint from "@/components/CommandHint";
 import styles from "./dashboard.module.css";
 
 export const dynamic = "force-dynamic";
@@ -48,7 +47,6 @@ export default async function DashboardPage() {
         </Link>
         <div className={styles.right}>
           <BackLink href="/" label="Home" />
-          <CommandHint />
           <ThemeToggle />
           <Link href="/new" className="btn btn-primary">New project →</Link>
           <UserMenu name={user.name} email={user.email} image={user.image} />

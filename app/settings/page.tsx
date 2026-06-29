@@ -8,7 +8,6 @@ import Logo from "@/components/Logo";
 import ThemeToggle from "@/components/ThemeToggle";
 import BackLink from "@/components/BackLink";
 import UserMenu from "@/components/UserMenu";
-import CommandHint from "@/components/CommandHint";
 import SubmitButton from "@/components/SubmitButton";
 import ConfirmDialog from "@/components/ConfirmDialog";
 import { KEY_PROVIDERS, listKeyProviders, type ProviderId } from "@/lib/keys";
@@ -46,7 +45,6 @@ export default async function SettingsPage() {
         </Link>
         <div className={styles.right}>
           <BackLink href="/dashboard" label="Dashboard" />
-          <CommandHint />
           <ThemeToggle />
           <UserMenu name={user.name} email={user.email} image={user.image} />
         </div>

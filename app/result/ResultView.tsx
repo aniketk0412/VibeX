@@ -16,7 +16,6 @@ import UserMenu from "@/components/UserMenu";
 import BackLink from "@/components/BackLink";
 import ProjectActions from "@/components/ProjectActions";
 import CopyButton from "@/components/CopyButton";
-import CommandHint from "@/components/CommandHint";
 import OpenInStackBlitz from "@/components/OpenInStackBlitz";
 import ShipMenu from "@/components/ShipMenu";
 import type { GenFile } from "@/lib/steps";
@@ -330,10 +329,7 @@ export default function ResultView({
           </div>
 
             <div className={styles.sideFoot}>
-              <div className={styles.sideFootLeft}>
-                <ThemeToggle />
-                <CommandHint />
-              </div>
+              <ThemeToggle />
               <UserMenu name={user?.name} email={user?.email} image={user?.image} />
             </div>
           </div>
