@@ -109,7 +109,7 @@ export default function RunWorkspace({ initialSpec, projectId }: { initialSpec?:
   const autoSwitched = useRef(false);
   const [remaining, setRemaining] = useState<number | null>(null);
   const [usageOpen, setUsageOpen] = useState(false);
-  const [canvasMode, setCanvasMode] = useState<"normal" | "min" | "max">("normal");
+  const [trackOpen, setTrackOpen] = useState(true);
   const canvasRef = useRef<HTMLElement>(null);
 
   const abortRef = useRef<AbortController | null>(null);
@@ -201,6 +201,11 @@ export default function RunWorkspace({ initialSpec, projectId }: { initialSpec?:
   useEffect(() => {
     feedEnd.current?.scrollIntoView({ behavior: "smooth", block: "end" });
   }, [messages]);
+
+  // Tidy up once the build finishes — collapse the step tracker so the feed has room.
+  useEffect(() => {
+    if (done) setTrackOpen(false);
+  }, [done]);
 
   function apply(ev: RunEvent) {
     switch (ev.type) {
@@ -409,7 +414,6 @@ export default function RunWorkspace({ initialSpec, projectId }: { initialSpec?:
 
       <div
         ref={workspaceRef}
-        data-canvas={canvasMode}
         className={`${styles.workspace} ${dragging ? styles.dragging : ""}`}
         style={{ "--convo-w": `${convoW}px` } as React.CSSProperties}
       >
@@ -429,13 +433,17 @@ export default function RunWorkspace({ initialSpec, projectId }: { initialSpec?:
           </div>
 
           <div className={styles.buildTrack}>
-            <div className={styles.buildTrackHead}>
+            <button type="button" className={styles.buildTrackHead} onClick={() => setTrackOpen((v) => !v)} aria-expanded={trackOpen}>
               <span className={styles.paneLabel}>Build</span>
-              <span className={styles.steppill} data-done={done}>
-                {done ? "done" : `step ${Math.min(completed + 1, total)} of ~${total}`}
+              <span className={styles.buildTrackMeta}>
+                <span className={styles.steppill} data-done={done}>
+                  {done ? "done" : `step ${Math.min(completed + 1, total)} of ~${total}`}
+                </span>
+                <span className={styles.trackChevron} data-open={trackOpen} aria-hidden>▾</span>
               </span>
-            </div>
+            </button>
             <div className={styles.progress}><i style={{ width: `${done ? 100 : pct}%` }} /></div>
+            {trackOpen && (
             <div className={styles.steps}>
               {steps.map((s, i) => {
                 const state = i < completed ? "done" : i === completed && !done ? "active" : "upcoming";
@@ -456,6 +464,7 @@ export default function RunWorkspace({ initialSpec, projectId }: { initialSpec?:
                 );
               })}
             </div>
+            )}
           </div>
 
           <div className={styles.feed}>
@@ -544,13 +553,7 @@ export default function RunWorkspace({ initialSpec, projectId }: { initialSpec?:
               </button>
             </div>
             <div className={styles.canvasCtrls}>
-              <button type="button" className={styles.ctrlBtn} onClick={() => setCanvasMode((m) => (m === "min" ? "normal" : "min"))} aria-label="Minimize canvas" title="Minimize">
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" aria-hidden><path d="M6 12h12" /></svg>
-              </button>
-              <button type="button" className={styles.ctrlBtn} data-active={canvasMode === "max"} onClick={() => setCanvasMode((m) => (m === "max" ? "normal" : "max"))} aria-label="Maximize canvas" title="Maximize">
-                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden><rect x="4" y="4" width="16" height="16" rx="2" /></svg>
-              </button>
-              <button type="button" className={styles.ctrlBtn} onClick={toggleFullscreen} aria-label="Fullscreen canvas" title="Fullscreen">
+              <button type="button" className={styles.ctrlBtn} onClick={toggleFullscreen} aria-label="Toggle fullscreen" title="Fullscreen">
                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden><path d="M8 3H5a2 2 0 0 0-2 2v3M16 3h3a2 2 0 0 1 2 2v3M21 16v3a2 2 0 0 1-2 2h-3M3 16v3a2 2 0 0 0 2 2h3" /></svg>
               </button>
             </div>
@@ -607,13 +610,6 @@ export default function RunWorkspace({ initialSpec, projectId }: { initialSpec?:
             )}
           </button>
         </section>
-
-        {canvasMode === "min" && (
-          <button type="button" className={styles.restoreCanvas} onClick={() => setCanvasMode("normal")}>
-            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinejoin="round" aria-hidden><rect x="4" y="4" width="16" height="16" rx="2" /></svg>
-            Show canvas
-          </button>
-        )}
       </div>
     </div>
   );

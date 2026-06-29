@@ -12,6 +12,7 @@ import Logo from "@/components/Logo";
 import ThemeToggle from "@/components/ThemeToggle";
 import StepIndicator, { type FlowStep } from "@/components/StepIndicator";
 import QuestionCard, { type Question } from "@/components/QuestionCard";
+import AnimatedBackground from "@/components/AnimatedBackground";
 import BackLink from "@/components/BackLink";
 import { estimateProjectCost } from "@/lib/ai/models";
 import { startProject } from "@/app/actions";
@@ -289,6 +290,7 @@ export default function InterviewPage() {
 
   return (
     <div className={styles.page}>
+      <AnimatedBackground />
       <header className={styles.top}>
         <Link href="/" aria-label="Vibex home">
           <Logo size={28} />
