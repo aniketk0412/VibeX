@@ -293,6 +293,25 @@ export async function deployToNetlify(projectId: string): Promise<VercelDeployRe
   return { url };
 }
 
+// Persist edits made in the in-app code editor back to the project's latest run.
+export async function saveProjectFiles(projectId: string, files: GenFile[]): Promise<{ ok?: boolean; error?: string }> {
+  const session = await auth();
+  if (!session?.user) return { error: "unauthorized" };
+  const project = await prisma.project.findFirst({
+    where: { id: projectId, userId: session.user.id },
+    include: { runs: { orderBy: { startedAt: "desc" }, take: 1 } },
+  });
+  if (!project) return { error: "not_found" };
+  const run = project.runs[0];
+  if (!run) return { error: "no_run" };
+  await prisma.run.update({
+    where: { id: run.id },
+    data: { files: files as unknown as Prisma.InputJsonValue },
+  });
+  revalidatePath("/result");
+  return { ok: true };
+}
+
 export async function saveApiKey(provider: ProviderId, key: string) {
   const session = await auth();
   if (!session?.user || !key.trim()) return;

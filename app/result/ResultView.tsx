@@ -8,6 +8,7 @@
 // sessionStorage spec and a sample.
 
 import { useEffect, useMemo, useState } from "react";
+import dynamic from "next/dynamic";
 import Link from "next/link";
 import { zipSync, strToU8 } from "fflate";
 import Logo from "@/components/Logo";
@@ -15,41 +16,23 @@ import ThemeToggle from "@/components/ThemeToggle";
 import UserMenu from "@/components/UserMenu";
 import BackLink from "@/components/BackLink";
 import ProjectActions from "@/components/ProjectActions";
-import CopyButton from "@/components/CopyButton";
-import OpenInStackBlitz from "@/components/OpenInStackBlitz";
 import ShipMenu from "@/components/ShipMenu";
+import { buildPreview } from "@/lib/preview";
 import type { GenFile } from "@/lib/steps";
 import styles from "./result.module.css";
 
+// The editor is client-only (CodeMirror needs the DOM), loaded on demand.
+const CodeIDE = dynamic(() => import("@/components/CodeIDE"), {
+  ssr: false,
+  loading: () => <div className={styles.ideLoading}>Loading editor…</div>,
+});
+
 type Spec = { idea?: string; platform?: string; coder?: string; reviewer?: string };
 export type HistoryRow = { step: string; role: "Coder" | "Reviewer"; tokens: number; cost: number };
-type Tab = "preview" | "code" | "history";
+type Tab = "editor" | "history";
 type ProjectLink = { id: string; title: string; status?: string | null };
 type CurrentMeta = { id: string; title: string; status?: string | null };
 type SessionUser = { name?: string | null; email?: string | null; image?: string | null };
-
-function escapeRe(s: string): string {
-  return s.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
-}
-
-// Inline CSS/JS into the HTML so the static app runs standalone inside an iframe (no server).
-// Returns null when there's no HTML entry (API / CLI projects aren't previewable).
-function buildPreview(files: GenFile[]): string | null {
-  const html = files.find((f) => /\.html$/i.test(f.path));
-  if (!html) return null;
-  let doc = html.content;
-  for (const f of files.filter((x) => /\.css$/i.test(x.path))) {
-    const name = f.path.split("/").pop() ?? f.path;
-    const re = new RegExp(`<link[^>]*href=["'][^"']*${escapeRe(name)}["'][^>]*>`, "gi");
-    doc = doc.replace(re, `<style>\n${f.content}\n</style>`);
-  }
-  for (const f of files.filter((x) => /\.js$/i.test(x.path))) {
-    const name = f.path.split("/").pop() ?? f.path;
-    const re = new RegExp(`<script[^>]*src=["'][^"']*${escapeRe(name)}["'][^>]*>\\s*</script>`, "gi");
-    doc = doc.replace(re, `<script>\n${f.content}\n</script>`);
-  }
-  return doc;
-}
 
 function sampleFiles(spec: Spec): GenFile[] {
   const title = spec.idea ?? "Your app";
@@ -89,8 +72,7 @@ export default function ResultView({
   user?: SessionUser;
 }) {
   const [spec, setSpec] = useState<Spec>(specProp ?? {});
-  const [active, setActive] = useState(0);
-  const [tab, setTab] = useState<Tab>("preview");
+  const [tab, setTab] = useState<Tab>("editor");
   const [collapsed, setCollapsed] = useState(false);
   const inShell = !!projects;
 
@@ -134,13 +116,7 @@ export default function ResultView({
   const history = historyProp && historyProp.length ? historyProp : current ? [] : SAMPLE_HISTORY;
   const totalTokens = history.reduce((s, h) => s + h.tokens, 0);
   const totalCost = history.reduce((s, h) => s + h.cost, 0);
-  const safeActive = Math.min(active, Math.max(0, files.length - 1));
   const isEmpty = files.length === 0;
-
-  // If this project isn't previewable (no HTML), don't sit on an empty Preview tab.
-  useEffect(() => {
-    if (!preview && tab === "preview") setTab("code");
-  }, [preview, tab]);
 
   const download = () => {
     const entries: Record<string, Uint8Array> = {};
@@ -153,13 +129,6 @@ export default function ResultView({
     a.download = "vibex-output.zip";
     a.click();
     URL.revokeObjectURL(url);
-  };
-
-  const openPreview = () => {
-    if (!preview) return;
-    const url = URL.createObjectURL(new Blob([preview], { type: "text/html" }));
-    window.open(url, "_blank", "noopener");
-    setTimeout(() => URL.revokeObjectURL(url), 60_000);
   };
 
   const title = current?.title ?? spec.idea ?? "Your project";
@@ -224,13 +193,8 @@ export default function ResultView({
   // ── shared canvas (tabs + body) ────────────────────────────────────────
   const tabs = !isEmpty && (
     <div className={styles.tabs} role="tablist">
-      {preview && (
-        <button type="button" role="tab" className={styles.tab} aria-selected={tab === "preview"} data-active={tab === "preview"} onClick={() => setTab("preview")}>
-          Preview
-        </button>
-      )}
-      <button type="button" role="tab" className={styles.tab} aria-selected={tab === "code"} data-active={tab === "code"} onClick={() => setTab("code")}>
-        Code
+      <button type="button" role="tab" className={styles.tab} aria-selected={tab === "editor"} data-active={tab === "editor"} onClick={() => setTab("editor")}>
+        Editor
       </button>
       <button type="button" role="tab" className={styles.tab} aria-selected={tab === "history"} data-active={tab === "history"} onClick={() => setTab("history")}>
         Prompt history
@@ -240,20 +204,6 @@ export default function ResultView({
 
   const body = isEmpty ? (
     emptyState
-  ) : tab === "preview" && preview ? (
-    <div className={styles.previewWrap}>
-      <div className={styles.previewBar}>
-        <span className={styles.previewDots} aria-hidden><i /><i /><i /></span>
-        <span className={styles.previewLabel}>live preview · index.html</span>
-        <button type="button" className={styles.previewOpen} onClick={openPreview}>Open ↗</button>
-      </div>
-      <iframe
-        className={styles.preview}
-        srcDoc={preview}
-        title="Live preview"
-        sandbox="allow-scripts allow-same-origin allow-forms allow-modals allow-popups"
-      />
-    </div>
   ) : tab === "history" ? (
     <div className={styles.history}>
       {history.map((h, i) => (
@@ -270,22 +220,8 @@ export default function ResultView({
       </div>
     </div>
   ) : (
-    <div className={styles.codeWrap}>
-      <aside className={styles.tree}>
-        {files.map((f, i) => (
-          <button key={f.path} type="button" className={styles.treeItem} data-active={safeActive === i} onClick={() => setActive(i)}>
-            <span className={styles.fileIcon}>›</span>
-            {f.path}
-          </button>
-        ))}
-      </aside>
-      <div className={styles.viewer}>
-        <div className={styles.viewerBar}>
-          <span className={styles.viewerPath}>{files[safeActive]?.path}</span>
-          {files[safeActive] && <CopyButton text={files[safeActive].content} />}
-        </div>
-        <pre className={styles.code}>{files[safeActive]?.content}</pre>
-      </div>
+    <div className={styles.ideHost}>
+      <CodeIDE files={files} projectId={current?.id} />
     </div>
   );
 
@@ -393,7 +329,6 @@ export default function ResultView({
           </div>
           <div className={styles.headActions}>
             <button type="button" className="btn btn-ghost" onClick={download}>↓ Download .zip</button>
-            <OpenInStackBlitz files={files} title={title} />
             <Link href="/new" className="btn btn-primary">New project →</Link>
           </div>
         </div>
