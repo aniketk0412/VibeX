@@ -4,13 +4,14 @@
 import { prisma } from "@/lib/prisma";
 import { encryptSecret, decryptSecret } from "@/lib/crypto";
 
-export type ProviderId = "anthropic" | "openai" | "google" | "openrouter";
+export type ProviderId = "anthropic" | "openai" | "google" | "openrouter" | "github";
 
 export const KEY_PROVIDERS: { id: ProviderId; label: string; hint: string }[] = [
   { id: "anthropic", label: "Anthropic (Claude)", hint: "sk-ant-…" },
   { id: "openrouter", label: "OpenRouter (free models)", hint: "sk-or-…" },
   { id: "openai", label: "OpenAI (GPT)", hint: "sk-…" },
   { id: "google", label: "Google (Gemini)", hint: "AIza…" },
+  { id: "github", label: "GitHub (export)", hint: "ghp_… personal access token, repo scope" },
 ];
 
 export type UserKeys = Partial<Record<ProviderId, string>>;
@@ -33,6 +34,17 @@ export async function getUserKeys(userId: string): Promise<UserKeys> {
 export async function listKeyProviders(userId: string): Promise<ProviderId[]> {
   const rows = await prisma.apiKey.findMany({ where: { userId }, select: { provider: true } });
   return rows.map((r) => r.provider as ProviderId);
+}
+
+// Single decrypted key for a provider (e.g. the GitHub PAT for export). Returns null if unset.
+export async function getUserKey(userId: string, provider: ProviderId): Promise<string | null> {
+  const row = await prisma.apiKey.findUnique({ where: { userId_provider: { userId, provider } } });
+  if (!row) return null;
+  try {
+    return decryptSecret({ ciphertext: row.ciphertext, iv: row.iv, authTag: row.authTag });
+  } catch {
+    return null;
+  }
 }
 
 export async function saveUserKey(userId: string, provider: ProviderId, key: string) {
