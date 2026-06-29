@@ -4,7 +4,7 @@
 import { prisma } from "@/lib/prisma";
 import { encryptSecret, decryptSecret } from "@/lib/crypto";
 
-export type ProviderId = "anthropic" | "openai" | "google" | "openrouter" | "github";
+export type ProviderId = "anthropic" | "openai" | "google" | "openrouter" | "github" | "vercel";
 
 export const KEY_PROVIDERS: { id: ProviderId; label: string; hint: string }[] = [
   { id: "anthropic", label: "Anthropic (Claude)", hint: "sk-ant-…" },
@@ -12,6 +12,7 @@ export const KEY_PROVIDERS: { id: ProviderId; label: string; hint: string }[] = 
   { id: "openai", label: "OpenAI (GPT)", hint: "sk-…" },
   { id: "google", label: "Google (Gemini)", hint: "AIza…" },
   { id: "github", label: "GitHub (export)", hint: "ghp_… personal access token, repo scope" },
+  { id: "vercel", label: "Vercel (deploy)", hint: "Vercel token — vercel.com/account/tokens" },
 ];
 
 export type UserKeys = Partial<Record<ProviderId, string>>;

@@ -19,6 +19,7 @@ import CopyButton from "@/components/CopyButton";
 import CommandHint from "@/components/CommandHint";
 import OpenInStackBlitz from "@/components/OpenInStackBlitz";
 import ExportToGitHub from "@/components/ExportToGitHub";
+import DeployToVercel from "@/components/DeployToVercel";
 import type { GenFile } from "@/lib/steps";
 import styles from "./result.module.css";
 
@@ -356,6 +357,7 @@ export default function ResultView({
               {!isEmpty && <button type="button" className="btn btn-ghost" onClick={download}>↓ Download .zip</button>}
               {!isEmpty && <OpenInStackBlitz files={files} title={title} />}
               {!isEmpty && <ExportToGitHub projectId={current!.id} />}
+              {!isEmpty && preview && <DeployToVercel projectId={current!.id} />}
               {!isEmpty && <Link href={`/run?project=${current!.id}`} className="btn btn-ghost">Iterate</Link>}
               <ProjectActions projectId={current!.id} title={title} redirectAfterDelete="/dashboard" />
             </div>

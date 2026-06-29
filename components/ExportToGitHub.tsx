@@ -42,18 +42,12 @@ export default function ExportToGitHub({
       }
     });
 
-  // Once a repo exists, offer the repo + a one-click Vercel deploy.
+  // Once the repo exists, link to it. (Live deploys are handled by DeployToVercel.)
   if (repoUrl) {
-    const vercel = `https://vercel.com/new/clone?repository-url=${encodeURIComponent(repoUrl)}`;
     return (
-      <>
-        <a href={repoUrl} target="_blank" rel="noopener noreferrer" className={className}>
-          ✓ GitHub repo ↗
-        </a>
-        <a href={vercel} target="_blank" rel="noopener noreferrer" className={className}>
-          ▲ Deploy to Vercel ↗
-        </a>
-      </>
+      <a href={repoUrl} target="_blank" rel="noopener noreferrer" className={className}>
+        ✓ GitHub repo ↗
+      </a>
     );
   }
 

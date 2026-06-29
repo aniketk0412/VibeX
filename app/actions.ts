@@ -181,6 +181,67 @@ export async function exportToGitHub(projectId: string): Promise<GitHubExportRes
   return { url: repoUrl, repo: `${login}/${name}` };
 }
 
+// In-app Vercel deployment: push the project's generated files straight to Vercel's deployments
+// API and return the live URL. Uses a server VERCEL_DEPLOY_TOKEN if configured (one-click for
+// everyone), else the user's encrypted "vercel" BYOK token. Token is never logged.
+export type VercelDeployResult = { url?: string; error?: string; message?: string };
+
+export async function deployToVercel(projectId: string): Promise<VercelDeployResult> {
+  const session = await auth();
+  if (!session?.user) return { error: "unauthorized" };
+  const uid = session.user.id;
+
+  const token = process.env.VERCEL_DEPLOY_TOKEN || (await getUserKey(uid, "vercel"));
+  if (!token) return { error: "no_key" };
+
+  const project = await prisma.project.findFirst({
+    where: { id: projectId, userId: uid },
+    include: { runs: { orderBy: { startedAt: "desc" }, take: 1 } },
+  });
+  if (!project) return { error: "not_found" };
+  const files = (project.runs[0]?.files as unknown as GenFile[] | null) ?? [];
+  if (!files.length) return { error: "no_files" };
+
+  const slug =
+    (project.title || "vibex-app")
+      .toLowerCase()
+      .replace(/[^a-z0-9]+/g, "-")
+      .replace(/^-+|-+$/g, "")
+      .slice(0, 90) || "vibex-app";
+
+  const res = await fetch("https://api.vercel.com/v13/deployments?skipAutoDetectionConfirmation=1", {
+    method: "POST",
+    headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
+    cache: "no-store",
+    body: JSON.stringify({
+      name: slug,
+      files: files.map((f) => ({
+        file: f.path,
+        data: Buffer.from(f.content, "utf8").toString("base64"),
+        encoding: "base64",
+      })),
+      projectSettings: { framework: null },
+    }),
+  });
+
+  if (res.status === 401 || res.status === 403) return { error: "bad_token" };
+  if (!res.ok) {
+    let message = "Deployment failed";
+    try {
+      const j = await res.json();
+      message = j?.error?.message || message;
+    } catch {
+      /* ignore */
+    }
+    return { error: "failed", message };
+  }
+
+  const data = await res.json();
+  const url = data?.url ? `https://${data.url}` : undefined;
+  if (!url) return { error: "failed", message: "Vercel returned no URL" };
+  return { url };
+}
+
 export async function saveApiKey(provider: ProviderId, key: string) {
   const session = await auth();
   if (!session?.user || !key.trim()) return;
