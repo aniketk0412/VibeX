@@ -10,6 +10,7 @@ import { getProjectCount } from "@/lib/projects";
 import { saveUserKey, deleteUserKey, getUserKey, type ProviderId } from "@/lib/keys";
 import type { Spec, GenFile } from "@/lib/steps";
 import type { Prisma } from "@prisma/client";
+import { zipSync, strToU8 } from "fflate";
 
 // Persist the locked goal as a Project. Free plan is capped at 1 project ever.
 // Returns { id: null } for anonymous users (ephemeral, unsaved run).
@@ -239,6 +240,56 @@ export async function deployToVercel(projectId: string): Promise<VercelDeployRes
   const data = await res.json();
   const url = data?.url ? `https://${data.url}` : undefined;
   if (!url) return { error: "failed", message: "Vercel returned no URL" };
+  return { url };
+}
+
+// In-app Netlify deployment: zip the project's files and push them to Netlify's deploy API,
+// returning the live site URL. Uses NETLIFY_DEPLOY_TOKEN env if set, else the user's BYOK token.
+export async function deployToNetlify(projectId: string): Promise<VercelDeployResult> {
+  const session = await auth();
+  if (!session?.user) return { error: "unauthorized" };
+  const uid = session.user.id;
+
+  const token = process.env.NETLIFY_DEPLOY_TOKEN || (await getUserKey(uid, "netlify"));
+  if (!token) return { error: "no_key" };
+
+  const project = await prisma.project.findFirst({
+    where: { id: projectId, userId: uid },
+    include: { runs: { orderBy: { startedAt: "desc" }, take: 1 } },
+  });
+  if (!project) return { error: "not_found" };
+  const files = (project.runs[0]?.files as unknown as GenFile[] | null) ?? [];
+  if (!files.length) return { error: "no_files" };
+
+  const authHeader = { Authorization: `Bearer ${token}` };
+
+  // Create a site (auto-named to avoid collisions).
+  const siteRes = await fetch("https://api.netlify.com/api/v1/sites", {
+    method: "POST",
+    headers: { ...authHeader, "Content-Type": "application/json" },
+    cache: "no-store",
+    body: JSON.stringify({}),
+  });
+  if (siteRes.status === 401 || siteRes.status === 403) return { error: "bad_token" };
+  if (!siteRes.ok) return { error: "failed", message: "Could not create Netlify site" };
+  const site = await siteRes.json();
+
+  // Zip the files and deploy them.
+  const entries: Record<string, Uint8Array> = {};
+  for (const f of files) entries[f.path] = strToU8(f.content);
+  const zip = zipSync(entries, { level: 6 });
+
+  const depRes = await fetch(`https://api.netlify.com/api/v1/sites/${site.id}/deploys`, {
+    method: "POST",
+    headers: { ...authHeader, "Content-Type": "application/zip" },
+    cache: "no-store",
+    body: Buffer.from(zip),
+  });
+  if (!depRes.ok) return { error: "failed", message: "Netlify deploy failed", url: site.ssl_url };
+  const dep = await depRes.json();
+
+  const url = site.ssl_url || dep.ssl_url || dep.url;
+  if (!url) return { error: "failed", message: "Netlify returned no URL" };
   return { url };
 }
 

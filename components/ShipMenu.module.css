@@ -1,0 +1,50 @@
+.wrap {
+  position: relative;
+  display: inline-flex;
+}
+
+.menu {
+  position: absolute;
+  top: calc(100% + 8px);
+  right: 0;
+  z-index: 50;
+  min-width: 220px;
+  background: var(--bg-elev);
+  border: 1px solid var(--line);
+  border-radius: 13px;
+  box-shadow: var(--shadow);
+  padding: 6px;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  animation: ship-in 0.14s ease;
+}
+@keyframes ship-in {
+  from { opacity: 0; transform: translateY(-4px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+/* every action rendered inside the menu shares this row style (overrides the btn look) */
+.item {
+  display: flex;
+  align-items: center;
+  width: 100%;
+  text-align: left;
+  font-family: var(--font);
+  font-weight: 500;
+  font-size: 14px;
+  color: var(--text);
+  background: transparent;
+  border: none;
+  border-radius: 8px;
+  padding: 9px 11px;
+  cursor: pointer;
+  transition: background 0.13s ease, color 0.13s ease;
+}
+.item:hover {
+  background: var(--surface-2);
+}
+.item:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
