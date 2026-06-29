@@ -442,8 +442,8 @@
   display: flex;
   flex-direction: column;
   gap: 16px;
-  padding: 24px 28px 36px;
-  max-height: 100dvh;
+  padding: 24px 28px 28px;
+  height: 100dvh;
   overflow-y: auto;
 }
 .toolbar {
@@ -623,15 +623,15 @@
   .toolbarTitle { max-width: 80vw; }
 }
 
-/* in-app IDE host (editor + live preview) */
+/* in-app IDE host (editor + live preview) — fills the workspace */
 .ideHost {
-  height: 72vh;
+  flex: 1;
   min-height: 460px;
 }
 .ideLoading {
   display: grid;
   place-items: center;
-  height: 72vh;
+  flex: 1;
   min-height: 460px;
   color: var(--dim);
   font-size: 14px;

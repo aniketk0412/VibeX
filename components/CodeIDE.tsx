@@ -4,7 +4,7 @@
 // preview re-renders instantly; Save persists edits back to the project. Loaded client-only
 // (dynamic ssr:false from the result view) since CodeMirror needs the DOM.
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import CodeMirror from "@uiw/react-codemirror";
 import { html } from "@codemirror/lang-html";
 import { css } from "@codemirror/lang-css";
@@ -29,6 +29,9 @@ function langFor(path: string): Extension[] {
   return [];
 }
 
+// Injected into the preview so the running app's console + errors stream back to the Console panel.
+const CONSOLE_BRIDGE = `<script>(function(){function s(l,a){try{parent.postMessage({__vibexlog:1,level:l,text:Array.prototype.map.call(a,function(x){try{return typeof x==='object'?JSON.stringify(x):String(x)}catch(e){return String(x)}}).join(' ')},'*')}catch(e){}}['log','info','warn','error'].forEach(function(l){var o=console[l];console[l]=function(){s(l,arguments);if(o)o.apply(console,arguments)}});window.addEventListener('error',function(e){s('error',[e.message+' ('+(e.filename||'').split('/').pop()+':'+(e.lineno||'')+')'])});window.addEventListener('unhandledrejection',function(e){s('error',['Unhandled rejection: '+((e.reason&&e.reason.message)||e.reason)])});})();</script>`;
+
 export default function CodeIDE({ files: initial, projectId }: { files: GenFile[]; projectId?: string }) {
   const [files, setFiles] = useState<GenFile[]>(initial);
   const [active, setActive] = useState(0);
@@ -36,10 +39,28 @@ export default function CodeIDE({ files: initial, projectId }: { files: GenFile[
   const [saving, setSaving] = useState(false);
   const [view, setView] = useState<View>("split");
 
+  const [logs, setLogs] = useState<{ level: string; text: string }[]>([]);
+  const [consoleOpen, setConsoleOpen] = useState(false);
+
   const safe = Math.min(active, Math.max(0, files.length - 1));
   const file = files[safe];
   const preview = useMemo(() => buildPreview(files), [files]);
+  // Inject a console bridge so the preview's console.log + errors stream into our Console panel.
+  const previewDoc = useMemo(() => (preview ? preview + CONSOLE_BRIDGE : null), [preview]);
   const extensions = useMemo(() => langFor(file?.path ?? ""), [file?.path]);
+  const errorCount = logs.filter((l) => l.level === "error").length;
+
+  useEffect(() => {
+    const onMsg = (e: MessageEvent) => {
+      const d = e.data as { __vibexlog?: number; level?: string; text?: string };
+      if (d && d.__vibexlog) {
+        setLogs((l) => [...l.slice(-149), { level: d.level ?? "log", text: d.text ?? "" }]);
+        if (d.level === "error") setConsoleOpen(true);
+      }
+    };
+    window.addEventListener("message", onMsg);
+    return () => window.removeEventListener("message", onMsg);
+  }, []);
 
   const onChange = (val: string) => {
     setFiles((fs) => fs.map((f, i) => (i === safe ? { ...f, content: val } : f)));
@@ -104,15 +125,43 @@ export default function CodeIDE({ files: initial, projectId }: { files: GenFile[
           )}
           {view !== "code" && (
             <div className={styles.previewPane}>
-              {preview ? (
+              {previewDoc ? (
                 <iframe
                   className={styles.frame}
-                  srcDoc={preview}
+                  srcDoc={previewDoc}
                   title="Live preview"
                   sandbox="allow-scripts allow-same-origin allow-forms allow-modals allow-popups"
                 />
               ) : (
                 <div className={styles.noPreview}>No HTML entry to preview — this is an API/CLI project. Use the editor + the deploy/export options.</div>
+              )}
+            </div>
+          )}
+        </div>
+
+        <div className={styles.console} data-open={consoleOpen}>
+          <div className={styles.consoleHead}>
+            <button type="button" className={styles.consoleToggle} onClick={() => setConsoleOpen((o) => !o)} aria-expanded={consoleOpen}>
+              <span className={styles.consoleChevron} data-open={consoleOpen} aria-hidden>▾</span>
+              Console
+              {logs.length > 0 && <span className={styles.consoleCount}>{logs.length}</span>}
+              {errorCount > 0 && <span className={styles.consoleErr}>{errorCount} error{errorCount > 1 ? "s" : ""}</span>}
+            </button>
+            {logs.length > 0 && (
+              <button type="button" className={styles.consoleClear} onClick={() => setLogs([])}>Clear</button>
+            )}
+          </div>
+          {consoleOpen && (
+            <div className={styles.consoleBody}>
+              {logs.length === 0 ? (
+                <div className={styles.consoleEmpty}>No output yet — your app&apos;s console.log and runtime errors appear here.</div>
+              ) : (
+                logs.map((l, i) => (
+                  <div key={i} className={styles.consoleLine} data-level={l.level}>
+                    <span className={styles.consoleArrow} aria-hidden>›</span>
+                    {l.text}
+                  </div>
+                ))
               )}
             </div>
           )}

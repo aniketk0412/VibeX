@@ -131,3 +131,80 @@
   .panes { flex-direction: column; }
   .previewPane { border-left: none; border-top: 1px solid var(--line-soft); }
 }
+
+/* ── console (preview output) ──────────────────────────── */
+.console {
+  flex: none;
+  border-top: 1px solid var(--line-soft);
+  background: var(--bg);
+}
+.consoleHead {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 6px 10px 6px 12px;
+}
+.consoleToggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-family: var(--mono);
+  font-size: 11.5px;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--dim);
+  background: transparent;
+  border: none;
+  cursor: pointer;
+}
+.consoleChevron { transition: transform 0.2s ease; font-size: 10px; }
+.consoleChevron[data-open="false"] { transform: rotate(-90deg); }
+.consoleCount {
+  font-size: 10px;
+  color: var(--faint);
+  background: var(--surface-2);
+  border-radius: 999px;
+  padding: 1px 7px;
+  text-transform: none;
+}
+.consoleErr {
+  font-size: 10px;
+  color: #ff8a7a;
+  background: color-mix(in srgb, #e5553b 14%, transparent);
+  border-radius: 999px;
+  padding: 1px 7px;
+  text-transform: none;
+}
+.consoleClear {
+  font-family: var(--mono);
+  font-size: 11px;
+  color: var(--faint);
+  background: transparent;
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  padding: 2px 9px;
+  cursor: pointer;
+}
+.consoleClear:hover { color: var(--text); border-color: var(--faint); }
+.consoleBody {
+  max-height: 168px;
+  overflow-y: auto;
+  border-top: 1px solid var(--line-soft);
+  padding: 4px 0 6px;
+  font-family: var(--mono);
+  font-size: 12px;
+}
+.consoleEmpty { padding: 10px 14px; color: var(--faint); }
+.consoleLine {
+  display: flex;
+  gap: 8px;
+  padding: 3px 14px;
+  line-height: 1.5;
+  white-space: pre-wrap;
+  word-break: break-word;
+  color: var(--dim);
+}
+.consoleArrow { color: var(--faint); flex: none; }
+.consoleLine[data-level="error"] { color: #ff8a7a; background: color-mix(in srgb, #e5553b 8%, transparent); }
+.consoleLine[data-level="warn"] { color: #e5b65b; }
