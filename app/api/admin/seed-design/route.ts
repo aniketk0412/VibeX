@@ -11,10 +11,10 @@ export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
 export async function POST(req: NextRequest) {
+  // Always require the secret — no dev bypass (a mis-set NODE_ENV must never expose seeding).
   const secret = process.env.SEED_SECRET;
   const provided = req.headers.get("x-seed-secret") ?? new URL(req.url).searchParams.get("secret");
-  const allowed = process.env.NODE_ENV !== "production" || (!!secret && provided === secret);
-  if (!allowed) return new Response("Forbidden", { status: 403 });
+  if (!secret || provided !== secret) return new Response("Forbidden", { status: 403 });
 
   try {
     await prisma.designReference.deleteMany();

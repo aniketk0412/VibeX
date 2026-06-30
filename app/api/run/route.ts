@@ -8,6 +8,7 @@ import { prisma } from "@/lib/prisma";
 import { runEngine } from "@/lib/engine";
 import { createRun, recordPrompt, setRunStep, finishRun, saveRunOutput, interruptIfRunning, recordUsage, getUserPlan, getStartWindow } from "@/lib/runs";
 import { getUserKeys } from "@/lib/keys";
+import { isSameOrigin } from "@/lib/http";
 import { resolveModel } from "@/lib/ai/models";
 import type { Plan, WindowState } from "@/lib/usage";
 import type { UserKeys } from "@/lib/engine";
@@ -17,6 +18,7 @@ export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
 export async function POST(req: NextRequest) {
+  if (!isSameOrigin(req)) return new Response("Forbidden", { status: 403 });
   const body = await req.json().catch(() => ({}));
   let spec: Spec = body?.spec ?? {};
   const startIndex = typeof body?.startIndex === "number" ? body.startIndex : 0;

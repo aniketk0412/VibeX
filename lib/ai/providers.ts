@@ -6,6 +6,11 @@
 import Anthropic from "@anthropic-ai/sdk";
 import type { Provider } from "./models";
 
+// Hard ceiling per model call. Without it a stalled provider response hangs the whole build
+// (the SSE stream never advances). On timeout the call throws → the engine falls back to a stub
+// for that file, so a slow provider degrades to a working result instead of a frozen tab.
+const CALL_TIMEOUT_MS = 90_000;
+
 export class MissingKeyError extends Error {
   constructor(public provider: Provider) {
     super(`No API key configured for ${provider}`);
@@ -45,13 +50,16 @@ async function viaAnthropic(model: string, system: string, prompt: string, maxTo
   const apiKey = key ?? process.env.ANTHROPIC_API_KEY;
   if (!apiKey) throw new MissingKeyError("anthropic");
   const client = new Anthropic({ apiKey });
-  const res = await client.messages.create({
-    model,
-    max_tokens: maxTokens,
-    thinking: { type: "adaptive" },
-    system,
-    messages: [{ role: "user", content: prompt }],
-  });
+  const res = await client.messages.create(
+    {
+      model,
+      max_tokens: maxTokens,
+      thinking: { type: "adaptive" },
+      system,
+      messages: [{ role: "user", content: prompt }],
+    },
+    { timeout: CALL_TIMEOUT_MS },
+  );
   const text = res.content
     .filter((b): b is Anthropic.TextBlock => b.type === "text")
     .map((b) => b.text)
@@ -73,6 +81,7 @@ async function viaOpenAI(model: string, system: string, prompt: string, maxToken
         { role: "user", content: prompt },
       ],
     }),
+    signal: AbortSignal.timeout(CALL_TIMEOUT_MS),
   });
   if (!r.ok) throw new Error(`OpenAI ${r.status}`);
   const j = await r.json();
@@ -115,6 +124,7 @@ export async function generateOpenRouter(system: string, prompt: string, maxToke
           { role: "user", content: prompt },
         ],
       }),
+      signal: AbortSignal.timeout(CALL_TIMEOUT_MS),
     });
     if (r.status === 429) {
       const retryAfter = Number(r.headers.get("retry-after")) || 2;
@@ -152,6 +162,7 @@ export async function describeImage(
           max_tokens: 300,
           messages: [{ role: "user", content: [{ type: "text", text: ask }, { type: "image_url", image_url: { url: dataUrl } }] }],
         }),
+        signal: AbortSignal.timeout(CALL_TIMEOUT_MS),
       });
       if (r.ok) {
         const j = await r.json();
@@ -168,19 +179,22 @@ export async function describeImage(
   if (aKey && m) {
     try {
       const client = new Anthropic({ apiKey: aKey });
-      const res = await client.messages.create({
-        model: "claude-sonnet-4-6",
-        max_tokens: 300,
-        messages: [
-          {
-            role: "user",
-            content: [
-              { type: "image", source: { type: "base64", media_type: m[1] as "image/png" | "image/jpeg" | "image/gif" | "image/webp", data: m[2] } },
-              { type: "text", text: ask },
-            ],
-          },
-        ],
-      });
+      const res = await client.messages.create(
+        {
+          model: "claude-sonnet-4-6",
+          max_tokens: 300,
+          messages: [
+            {
+              role: "user",
+              content: [
+                { type: "image", source: { type: "base64", media_type: m[1] as "image/png" | "image/jpeg" | "image/gif" | "image/webp", data: m[2] } },
+                { type: "text", text: ask },
+              ],
+            },
+          ],
+        },
+        { timeout: CALL_TIMEOUT_MS },
+      );
       return res.content
         .filter((b): b is Anthropic.TextBlock => b.type === "text")
         .map((b) => b.text)
@@ -205,6 +219,7 @@ async function viaGoogle(model: string, system: string, prompt: string, maxToken
       contents: [{ role: "user", parts: [{ text: prompt }] }],
       generationConfig: { maxOutputTokens: maxTokens },
     }),
+    signal: AbortSignal.timeout(CALL_TIMEOUT_MS),
   });
   if (!r.ok) throw new Error(`Google ${r.status}`);
   const j = await r.json();

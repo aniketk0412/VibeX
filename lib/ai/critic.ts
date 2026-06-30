@@ -7,6 +7,8 @@ import Anthropic from "@anthropic-ai/sdk";
 import { MODELS, costOf } from "./models";
 import type { Spec } from "@/lib/steps";
 
+const CALL_TIMEOUT_MS = 90_000;
+
 export type CriticKeys = { anthropic?: string; openai?: string; openrouter?: string };
 
 export type Critique = {
@@ -76,20 +78,23 @@ async function viaAnthropic(dataUrl: string, system: string, user: string, key: 
   const m = dataUrl.match(/^data:(image\/[a-zA-Z0-9.+-]+);base64,(.*)$/);
   if (!m) return null;
   const client = new Anthropic({ apiKey: key });
-  const res = await client.messages.create({
-    model: "claude-sonnet-4-6",
-    max_tokens: 700,
-    system,
-    messages: [
-      {
-        role: "user",
-        content: [
-          { type: "image", source: { type: "base64", media_type: m[1] as "image/png" | "image/jpeg" | "image/webp" | "image/gif", data: m[2] } },
-          { type: "text", text: user },
-        ],
-      },
-    ],
-  });
+  const res = await client.messages.create(
+    {
+      model: "claude-sonnet-4-6",
+      max_tokens: 700,
+      system,
+      messages: [
+        {
+          role: "user",
+          content: [
+            { type: "image", source: { type: "base64", media_type: m[1] as "image/png" | "image/jpeg" | "image/webp" | "image/gif", data: m[2] } },
+            { type: "text", text: user },
+          ],
+        },
+      ],
+    },
+    { timeout: CALL_TIMEOUT_MS },
+  );
   const text = res.content
     .filter((b): b is Anthropic.TextBlock => b.type === "text")
     .map((b) => b.text)
@@ -117,6 +122,7 @@ async function viaOpenAILike(
         { role: "user", content: [{ type: "text", text: user }, { type: "image_url", image_url: { url: dataUrl } }] },
       ],
     }),
+    signal: AbortSignal.timeout(CALL_TIMEOUT_MS),
   });
   if (!r.ok) return null;
   const j = await r.json();

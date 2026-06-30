@@ -13,6 +13,7 @@ export async function embed(text: string, keys: { openai?: string } = {}): Promi
       method: "POST",
       headers: { "content-type": "application/json", authorization: `Bearer ${apiKey}` },
       body: JSON.stringify({ model: EMBED_MODEL, input: text.slice(0, 8000) }),
+      signal: AbortSignal.timeout(30_000),
     });
     if (!r.ok) return null;
     const j = await r.json();
