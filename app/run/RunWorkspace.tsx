@@ -365,7 +365,14 @@ export default function RunWorkspace({ initialSpec, projectId }: { initialSpec?:
     if (!r.files) return; // local fallback / aborted handle their own state
     await runDesignLoop(theSpec, r.live);
     setDone(true);
-    addMsg("vibex", "Build complete — reviewed for quality, design-checked, and saved. Preview is on the canvas →");
+    if (r.live) {
+      addMsg("vibex", "Build complete — reviewed and design-checked, and saved. Preview is on the canvas →");
+    } else {
+      addMsg(
+        "vibex",
+        "Simulated build — no AI model is connected, so these files are safe placeholders (not a real generation). Add an Anthropic, OpenAI, or OpenRouter key in Settings — or your own key — then rebuild for a real, reviewed, design-checked app.",
+      );
+    }
   }
 
   // Wait for the preview iframe to mount the latest doc, then snapshot it for the critic.
