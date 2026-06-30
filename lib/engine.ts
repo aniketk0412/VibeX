@@ -85,6 +85,21 @@ function coderUser(spec: Spec, file: PlannedFile, all: PlannedFile[], directions
     .join("\n");
 }
 
+// Restyle prompt for a design-critic refine pass: rewrite ONE existing file to realise the
+// reviewer's art-direction, using the rest of the app as context so it stays coherent.
+function restyleUser(spec: Spec, file: PlannedFile, others: GenFile[], directions: string): string {
+  const ctx = others.map((f) => `--- ${f.path} ---\n${f.content.slice(0, 2200)}`).join("\n\n");
+  return [
+    `App idea: ${spec.idea ?? "an app"}.`,
+    `You are redesigning an existing static web app so it looks distinctive and intentional — NOT like a default AI template.`,
+    directions ? `Apply this art-direction from the design reviewer:\n${directions}` : "",
+    ctx ? `The other current files, for context only (do NOT output them):\n${ctx}` : "",
+    `Output the COMPLETE new contents of \`${file.path}\` only. Keep it consistent with the other files (same class names, ids, element structure) but fully realise the new design. Return only the file contents — no fences, no commentary.`,
+  ]
+    .filter(Boolean)
+    .join("\n");
+}
+
 function reviewerSystem(): string {
   return `You are a senior code reviewer. Reply with ONE short line: "PASS — <reason>" if the app looks complete and runnable, or "REVISE: <the single most important issue>".`;
 }
@@ -176,6 +191,8 @@ export async function* runEngine(
     startWindow?: WindowState;
     steer?: string;
     images?: string[];
+    only?: string[]; // design-critic refine: regenerate just these files…
+    baseFiles?: GenFile[]; // …seeded/kept from the current build for context + merge
   } = {},
 ): AsyncGenerator<RunEvent> {
   const plan = opts.plan ?? "free";
@@ -198,8 +215,6 @@ export async function* runEngine(
   }
 
   const fileList = planFiles(spec);
-  const steps = fileList.map((f) => `Write ${f.path}`).concat("Review & finalize");
-  yield { type: "planned", steps, live };
 
   let totalTokens = 0;
   let totalCost = 0;
@@ -216,6 +231,51 @@ export async function* runEngine(
     cost: totalCost,
     window: { kind: win.kind, remaining: Math.max(0, limitFor(plan, win.kind) - win.used), resetInMs: msUntilReset(win, Date.now()) },
   });
+
+  // ── design-critic refine: regenerate ONLY the requested files (e.g. styles.css / index.html)
+  //    with the reviewer's art-direction, keeping the rest of the build for context + merge ──
+  if (opts.only?.length && opts.baseFiles?.length) {
+    for (const bf of opts.baseFiles) files.push({ ...bf });
+    const targets = fileList.filter((f) => opts.only!.includes(f.path));
+    yield { type: "planned", steps: targets.map((f) => `Restyle ${f.path}`).concat("Finalize design"), live };
+    for (let i = 0; i < targets.length; i++) {
+      if (opts.signal?.aborted) return;
+      if (overLimit(win, plan)) {
+        yield { type: "paused", reason: `${win.kind} token window reached`, resetInMs: msUntilReset(win, Date.now()) };
+        return;
+      }
+      const f = targets[i];
+      yield { type: "step_start", index: i, title: `Restyle ${f.path}` };
+      let content = "";
+      let tok = 1200;
+      let cost = 0;
+      try {
+        if (!coderC.call) throw new Error("no model");
+        const others = files.filter((x) => x.path !== f.path);
+        const r = await coderC.call(coderSystem(spec), restyleUser(spec, f, others, directions), 3200);
+        content = stripFences(r.text);
+        tok = r.inputTokens + r.outputTokens || 1200;
+        cost = coderC.free ? 0 : costOf(coder, r.inputTokens, r.outputTokens);
+      } catch {
+        content = "";
+      }
+      if (content.trim()) {
+        const idx = files.findIndex((x) => x.path === f.path);
+        if (idx >= 0) files[idx] = { path: f.path, content };
+        else files.push({ path: f.path, content });
+      }
+      totalCost += cost;
+      account(tok);
+      yield { type: "coder", index: i, path: f.path, preview: firstLine(content || "(unchanged)"), tokens: tok, cost };
+      yield usageEvent();
+      yield { type: "step_done", index: i };
+    }
+    yield { type: "complete", tokens: totalTokens, cost: totalCost, steps: targets.length, files };
+    return;
+  }
+
+  const steps = fileList.map((f) => `Write ${f.path}`).concat("Review & finalize");
+  yield { type: "planned", steps, live };
 
   const start = opts.startIndex ?? 0;
 

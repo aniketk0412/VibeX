@@ -25,6 +25,17 @@ export async function POST(req: NextRequest) {
   const images: string[] | undefined = Array.isArray(body?.images)
     ? body.images.filter((x: unknown): x is string => typeof x === "string" && x.startsWith("data:image")).slice(0, 2)
     : undefined;
+  // Design-critic refine pass: regenerate only these files, seeded from the current build.
+  const only: string[] | undefined = Array.isArray(body?.only)
+    ? body.only.filter((x: unknown): x is string => typeof x === "string").slice(0, 8)
+    : undefined;
+  const baseFiles: { path: string; content: string }[] | undefined = Array.isArray(body?.baseFiles)
+    ? body.baseFiles
+        .filter((x: unknown): x is { path: string; content: string } =>
+          !!x && typeof (x as { path?: unknown }).path === "string" && typeof (x as { content?: unknown }).content === "string",
+        )
+        .slice(0, 24)
+    : undefined;
 
   // If a project id is supplied, only persist when the signed-in user owns it.
   let userId: string | null = null;
@@ -61,7 +72,7 @@ export async function POST(req: NextRequest) {
       let prevCost = 0;
 
       try {
-        for await (const ev of runEngine(spec, { startIndex, signal: req.signal, plan, userKeys, startWindow, steer, images })) {
+        for await (const ev of runEngine(spec, { startIndex, signal: req.signal, plan, userKeys, startWindow, steer, images, only, baseFiles })) {
           send(ev);
           if (!userId) continue;
           try {

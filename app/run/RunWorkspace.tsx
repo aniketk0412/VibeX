@@ -11,6 +11,7 @@ import Link from "next/link";
 import Logo from "@/components/Logo";
 import ThemeToggle from "@/components/ThemeToggle";
 import { buildSteps, type Spec, type GenFile } from "@/lib/steps";
+import { captureIframe } from "@/lib/screenshot";
 import { AttachButton, Thumbs, type AttachedImage } from "@/components/ImageAttach";
 import BackLink from "@/components/BackLink";
 import CopyButton from "@/components/CopyButton";
@@ -137,6 +138,10 @@ export default function RunWorkspace({ initialSpec, projectId }: { initialSpec?:
   const feedEnd = useRef<HTMLDivElement>(null);
   const steerRef = useRef<string[]>([]); // accumulated corrections
   const imagesRef = useRef<string[]>([]); // reference images (data URLs) for the build
+  const previewIframeRef = useRef<HTMLIFrameElement>(null); // live preview, captured for design review
+  const filesRef = useRef<GenFile[]>([]); // latest generated files (for capture + restyle base)
+  const restylingRef = useRef(false); // true during a design-critic refine pass
+  const designPassRef = useRef(0); // design refine passes done this build
 
   // Resizable split between the conversation and the working canvas (persisted).
   const workspaceRef = useRef<HTMLDivElement>(null);
@@ -206,7 +211,7 @@ export default function RunWorkspace({ initialSpec, projectId }: { initialSpec?:
     stepsRef.current = plan;
     if (!startedRef.current) {
       startedRef.current = true;
-      void startStream(parsed, 0);
+      void runBuild(parsed, 0);
     }
     return () => {
       abortRef.current?.abort();
@@ -230,7 +235,8 @@ export default function RunWorkspace({ initialSpec, projectId }: { initialSpec?:
         setSteps(ev.steps);
         stepsRef.current = ev.steps;
         setLive(ev.live);
-        addMsg("vibex", `Goal locked. Planned ${ev.steps.length} steps — building now${ev.live ? "" : " (simulated — no API key set)"}.`);
+        if (!restylingRef.current)
+          addMsg("vibex", `Goal locked. Planned ${ev.steps.length} steps — building now${ev.live ? "" : " (simulated — no API key set)"}.`);
         break;
       case "coder": {
         if (ev.path) {
@@ -267,18 +273,31 @@ export default function RunWorkspace({ initialSpec, projectId }: { initialSpec?:
       case "complete":
         setTokens(ev.tokens);
         setCost(ev.cost);
-        setDone(true);
-        if (ev.files?.length) setFiles(ev.files);
-        addMsg("vibex", `Build complete — ${ev.steps} steps · ~$${ev.cost.toFixed(2)}. Preview is on the canvas →`);
+        if (ev.files?.length) {
+          setFiles(ev.files);
+          filesRef.current = ev.files;
+        }
+        // Finalization (done + completion message) and the auto design-critic loop are driven by
+        // runBuild() once the whole stream is consumed — restyle passes must not flip "done" early.
         break;
       default:
         break;
     }
   }
 
-  async function startStream(theSpec: Spec, fromIndex: number) {
+  type StreamResult = { files: GenFile[] | null; live: boolean };
+
+  // Run the build (or a design restyle pass) and report the final files. `extra.only` +
+  // `extra.baseFiles` drive a targeted restyle; the design loop reuses this same path.
+  async function startStream(
+    theSpec: Spec,
+    fromIndex: number,
+    extra?: { only?: string[]; baseFiles?: GenFile[] },
+  ): Promise<StreamResult> {
     const ctrl = new AbortController();
     abortRef.current = ctrl;
+    let finalFiles: GenFile[] | null = null;
+    let liveFlag = true;
     try {
       const res = await fetch("/api/run", {
         method: "POST",
@@ -289,6 +308,8 @@ export default function RunWorkspace({ initialSpec, projectId }: { initialSpec?:
           projectId,
           steer: steerRef.current.join(" — ") || undefined,
           images: imagesRef.current.length ? imagesRef.current : undefined,
+          only: extra?.only,
+          baseFiles: extra?.baseFiles,
         }),
         signal: ctrl.signal,
       });
@@ -308,18 +329,101 @@ export default function RunWorkspace({ initialSpec, projectId }: { initialSpec?:
           const line = block.split("\n").find((l) => l.startsWith("data:"));
           if (!line) continue;
           try {
-            apply(JSON.parse(line.slice(5).trim()) as RunEvent);
+            const ev = JSON.parse(line.slice(5).trim()) as RunEvent;
+            if (ev.type === "planned") liveFlag = ev.live;
+            if (ev.type === "complete") finalFiles = ev.files ?? [];
+            apply(ev);
             got = true;
           } catch {
             /* skip frame */
           }
         }
       }
-      if (!got) runLocalFallback(theSpec, fromIndex);
+      if (!got) {
+        runLocalFallback(theSpec, fromIndex);
+        return { files: null, live: false };
+      }
+      return { files: finalFiles, live: liveFlag };
     } catch {
-      if (ctrl.signal.aborted) return;
+      if (ctrl.signal.aborted) return { files: null, live: false };
       runLocalFallback(theSpec, fromIndex);
+      return { files: null, live: false };
     }
+  }
+
+  // One build, then the automatic design-critic loop, then finalize. Used for the initial run,
+  // resumes, and user corrections — the design loop only runs on live, previewable builds.
+  const MAX_DESIGN_PASSES = 2;
+  async function runBuild(theSpec: Spec, fromIndex: number) {
+    designPassRef.current = 0;
+    restylingRef.current = false;
+    const r = await startStream(theSpec, fromIndex);
+    if (!r.files) return; // local fallback / aborted handle their own state
+    await runDesignLoop(theSpec, r.live);
+    setDone(true);
+    addMsg("vibex", "Build complete — preview is on the canvas →");
+  }
+
+  // Wait for the preview iframe to mount the latest doc, then snapshot it for the critic.
+  async function capturePreview(): Promise<string | null> {
+    setCanvasTab("preview");
+    for (let i = 0; i < 30; i++) {
+      const body = previewIframeRef.current?.contentDocument?.body;
+      if (body && body.childElementCount > 0) break;
+      await new Promise((res) => setTimeout(res, 100));
+    }
+    await new Promise((res) => setTimeout(res, 200)); // let paint + fonts settle
+    return captureIframe(previewIframeRef.current);
+  }
+
+  // Screenshot → /api/design-review → (if templated) a targeted restyle pass, up to N times.
+  async function runDesignLoop(theSpec: Spec, isLive: boolean) {
+    if (!isLive) return; // simulated build — nothing to critique
+    for (let pass = 0; pass < MAX_DESIGN_PASSES; pass++) {
+      if (abortRef.current?.signal.aborted) return;
+      const current = filesRef.current;
+      if (!current.length || !buildPreview(current)) return; // not previewable (API / CLI)
+
+      const shot = await capturePreview();
+      if (!shot) {
+        addMsg("vibex", "Skipped design review — couldn't capture the preview.");
+        return;
+      }
+      addMsg("reviewer", "Design review — assessing the rendered UI…");
+
+      let res: { ok?: boolean; reason?: string; verdict?: "pass" | "revise"; score?: number; summary?: string; directions?: string } | null = null;
+      try {
+        const r = await fetch("/api/design-review", {
+          method: "POST",
+          headers: { "content-type": "application/json" },
+          body: JSON.stringify({ screenshot: shot, spec: theSpec, projectId }),
+        });
+        res = await r.json();
+      } catch {
+        return;
+      }
+      if (!res?.ok) {
+        if (res?.reason === "no-vision-key")
+          addMsg("vibex", "Add an Anthropic or OpenAI key in Settings to auto-review and polish the design.");
+        else if (res?.reason === "limit") addMsg("vibex", "Usage limit reached — skipping design review.");
+        return;
+      }
+
+      addMsg("reviewer", `${res.summary || "Design assessed"} — ${res.score ?? 0}/100`, res.verdict);
+      if (res.verdict === "pass" || !res.directions) {
+        addMsg("vibex", "Design reads as distinctive — shipping it.");
+        return;
+      }
+
+      designPassRef.current = pass + 1;
+      addMsg("vibex", `Refining the design (pass ${pass + 1}): ${res.directions}`);
+      steerRef.current.push(res.directions);
+      restylingRef.current = true;
+      const out = await startStream(theSpec, 0, { only: ["styles.css", "index.html"], baseFiles: filesRef.current });
+      restylingRef.current = false;
+      if (!out.files) return; // aborted / failed restyle
+    }
+    addMsg("vibex", "Design polished.");
   }
 
   function runLocalFallback(theSpec: Spec, fromIndex: number) {
@@ -362,7 +466,7 @@ export default function RunWorkspace({ initialSpec, projectId }: { initialSpec?:
     setPaused(false);
     setLimitPause(false);
     addMsg("vibex", "Resuming.");
-    void startStream(spec, completed);
+    void runBuild(spec, completed);
   }
 
   // A correction (text and/or an image) re-runs the build from the top with the new direction
@@ -394,7 +498,7 @@ export default function RunWorkspace({ initialSpec, projectId }: { initialSpec?:
     autoSwitched.current = false;
     setCanvasTab("code");
     addMsg("vibex", "On it — rebuilding with that change folded in.");
-    void startStream(spec, 0);
+    void runBuild(spec, 0);
   }
 
   const total = steps.length || 1;
@@ -592,6 +696,7 @@ export default function RunWorkspace({ initialSpec, projectId }: { initialSpec?:
             {canvasTab === "preview" ? (
               previewDoc ? (
                 <iframe
+                  ref={previewIframeRef}
                   className={styles.previewFrame}
                   srcDoc={previewDoc}
                   title="Live preview"

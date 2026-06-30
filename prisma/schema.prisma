@@ -144,6 +144,21 @@ model UsageWindow {
   @@index([userId])
 }
 
+// Design RAG: curated references the art-director critic retrieves from to judge generated UIs.
+// Embeddings are stored as a plain Float[] and cosine similarity is computed in JS — the corpus
+// is tiny (~dozens of rows), so this avoids the pgvector extension entirely (safer on the shared
+// Neon DB). Empty `embedding` is fine: retrieval then falls back to category match.
+model DesignReference {
+  id        String   @id @default(cuid())
+  category  String // landing | dashboard | tool | form | general
+  title     String
+  body      String   @db.Text
+  embedding Float[]
+  createdAt DateTime @default(now())
+
+  @@index([category])
+}
+
 // BYOK keys — encrypted at rest (AES-256-GCM), one per provider per user.
 model ApiKey {
   id         String   @id @default(cuid())
