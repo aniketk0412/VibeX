@@ -69,12 +69,39 @@ const STATS: { v: string; l: string }[] = [
   { v: "1", l: "free project, no card" },
 ];
 
-// Reassurance — the robustness work, in user language. Each maps to a real guarantee in the build.
-const GUARANTEES: { icon: string; t: string; d: string }[] = [
-  { icon: "⚡", t: "Your build always finishes", d: "If a model stalls, Vibex times out and recovers automatically — you get working code, never a frozen screen." },
-  { icon: "◑", t: "Two AIs, then a design review", d: "A Coder writes, a Reviewer checks, and an art-director AI refines the look — every build, zero prompts from you." },
-  { icon: "🔒", t: "Your keys stay private", d: "Bring-your-own-key secrets are encrypted (AES-256) and never leave the server or touch the browser." },
-  { icon: "⟳", t: "You never lose progress", d: "Usage limits are rolling time windows that auto-pause and resume — pick up exactly where you left off." },
+// Reassurance, framed as a contrast: the failure mode users hit elsewhere → what Vibex does
+// instead. Every claim maps to a real safeguard shipped in the build pipeline.
+const GUARANTEES: { icon: string; risk: string; without: string; withVibex: string }[] = [
+  {
+    icon: "⚡",
+    risk: "Builds that freeze halfway",
+    without: "With other AI tools a single stuck model means an endless spinner — and the work so far is gone.",
+    withVibex: "Vibex times out and recovers automatically. Your build always finishes with openable code.",
+  },
+  {
+    icon: "✦",
+    risk: "Cookie-cutter, templated apps",
+    without: "Most AI coders stop at a generic first draft that instantly reads as “AI-made.”",
+    withVibex: "A Coder writes, a Reviewer checks, then an art-director AI redesigns it until it looks hand-built.",
+  },
+  {
+    icon: "?",
+    risk: "Vague questions, vague results",
+    without: "Generic prompts give every idea the same shallow treatment — so you get something off.",
+    withVibex: "Vibex asks sharp, idea-specific questions first, so it builds what you actually meant.",
+  },
+  {
+    icon: "🔒",
+    risk: "Exposed API keys",
+    without: "Paste a key into the wrong tool and it can leak or get logged.",
+    withVibex: "Your keys are encrypted (AES-256) and never leave the server or touch the browser.",
+  },
+  {
+    icon: "⟳",
+    risk: "Losing progress at a limit",
+    without: "Hit a usage cap elsewhere and the run dies — you start over from scratch.",
+    withVibex: "Vibex pauses on rolling windows and auto-resumes. You never lose progress.",
+  },
 ];
 
 // PLACEHOLDER testimonials — replace each entry with a real customer quote before launch.
@@ -199,17 +226,27 @@ export default function Home() {
         </Reveal>
 
         <Reveal>
-          <section className={styles.features} id="guarantees">
+          <section className={styles.safeguards} id="guarantees">
             <div className={styles.sectionHead}>
-              <span className="eyebrow"><span className="dot" /> Built to be trusted</span>
-              <h2 className={styles.h2}>Robust by default — you just describe it</h2>
+              <span className="eyebrow"><span className="dot" /> Built so it doesn&apos;t break</span>
+              <h2 className={styles.h2}>What breaks other AI builders — handled here</h2>
+              <p className={styles.h2sub}>Every build runs through the same safeguards, automatically. Here&apos;s what that saves you from.</p>
             </div>
-            <div className={styles.featGrid}>
+            <div className={styles.sgGrid}>
               {GUARANTEES.map((g) => (
-                <div key={g.t} className={styles.feat}>
-                  <span className={styles.featIcon} aria-hidden>{g.icon}</span>
-                  <h3 className={styles.featTitle}>{g.t}</h3>
-                  <p className={styles.featBody}>{g.d}</p>
+                <div key={g.risk} className={styles.sgCard}>
+                  <div className={styles.sgHead}>
+                    <span className={styles.sgIcon} aria-hidden>{g.icon}</span>
+                    <h3 className={styles.sgRisk}>{g.risk}</h3>
+                  </div>
+                  <p className={styles.sgLine}>
+                    <span className={styles.sgTag} data-k="x">Elsewhere</span>
+                    {g.without}
+                  </p>
+                  <p className={styles.sgLine}>
+                    <span className={styles.sgTag} data-k="v">Vibex</span>
+                    {g.withVibex}
+                  </p>
                 </div>
               ))}
             </div>

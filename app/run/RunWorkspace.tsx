@@ -365,7 +365,7 @@ export default function RunWorkspace({ initialSpec, projectId }: { initialSpec?:
     if (!r.files) return; // local fallback / aborted handle their own state
     await runDesignLoop(theSpec, r.live);
     setDone(true);
-    addMsg("vibex", "Build complete — preview is on the canvas →");
+    addMsg("vibex", "Build complete — reviewed for quality, design-checked, and saved. Preview is on the canvas →");
   }
 
   // Wait for the preview iframe to mount the latest doc, then snapshot it for the critic.
