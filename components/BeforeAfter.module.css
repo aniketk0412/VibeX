@@ -1,0 +1,100 @@
+.wrap {
+  position: relative;
+  width: 100%;
+  max-width: 460px;
+  margin: 0 auto 30px;
+  aspect-ratio: 16 / 10;
+  border-radius: var(--r);
+  overflow: hidden;
+  border: 1px solid var(--line);
+  box-shadow: var(--shadow-md);
+  background: #fff;
+}
+
+/* ── After: the Vibex redesign (warm, asymmetric, depth) ── */
+.after {
+  position: absolute;
+  inset: 0;
+  background: #f6f1e9;
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+}
+.vNav { display: flex; align-items: center; gap: 8px; }
+.vDot { width: 14px; height: 14px; border-radius: 5px; background: #ff5a1f; }
+.vNavBar { width: 70px; height: 7px; border-radius: 4px; background: #d8cdbd; }
+.vHero { display: flex; gap: 14px; flex: 1; margin-top: 14px; }
+.vLeft { display: flex; flex-direction: column; gap: 8px; flex: 1; justify-content: center; }
+.vH1 { width: 82%; height: 22px; border-radius: 6px; background: #1f1a16; }
+.vLine { width: 92%; height: 8px; border-radius: 4px; background: #bcb0a0; }
+.vLineShort { width: 58%; height: 8px; border-radius: 4px; background: #cabdac; }
+.vBtn { width: 84px; height: 24px; border-radius: 8px; background: #ff5a1f; margin-top: 8px; box-shadow: 0 6px 14px -6px rgba(255, 90, 31, 0.6); }
+.vCard {
+  width: 38%;
+  border-radius: 11px;
+  background: #fff;
+  border: 1px solid #e8e0d2;
+  box-shadow: 0 12px 26px -16px rgba(60, 40, 20, 0.45);
+  padding: 11px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  justify-content: center;
+}
+.vCardBar { width: 82%; height: 9px; border-radius: 4px; background: #e9e0d2; }
+.vCardBar2 { width: 55%; height: 9px; border-radius: 4px; background: #efe7da; }
+.vRow { display: flex; gap: 8px; margin-top: 12px; }
+.vMini { flex: 1; height: 26px; border-radius: 8px; background: #fff; border: 1px solid #ece4d6; box-shadow: 0 6px 14px -10px rgba(60, 40, 20, 0.35); }
+
+/* ── Before: the generic template (centered, gray, default blue) ── */
+.before {
+  position: absolute;
+  inset: 0;
+  background: #ffffff;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  padding: 20px;
+  animation: ba-fade 7s ease-in-out infinite;
+}
+.tBar { width: 46%; height: 14px; border-radius: 4px; background: #d7d7db; }
+.tBar2 { width: 30%; height: 9px; border-radius: 4px; background: #e3e3e7; }
+.tRow { display: flex; gap: 10px; margin-top: 4px; }
+.tBox { width: 54px; height: 40px; border-radius: 6px; background: #ebebef; border: 1px solid #e0e0e6; }
+.tBtn { width: 92px; height: 24px; border-radius: 6px; background: #3b82f6; margin-top: 6px; }
+
+/* ── labels ── */
+.tagBefore,
+.tagAfter {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  font-family: var(--mono);
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  padding: 3px 9px;
+  border-radius: 999px;
+}
+.tagBefore { color: #8a8a90; background: rgba(0, 0, 0, 0.06); border: 1px solid rgba(0, 0, 0, 0.1); animation: ba-fade 7s ease-in-out infinite; }
+.tagAfter { color: #fff; background: #ff5a1f; animation: ba-fade-inv 7s ease-in-out infinite; }
+
+@keyframes ba-fade {
+  0%, 32% { opacity: 1; }
+  50%, 82% { opacity: 0; }
+  100% { opacity: 1; }
+}
+@keyframes ba-fade-inv {
+  0%, 32% { opacity: 0; }
+  50%, 82% { opacity: 1; }
+  100% { opacity: 0; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .before,
+  .tagBefore { opacity: 0; animation: none; }
+  .tagAfter { opacity: 1; animation: none; }
+}

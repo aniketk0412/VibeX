@@ -4,6 +4,7 @@ import SiteFooter from "@/components/SiteFooter";
 import CockpitPanel from "@/components/CockpitPanel";
 import PricingTable from "@/components/PricingTable";
 import Reveal from "@/components/Reveal";
+import BeforeAfter from "@/components/BeforeAfter";
 import styles from "./page.module.css";
 
 const SITE = process.env.NEXT_PUBLIC_APP_URL ?? "https://vibex.io";
@@ -163,6 +164,11 @@ export default function Home() {
               <button className="btn btn-ghost btn-lg" type="button">Watch a run</button>
             </div>
             <p className={styles.note}><b>1 free project</b> — no prompt-writing, no babysitting. Interrupt anytime.</p>
+            <ul className={styles.heroProof}>
+              <li><span aria-hidden>⚡</span> Builds always finish</li>
+              <li><span aria-hidden>◑</span> Coder + Reviewer + design review</li>
+              <li><span aria-hidden>🔒</span> Keys encrypted</li>
+            </ul>
           </div>
 
           {/* Cockpit live-run panel — the product is the hero (animation lands next) */}
@@ -232,6 +238,7 @@ export default function Home() {
               <h2 className={styles.h2}>What breaks other AI builders — handled here</h2>
               <p className={styles.h2sub}>Every build runs through the same safeguards, automatically. Here&apos;s what that saves you from.</p>
             </div>
+            <BeforeAfter />
             <div className={styles.sgGrid}>
               {GUARANTEES.map((g) => (
                 <div key={g.risk} className={styles.sgCard}>

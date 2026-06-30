@@ -25,6 +25,22 @@
 .ctaRow { margin-top: 34px; display: flex; align-items: center; gap: 14px; flex-wrap: wrap; }
 .note { margin-top: 18px; font-size: 14px; color: var(--faint); }
 .note b { color: var(--dim); font-weight: 600; }
+.heroProof {
+  list-style: none;
+  margin-top: 18px;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 16px;
+}
+.heroProof li {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  font-family: var(--mono);
+  font-size: 12.5px;
+  color: var(--dim);
+}
+.heroProof li span { color: var(--accent); }
 
 /* ── trust strip ───────────────────────────────────────── */
 .trust { padding: 8px 0 56px; display: flex; gap: 20px; flex-wrap: wrap; align-items: center; color: var(--faint); font-size: 14px; font-family: var(--mono); }
