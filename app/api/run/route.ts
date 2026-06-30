@@ -9,6 +9,7 @@ import { runEngine } from "@/lib/engine";
 import { createRun, recordPrompt, setRunStep, finishRun, saveRunOutput, interruptIfRunning, recordUsage, getUserPlan, getStartWindow } from "@/lib/runs";
 import { getUserKeys } from "@/lib/keys";
 import { isSameOrigin } from "@/lib/http";
+import { rateLimit, rateSubject, tooMany } from "@/lib/ratelimit";
 import { resolveModel } from "@/lib/ai/models";
 import type { Plan, WindowState } from "@/lib/usage";
 import type { UserKeys } from "@/lib/engine";
@@ -19,6 +20,8 @@ export const dynamic = "force-dynamic";
 
 export async function POST(req: NextRequest) {
   if (!isSameOrigin(req)) return new Response("Forbidden", { status: 403 });
+  const rl = await rateLimit(`run:${rateSubject(req)}`, 30, 5 * 60_000);
+  if (!rl.ok) return tooMany(rl.retryAfterMs);
   const body = await req.json().catch(() => ({}));
   let spec: Spec = body?.spec ?? {};
   const startIndex = typeof body?.startIndex === "number" ? body.startIndex : 0;

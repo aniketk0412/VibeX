@@ -144,6 +144,14 @@ model UsageWindow {
   @@index([userId])
 }
 
+// Fixed-window rate limiter. One row per (route + subject); `count` resets when `resetsAt`
+// passes. A small over-count under a burst is fine — this is an abuse guard, not billing.
+model RateLimit {
+  key      String   @id // `${route}:${subject}` (subject = userId or IP)
+  count    Int      @default(0)
+  resetsAt DateTime
+}
+
 // Design RAG: curated references the art-director critic retrieves from to judge generated UIs.
 // Embeddings are stored as a plain Float[] and cosine similarity is computed in JS — the corpus
 // is tiny (~dozens of rows), so this avoids the pgvector extension entirely (safer on the shared

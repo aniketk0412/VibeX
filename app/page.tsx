@@ -69,6 +69,14 @@ const STATS: { v: string; l: string }[] = [
   { v: "1", l: "free project, no card" },
 ];
 
+// Reassurance — the robustness work, in user language. Each maps to a real guarantee in the build.
+const GUARANTEES: { icon: string; t: string; d: string }[] = [
+  { icon: "⚡", t: "Your build always finishes", d: "If a model stalls, Vibex times out and recovers automatically — you get working code, never a frozen screen." },
+  { icon: "◑", t: "Two AIs, then a design review", d: "A Coder writes, a Reviewer checks, and an art-director AI refines the look — every build, zero prompts from you." },
+  { icon: "🔒", t: "Your keys stay private", d: "Bring-your-own-key secrets are encrypted (AES-256) and never leave the server or touch the browser." },
+  { icon: "⟳", t: "You never lose progress", d: "Usage limits are rolling time windows that auto-pause and resume — pick up exactly where you left off." },
+];
+
 // PLACEHOLDER testimonials — replace each entry with a real customer quote before launch.
 // The section auto-hides when this array is empty, so clear it to remove the block entirely.
 const TESTIMONIALS: { quote: string; name: string; role: string }[] = [
@@ -184,6 +192,24 @@ export default function Home() {
                   <span className={styles.featIcon} aria-hidden>{f.icon}</span>
                   <h3 className={styles.featTitle}>{f.t}</h3>
                   <p className={styles.featBody}>{f.d}</p>
+                </div>
+              ))}
+            </div>
+          </section>
+        </Reveal>
+
+        <Reveal>
+          <section className={styles.features} id="guarantees">
+            <div className={styles.sectionHead}>
+              <span className="eyebrow"><span className="dot" /> Built to be trusted</span>
+              <h2 className={styles.h2}>Robust by default — you just describe it</h2>
+            </div>
+            <div className={styles.featGrid}>
+              {GUARANTEES.map((g) => (
+                <div key={g.t} className={styles.feat}>
+                  <span className={styles.featIcon} aria-hidden>{g.icon}</span>
+                  <h3 className={styles.featTitle}>{g.t}</h3>
+                  <p className={styles.featBody}>{g.d}</p>
                 </div>
               ))}
             </div>

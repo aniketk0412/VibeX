@@ -8,6 +8,7 @@ import { auth } from "@/auth";
 import { prisma } from "@/lib/prisma";
 import { getUserKeys } from "@/lib/keys";
 import { isSameOrigin } from "@/lib/http";
+import { rateLimit, rateSubject, tooMany } from "@/lib/ratelimit";
 import { getUserPlan, getStartWindow, recordUsage } from "@/lib/runs";
 import { overLimit } from "@/lib/usage";
 import { embed } from "@/lib/ai/embeddings";
@@ -21,6 +22,8 @@ export const dynamic = "force-dynamic";
 
 export async function POST(req: NextRequest) {
   if (!isSameOrigin(req)) return new Response("Forbidden", { status: 403 });
+  const rl = await rateLimit(`review:${rateSubject(req)}`, 60, 5 * 60_000);
+  if (!rl.ok) return tooMany(rl.retryAfterMs);
   const body = await req.json().catch(() => ({}));
   const screenshot: string | undefined =
     typeof body?.screenshot === "string" && body.screenshot.startsWith("data:image") ? body.screenshot : undefined;

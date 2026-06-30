@@ -8,6 +8,7 @@ import { auth } from "@/auth";
 import { getUserKeys } from "@/lib/keys";
 import { generate, generateOpenRouter, envKey, type GenResult } from "@/lib/ai/providers";
 import { isSameOrigin } from "@/lib/http";
+import { rateLimit, rateSubject, tooMany } from "@/lib/ratelimit";
 import type { Provider } from "@/lib/ai/models";
 
 export const runtime = "nodejs";
@@ -78,6 +79,8 @@ function parseQuestions(text: string): GenQuestion[] {
 
 export async function POST(req: NextRequest) {
   if (!isSameOrigin(req)) return new Response("Forbidden", { status: 403 });
+  const rl = await rateLimit(`iq:${rateSubject(req)}`, 40, 5 * 60_000);
+  if (!rl.ok) return tooMany(rl.retryAfterMs);
   const body = await req.json().catch(() => ({}));
   const idea: string = typeof body?.idea === "string" ? body.idea.slice(0, 600) : "";
   const platform: string = typeof body?.platform === "string" ? body.platform.slice(0, 80) : "";
