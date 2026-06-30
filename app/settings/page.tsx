@@ -62,7 +62,7 @@ export default async function SettingsPage() {
         <section className={styles.card}>
           <div className={styles.cardHead}>
             <h2>Your API keys</h2>
-            <p>Bring your own provider keys. Stored encrypted, used for your builds instead of Vibex&apos;s — so usage is billed to you.</p>
+            <p>Bring your own provider keys. They&apos;re encrypted at rest (AES-256) and never leave the server or touch the browser — used only for your builds, billed to you.</p>
           </div>
           <div className={styles.keys}>
             {KEY_PROVIDERS.map((p) => (

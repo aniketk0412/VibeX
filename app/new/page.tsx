@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import AppHeader from "@/components/AppHeader";
+import KeyNotice from "@/components/KeyNotice";
 import StepIndicator from "@/components/StepIndicator";
 import { AttachButton, Thumbs, type AttachedImage } from "@/components/ImageAttach";
 import styles from "./new.module.css";
@@ -58,11 +59,23 @@ export default function NewIdeaPage() {
   const [refs, setRefs] = useState<AttachedImage[]>([]);
   const [mod, setMod] = useState("⌘");
   const [typeId, setTypeId] = useState("web");
+  const [hasKey, setHasKey] = useState(true); // assume true until checked, so the nudge never flashes
   const taRef = useRef<HTMLTextAreaElement>(null);
 
   useEffect(() => {
     const isMac = /mac|iphone|ipad|ipod/i.test(navigator.platform || navigator.userAgent);
     if (!isMac) setMod("Ctrl");
+  }, []);
+
+  useEffect(() => {
+    let alive = true;
+    fetch("/api/has-key")
+      .then((r) => r.json())
+      .then((d) => alive && setHasKey(d?.hasKey !== false))
+      .catch(() => {});
+    return () => {
+      alive = false;
+    };
   }, []);
 
   const grow = useCallback((el: HTMLTextAreaElement) => {
@@ -111,6 +124,12 @@ export default function NewIdeaPage() {
 
       <main className={styles.main}>
         <StepIndicator active="Idea" />
+
+        {!hasKey && (
+          <div style={{ marginTop: 18 }}>
+            <KeyNotice message="Heads up: no AI model is connected, so your build will be a simulated placeholder. Connect a key for real, generated code." />
+          </div>
+        )}
 
         <section className={styles.card}>
           <h1 className={styles.heading}>What do you want to build?</h1>

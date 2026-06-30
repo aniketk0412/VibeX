@@ -12,6 +12,17 @@
   padding: 20px 28px 80px;
 }
 
+.notice {
+  margin-bottom: 22px;
+}
+.usageHint {
+  display: block;
+  margin-top: 8px;
+  font-family: var(--mono);
+  font-size: 11px;
+  color: #e5755b;
+}
+
 .greeting {
   margin-bottom: 4px;
 }

@@ -6,10 +6,12 @@ import Link from "next/link";
 import { auth } from "@/auth";
 import { prisma } from "@/lib/prisma";
 import { getUserPlan } from "@/lib/runs";
-import { TOKEN_LIMITS } from "@/lib/usage";
+import { TOKEN_LIMITS, formatDuration } from "@/lib/usage";
 import { greeting, firstName } from "@/lib/format";
+import { hasModelAccess } from "@/lib/keys";
 import AppHeader from "@/components/AppHeader";
 import ProjectGrid from "@/components/ProjectGrid";
+import KeyNotice from "@/components/KeyNotice";
 import styles from "./dashboard.module.css";
 
 export const dynamic = "force-dynamic";
@@ -21,7 +23,7 @@ export default async function DashboardPage() {
   const user = session.user;
   const uid = user.id;
 
-  const [plan, projects, win] = await Promise.all([
+  const [plan, projects, win, hasKey] = await Promise.all([
     getUserPlan(uid),
     prisma.project.findMany({
       where: { userId: uid },
@@ -29,6 +31,7 @@ export default async function DashboardPage() {
       include: { runs: { orderBy: { startedAt: "desc" }, take: 1, select: { status: true } } },
     }),
     prisma.usageWindow.findUnique({ where: { userId_kind: { userId: uid, kind: "FIVE_HOUR" } } }),
+    hasModelAccess(uid),
   ]);
   if (projects.length === 0) redirect("/new");
 
@@ -46,6 +49,12 @@ export default async function DashboardPage() {
       />
 
       <main className={styles.main}>
+        {!hasKey && (
+          <div className={styles.notice}>
+            <KeyNotice message="No AI model is connected — builds will run as simulated placeholders. Connect a key to generate real, reviewed apps." />
+          </div>
+        )}
+
         <div className={styles.greeting}>
           <h1 className={styles.hello}>{greeting()}, {firstName(user.name, user.email)}</h1>
           <p className={styles.subtitle}>
@@ -64,6 +73,9 @@ export default async function DashboardPage() {
             <div className={styles.bar} role="progressbar" aria-valuenow={usagePct} aria-valuemin={0} aria-valuemax={100} aria-label="5-hour usage">
               <div className={styles.barFill} data-high={usagePct >= 90} style={{ width: `${usagePct}%` }} />
             </div>
+            {usagePct >= 90 && win && (
+              <span className={styles.usageHint}>Near your limit — resets in {formatDuration(win.resetsAt.getTime() - Date.now())}.</span>
+            )}
           </div>
           <div className={styles.stat}>
             <span className={styles.sl}>Projects</span>

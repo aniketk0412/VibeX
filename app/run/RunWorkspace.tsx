@@ -12,6 +12,7 @@ import Logo from "@/components/Logo";
 import ThemeToggle from "@/components/ThemeToggle";
 import { buildSteps, type Spec, type GenFile } from "@/lib/steps";
 import { captureIframe } from "@/lib/screenshot";
+import KeyNotice from "@/components/KeyNotice";
 import { AttachButton, Thumbs, type AttachedImage } from "@/components/ImageAttach";
 import BackLink from "@/components/BackLink";
 import CopyButton from "@/components/CopyButton";
@@ -103,7 +104,7 @@ type RunEvent =
   | { type: "complete"; tokens: number; cost: number; steps: number; files: GenFile[] }
   | { type: "error"; message: string };
 
-export default function RunWorkspace({ initialSpec, projectId }: { initialSpec?: Spec; projectId?: string }) {
+export default function RunWorkspace({ initialSpec, projectId, hasKey = true }: { initialSpec?: Spec; projectId?: string; hasKey?: boolean }) {
   const router = useRouter();
   const [spec, setSpec] = useState<Spec>(initialSpec ?? {});
   const [live, setLive] = useState(true);
@@ -565,6 +566,12 @@ export default function RunWorkspace({ initialSpec, projectId }: { initialSpec?:
               {spec.coder ? ` · ${spec.coder} + ${spec.reviewer}` : ""}
             </span>
           </div>
+
+          {!hasKey && (
+            <div style={{ margin: "0 0 14px" }}>
+              <KeyNotice message="No AI model is connected — this build is a simulated placeholder. Connect a key, then rebuild for real code." />
+            </div>
+          )}
 
           <div className={styles.buildTrack}>
             <button type="button" className={styles.buildTrackHead} onClick={() => setTrackOpen((v) => !v)} aria-expanded={trackOpen}>

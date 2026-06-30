@@ -5,6 +5,7 @@
 
 import { auth } from "@/auth";
 import { prisma } from "@/lib/prisma";
+import { hasModelAccess } from "@/lib/keys";
 import type { Spec } from "@/lib/steps";
 import RunWorkspace from "./RunWorkspace";
 
@@ -17,21 +18,21 @@ export default async function RunPage({
   searchParams: { [key: string]: string | string[] | undefined };
 }) {
   const projectId = typeof searchParams.project === "string" ? searchParams.project : undefined;
+  const session = await auth();
   let spec: Spec | undefined;
   let ownedId: string | undefined;
 
-  if (projectId) {
-    const session = await auth();
-    if (session?.user) {
-      const project = await prisma.project.findFirst({
-        where: { id: projectId, userId: session.user.id },
-      });
-      if (project) {
-        spec = project.spec as Spec;
-        ownedId = project.id;
-      }
+  if (projectId && session?.user) {
+    const project = await prisma.project.findFirst({
+      where: { id: projectId, userId: session.user.id },
+    });
+    if (project) {
+      spec = project.spec as Spec;
+      ownedId = project.id;
     }
   }
 
-  return <RunWorkspace initialSpec={spec} projectId={ownedId} />;
+  const hasKey = await hasModelAccess(session?.user?.id);
+
+  return <RunWorkspace initialSpec={spec} projectId={ownedId} hasKey={hasKey} />;
 }

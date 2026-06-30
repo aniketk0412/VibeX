@@ -61,3 +61,26 @@ export async function saveUserKey(userId: string, provider: ProviderId, key: str
 export async function deleteUserKey(userId: string, provider: ProviderId) {
   await prisma.apiKey.deleteMany({ where: { userId, provider } });
 }
+
+// Can a real build run? True if the server has any model env key, or the user brought their own.
+// Drives the "connect a key" nudges so users know a build will be real vs. a simulated placeholder.
+export async function hasModelAccess(userId?: string | null): Promise<boolean> {
+  if (
+    process.env.OPENROUTER_API_KEY ||
+    process.env.ANTHROPIC_API_KEY ||
+    process.env.OPENAI_API_KEY ||
+    process.env.GOOGLE_GENERATIVE_AI_API_KEY
+  ) {
+    return true;
+  }
+  if (!userId) return false;
+  try {
+    const row = await prisma.apiKey.findFirst({
+      where: { userId, provider: { in: ["anthropic", "openai", "google", "openrouter"] } },
+      select: { id: true },
+    });
+    return !!row;
+  } catch {
+    return false;
+  }
+}
