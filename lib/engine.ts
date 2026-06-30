@@ -24,7 +24,7 @@ import type { Spec, GenFile } from "@/lib/steps";
 export type RunEvent =
   | { type: "planned"; steps: string[]; live: boolean }
   | { type: "step_start"; index: number; title: string }
-  | { type: "coder"; index: number; path: string; preview: string; tokens: number; cost: number }
+  | { type: "coder"; index: number; path: string; preview: string; tokens: number; cost: number; stub?: boolean }
   | { type: "reviewer"; index: number; verdict: "pass" | "revise"; note: string; tokens: number; cost: number }
   | { type: "step_done"; index: number }
   | { type: "usage"; tokens: number; cost: number; window: { kind: WindowKind; remaining: number; resetInMs: number } }
@@ -38,7 +38,7 @@ type PlannedFile = { path: string; purpose: string };
 function appKind(spec: Spec): string {
   if (spec.platform === "API / backend") return "a small Node.js HTTP API (no framework)";
   if (spec.platform === "CLI tool") return "a small Node.js command-line tool";
-  return "a polished, self-contained static web app (plain HTML/CSS/JS, no build step, no frameworks)";
+  return "a polished, responsive, mobile-friendly self-contained static web app (plain HTML/CSS/JS, no build step, no frameworks)";
 }
 
 function planFiles(spec: Spec): PlannedFile[] {
@@ -78,6 +78,9 @@ function coderUser(spec: Spec, file: PlannedFile, all: PlannedFile[], directions
     look ? `Look & feel: ${look}.` : "",
     spec.details?.length
       ? `Specifics the user told us about this idea (build to these, don't invent generic defaults):\n${spec.details.map((d) => `- ${d.q} → ${d.a}`).join("\n")}`
+      : "",
+    spec.integrations && spec.integrations !== "None"
+      ? `Integrations to support — scaffold real, clearly-marked integration points (e.g. a checkout button, an email-capture form) rather than ignoring them: ${spec.integrations}.`
       : "",
     directions ? `IMPORTANT — apply this direction from the user:\n${directions}` : "",
     `The project contains these files: ${all.map((f) => f.path).join(", ")}.`,
@@ -173,13 +176,16 @@ p { color: #b6ac9e; margin-top: 0.75rem; }
 export type UserKeys = Partial<Record<"anthropic" | "openai" | "google" | "openrouter", string>>;
 type CallFn = (system: string, user: string, maxTokens: number) => Promise<GenResult>;
 
-// Resolve the call path for a model: a user's OpenRouter key (free) wins, then the user's key
-// for the model's provider, then the server's env key. null → simulate.
+// Resolve the call path for a model. Honour the user's CHOSEN model first: if they brought their
+// own key for that provider, use it (their pick is real, not cosmetic). Otherwise fall back to the
+// free OpenRouter route to keep the $0 demo working, then the server's env key. null → simulate.
 function buildCall(spec: ModelSpec, keys: UserKeys): { call: CallFn | null; free: boolean } {
+  const own = keys[spec.provider];
+  if (own) return { call: (s, u, m) => generate(spec.provider, spec.model, s, u, m, own), free: false };
   const orKey = keys.openrouter ?? process.env.OPENROUTER_API_KEY;
   if (orKey) return { call: (s, u, m) => generateOpenRouter(s, u, m, orKey), free: true };
-  const k = keys[spec.provider] ?? envKey(spec.provider);
-  if (k) return { call: (s, u, m) => generate(spec.provider, spec.model, s, u, m, k), free: false };
+  const envK = envKey(spec.provider);
+  if (envK) return { call: (s, u, m) => generate(spec.provider, spec.model, s, u, m, envK), free: false };
   return { call: null, free: false };
 }
 
@@ -304,13 +310,14 @@ export async function* runEngine(
     } catch {
       content = "";
     }
-    if (!content.trim()) content = stubFile(f.path, spec);
+    const wasStub = !content.trim();
+    if (wasStub) content = stubFile(f.path, spec);
 
     files.push({ path: f.path, content });
     totalCost += cost;
     account(tok);
 
-    yield { type: "coder", index: i, path: f.path, preview: firstLine(content), tokens: tok, cost };
+    yield { type: "coder", index: i, path: f.path, preview: firstLine(content), tokens: tok, cost, stub: wasStub };
     yield usageEvent();
 
     if (overLimit(win, plan)) {

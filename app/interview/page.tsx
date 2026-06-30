@@ -39,7 +39,7 @@ const QUESTIONS: Question[] = [
     hint: "The kind of app we're building.",
     options: [
       { label: "Web app", desc: "Runs in the browser — the default for most ideas." },
-      { label: "Mobile app", desc: "iOS / Android via React Native." },
+      { label: "Mobile-friendly web", desc: "A responsive web app that works great on phones." },
       { label: "CLI tool", desc: "A command-line utility." },
       { label: "API / backend", desc: "A service with no UI of its own." },
     ],

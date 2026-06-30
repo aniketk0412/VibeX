@@ -53,15 +53,19 @@ function escapeRe(s: string): string {
 }
 
 // Claude-Code-style collapsible "wrote a file" card shown in the conversation.
-function FileCard({ path, code }: { path: string; code: string }) {
+function FileCard({ path, code, stub }: { path: string; code: string; stub?: boolean }) {
   const [open, setOpen] = useState(false);
   const lines = code ? code.split("\n").length : 0;
   return (
     <div className={styles.fileCard}>
       <button type="button" className={styles.fileCardHead} onClick={() => setOpen((o) => !o)} aria-expanded={open}>
-        <span className={styles.fileCardIcon} aria-hidden>✎</span>
-        <span className={styles.fileCardName}>Wrote <b>{path}</b></span>
-        {lines > 0 && <span className={styles.fileCardMeta}>+{lines}</span>}
+        <span className={styles.fileCardIcon} aria-hidden>{stub ? "⚠" : "✎"}</span>
+        <span className={styles.fileCardName}>{stub ? "Placeholder for " : "Wrote "}<b>{path}</b></span>
+        {stub ? (
+          <span className={styles.fileCardMeta} title="The model was unavailable — a safe placeholder was used. Send a correction to retry.">model unavailable</span>
+        ) : (
+          lines > 0 && <span className={styles.fileCardMeta}>+{lines}</span>
+        )}
         <span className={styles.fileCardChevron} data-open={open} aria-hidden>▾</span>
       </button>
       {open && <pre className={styles.fileCardCode}>{code}</pre>}
@@ -86,12 +90,12 @@ function buildPreview(files: GenFile[]): string | null {
 }
 
 type Role = "vibex" | "coder" | "reviewer" | "user";
-type Msg = { id: number; role: Role; text: string; verdict?: "pass" | "revise"; images?: AttachedImage[]; file?: { path: string; code: string } };
+type Msg = { id: number; role: Role; text: string; verdict?: "pass" | "revise"; images?: AttachedImage[]; file?: { path: string; code: string; stub?: boolean } };
 
 type RunEvent =
   | { type: "planned"; steps: string[]; live: boolean }
   | { type: "step_start"; index: number; title: string }
-  | { type: "coder"; index: number; path: string; preview: string; tokens: number; cost: number }
+  | { type: "coder"; index: number; path: string; preview: string; tokens: number; cost: number; stub?: boolean }
   | { type: "reviewer"; index: number; verdict: "pass" | "revise"; note: string; tokens: number; cost: number }
   | { type: "step_done"; index: number }
   | { type: "usage"; tokens: number; cost: number; window: { kind: string; remaining: number; resetInMs: number } }
@@ -184,7 +188,7 @@ export default function RunWorkspace({ initialSpec, projectId }: { initialSpec?:
     document.addEventListener("mouseup", onUp);
   };
 
-  const addMsg = (role: Role, text: string, verdict?: "pass" | "revise", images?: AttachedImage[], file?: { path: string; code: string }) =>
+  const addMsg = (role: Role, text: string, verdict?: "pass" | "revise", images?: AttachedImage[], file?: { path: string; code: string; stub?: boolean }) =>
     setMessages((m) => [...m, { id: idRef.current++, role, text, verdict, images, file }]);
 
   const viewOutput = () => router.push(projectId ? `/result?project=${projectId}` : "/result");
@@ -240,7 +244,7 @@ export default function RunWorkspace({ initialSpec, projectId }: { initialSpec?:
         break;
       case "coder": {
         if (ev.path) {
-          addMsg("coder", ev.path, undefined, undefined, { path: ev.path, code: ev.preview });
+          addMsg("coder", ev.path, undefined, undefined, { path: ev.path, code: ev.preview, stub: ev.stub });
           setStreamPaths((p) =>
             p.some((x) => x.path === ev.path)
               ? p.map((x) => (x.path === ev.path ? { path: ev.path, preview: ev.preview } : x))
@@ -492,11 +496,11 @@ export default function RunWorkspace({ initialSpec, projectId }: { initialSpec?:
     setDone(false);
     setPaused(false);
     setLimitPause(false);
-    setFiles([]);
+    // Keep the current files on the canvas during the rebuild — a correction shouldn't blank
+    // the user's working app; the new build replaces them only once it completes.
     setStreamPaths([]);
     setActiveFile(0);
     autoSwitched.current = false;
-    setCanvasTab("code");
     addMsg("vibex", "On it — rebuilding with that change folded in.");
     void runBuild(spec, 0);
   }
@@ -595,7 +599,7 @@ export default function RunWorkspace({ initialSpec, projectId }: { initialSpec?:
               <div key={m.id} className={styles.msg} data-role={m.role}>
                 <span className={styles.msgRole}>{roleLabel[m.role]}</span>
                 {m.file ? (
-                  <FileCard path={m.file.path} code={m.file.code} />
+                  <FileCard path={m.file.path} code={m.file.code} stub={m.file.stub} />
                 ) : (
                   <span className={styles.msgText}>
                     {m.role === "reviewer" && (

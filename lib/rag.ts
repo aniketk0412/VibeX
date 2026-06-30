@@ -11,7 +11,8 @@ export const DESIGN_RUBRIC = `Quality bar — a hand-crafted UI, never a default
 - Colour: a warm, considered palette with ONE confident accent. Not pure white/black or default blue/grey.
 - Layout: intentional composition and asymmetry where it helps. Not a single centered column of identical cards.
 - Depth: a shadow scale + tinted hairline borders. Not flat bordered boxes.
-- Detail & motion: focus states, hover lifts, tasteful entrance motion, real empty/loading states.`;
+- Detail & motion: focus states, hover lifts, tasteful entrance motion, real empty/loading states.
+- Accessibility: legible contrast (WCAG AA), visible keyboard focus, labelled controls/inputs, and status conveyed by more than colour alone.`;
 
 export type RetrievedRef = { title: string; body: string };
 
