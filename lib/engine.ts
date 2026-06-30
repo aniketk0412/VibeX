@@ -76,6 +76,9 @@ function coderUser(spec: Spec, file: PlannedFile, all: PlannedFile[], directions
     spec.audience ? `For: ${spec.audience}.` : "",
     spec.core ? `Core feature: ${spec.core}.` : "",
     look ? `Look & feel: ${look}.` : "",
+    spec.details?.length
+      ? `Specifics the user told us about this idea (build to these, don't invent generic defaults):\n${spec.details.map((d) => `- ${d.q} → ${d.a}`).join("\n")}`
+      : "",
     directions ? `IMPORTANT — apply this direction from the user:\n${directions}` : "",
     `The project contains these files: ${all.map((f) => f.path).join(", ")}.`,
     `Write the COMPLETE contents of \`${file.path}\` — ${file.purpose}.`,

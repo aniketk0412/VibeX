@@ -5,7 +5,7 @@
 // Questions adapt to earlier answers (e.g. Design is skipped for CLI / API builds), answered
 // ones collapse into a transcript, and it ends on a goal-lock summary with an estimated cost.
 
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import AppHeader from "@/components/AppHeader";
@@ -214,11 +214,48 @@ export default function InterviewPage() {
     setMounted(true);
   }, [router]);
 
+  // AI deep-dive: a few idea-specific questions, generated once after "audience" and spliced in
+  // right after it. The interview still works (static questions only) if generation is skipped.
+  const [deep, setDeep] = useState<Question[]>([]);
+  const [deepStatus, setDeepStatus] = useState<"idle" | "loading" | "ready" | "skip">("idle");
+  const deepFetched = useRef(false);
+
+  async function fetchDeep(audienceVal: string) {
+    if (deepFetched.current) return;
+    deepFetched.current = true;
+    setDeepStatus("loading");
+    try {
+      const res = await fetch("/api/interview-questions", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ idea, platform: answers.platform ?? "", audience: audienceVal }),
+      }).then((r) => r.json());
+      if (res?.ok && Array.isArray(res.questions) && res.questions.length) {
+        setDeep(res.questions as Question[]);
+        setDeepStatus("ready");
+      } else {
+        setDeepStatus("skip");
+      }
+    } catch {
+      setDeepStatus("skip");
+    }
+  }
+
+  // Static spine with the deep-dive spliced in just after "audience".
+  const allQuestions = useMemo(() => {
+    if (!deep.length) return QUESTIONS;
+    const i = QUESTIONS.findIndex((q) => q.id === "audience");
+    return i === -1 ? [...QUESTIONS, ...deep] : [...QUESTIONS.slice(0, i + 1), ...deep, ...QUESTIONS.slice(i + 1)];
+  }, [deep]);
+
   // Only ask questions whose `when` (which depends on earlier answers) passes.
-  const visible = QUESTIONS.filter((q) => !q.when || q.when(answers));
+  const visible = allQuestions.filter((q) => !q.when || q.when(answers));
   const done = current >= visible.length;
   const active = done ? undefined : visible[current];
-  const activeStep: FlowStep = done ? "Goal" : (active!.phase as FlowStep);
+  // While the deep-dive is generating, hold at the slot right after "audience" with a loading card.
+  const waitingForDeep =
+    deepStatus === "loading" && !done && visible.findIndex((q) => q.id === "audience") + 1 === current;
+  const activeStep: FlowStep = done ? "Goal" : ((active?.phase ?? "Scope") as FlowStep);
 
   // The rail drops Design entirely for non-UI builds, so it stays honest.
   const steps: FlowStep[] = hasUI(answers)
@@ -228,6 +265,8 @@ export default function InterviewPage() {
   const handleAnswer = (value: string) => {
     if (!active) return;
     setAnswers((prev) => ({ ...prev, [active.id]: value }));
+    // Once we know idea + platform + audience, generate the idea-specific deep-dive.
+    if (active.id === "audience") void fetchDeep(value);
     setCurrent((c) => c + 1);
   };
 
@@ -243,6 +282,8 @@ export default function InterviewPage() {
     { k: "Idea", v: idea },
     { k: "Where", v: answers.platform },
     { k: "Who for", v: answers.audience },
+    // Idea-specific deep-dive answers, shown right under the audience.
+    ...deep.map((q) => ({ k: q.prompt, v: answers[q.id] })),
     { k: "Core (v1)", v: answers.core },
     { k: "Accounts", v: answers.accounts },
     { k: "Earns by", v: answers.monetization },
@@ -262,7 +303,8 @@ export default function InterviewPage() {
     if (starting) return;
     setStarting(true);
     setLimitHit(false);
-    const spec = { idea, ...answers, estimate: est.cost };
+    const details = deep.map((q) => ({ q: q.prompt, a: answers[q.id] })).filter((d): d is { q: string; a: string } => !!d.a);
+    const spec = { idea, ...answers, details, estimate: est.cost };
     try {
       sessionStorage.setItem("vibex-spec", JSON.stringify(spec));
     } catch {
@@ -318,7 +360,22 @@ export default function InterviewPage() {
             </div>
 
             {/* active question, or the goal-lock summary when finished */}
-            {!done ? (
+            {waitingForDeep ? (
+              <div className={styles.activeArea}>
+                <div className={styles.thinking}>
+                  <span className="spinner" aria-hidden />
+                  <div>
+                    <div className={styles.thinkingTitle}>Tailoring a few questions to your idea…</div>
+                    <div className={styles.thinkingSub}>Reading what you&apos;re building so the next questions actually fit.</div>
+                  </div>
+                </div>
+                {current > 0 && (
+                  <button type="button" className={styles.back} onClick={goBack}>
+                    ← Back
+                  </button>
+                )}
+              </div>
+            ) : !done ? (
               <div className={styles.activeArea}>
                 <QuestionCard
                   key={active!.id}

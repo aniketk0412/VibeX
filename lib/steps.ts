@@ -19,6 +19,8 @@ export type Spec = {
   coder?: string;
   reviewer?: string;
   billing?: string;
+  // Idea-specific answers from the interview's AI deep-dive (plain-language Q/A pairs).
+  details?: { q: string; a: string }[];
 };
 
 export function buildSteps(spec: Spec): string[] {
