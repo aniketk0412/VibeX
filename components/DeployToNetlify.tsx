@@ -7,6 +7,7 @@ import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { deployToNetlify } from "@/app/actions";
 import { toast } from "@/lib/toast";
+import { trackEvent } from "@/lib/analytics";
 
 export default function DeployToNetlify({
   projectId,
@@ -24,6 +25,7 @@ export default function DeployToNetlify({
       const res = await deployToNetlify(projectId);
       if (res.url && !res.error) {
         setUrl(res.url);
+        trackEvent("shipped", { via: "netlify" });
         toast.success("Deployed to Netlify");
         window.open(res.url, "_blank", "noopener");
       } else if (res.error === "no_key") {

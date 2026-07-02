@@ -14,6 +14,7 @@ import QuestionCard, { type Question } from "@/components/QuestionCard";
 import AnimatedBackground from "@/components/AnimatedBackground";
 import { estimateProjectCost } from "@/lib/ai/models";
 import { startProject } from "@/app/actions";
+import { trackEvent } from "@/lib/analytics";
 import styles from "./interview.module.css";
 
 type Answers = Record<string, string>;
@@ -299,10 +300,20 @@ export default function InterviewPage() {
   const [starting, setStarting] = useState(false);
   const [limitHit, setLimitHit] = useState(false);
 
+  // Funnel: entering the interview is the first product event.
+  useEffect(() => {
+    trackEvent("interview_started");
+  }, []);
+
   const startBuilding = async () => {
     if (starting) return;
     setStarting(true);
     setLimitHit(false);
+    trackEvent("goal_locked", {
+      platform: answers.platform ?? "",
+      coder: answers.coder ?? "",
+      reviewer: answers.reviewer ?? "",
+    });
     const details = deep.map((q) => ({ q: q.prompt, a: answers[q.id] })).filter((d): d is { q: string; a: string } => !!d.a);
     const spec = { idea, ...answers, details, estimate: est.cost };
     try {

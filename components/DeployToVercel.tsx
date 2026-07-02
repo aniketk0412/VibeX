@@ -7,6 +7,7 @@ import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { deployToVercel } from "@/app/actions";
 import { toast } from "@/lib/toast";
+import { trackEvent } from "@/lib/analytics";
 
 export default function DeployToVercel({
   projectId,
@@ -24,6 +25,7 @@ export default function DeployToVercel({
       const res = await deployToVercel(projectId);
       if (res.url && !res.error) {
         setUrl(res.url);
+        trackEvent("shipped", { via: "vercel" });
         toast.success("Deployed to Vercel");
         window.open(res.url, "_blank", "noopener");
       } else if (res.error === "no_key") {

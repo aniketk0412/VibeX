@@ -7,6 +7,7 @@ import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { exportToGitHub } from "@/app/actions";
 import { toast } from "@/lib/toast";
+import { trackEvent } from "@/lib/analytics";
 
 export default function ExportToGitHub({
   projectId,
@@ -25,6 +26,7 @@ export default function ExportToGitHub({
       const res = await exportToGitHub(projectId, { makePublic });
       if (res.url && !res.error) {
         setRepoUrl(res.url);
+        trackEvent("shipped", { via: "github" });
         toast.success(`Pushed to ${res.repo ?? "GitHub"}`);
         window.open(res.url, "_blank", "noopener");
       } else if (res.error === "no_key") {

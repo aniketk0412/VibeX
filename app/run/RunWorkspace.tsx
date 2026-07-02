@@ -13,6 +13,7 @@ import ThemeToggle from "@/components/ThemeToggle";
 import { buildSteps, type Spec, type GenFile } from "@/lib/steps";
 import { buildPreview } from "@/lib/preview";
 import { captureIframe } from "@/lib/screenshot";
+import { trackEvent } from "@/lib/analytics";
 import KeyNotice from "@/components/KeyNotice";
 import { AttachButton, Thumbs, type AttachedImage } from "@/components/ImageAttach";
 import BackLink from "@/components/BackLink";
@@ -199,6 +200,7 @@ export default function RunWorkspace({ initialSpec, projectId, hasKey = true }: 
     stepsRef.current = plan;
     if (!startedRef.current) {
       startedRef.current = true;
+      trackEvent("build_started", { saved: !!projectId });
       void runBuild(parsed, 0);
     }
     return () => {
@@ -357,6 +359,7 @@ export default function RunWorkspace({ initialSpec, projectId, hasKey = true }: 
     if (!r.files) return; // local fallback / aborted handle their own state
     await runDesignLoop(theSpec, r.live);
     setDone(true);
+    trackEvent("build_completed", { live: r.live });
     if (r.live) {
       addMsg("vibex", "Build complete — reviewed and design-checked, and saved. Preview is on the canvas →");
     } else {
