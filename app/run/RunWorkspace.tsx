@@ -14,7 +14,7 @@ import { buildSteps, type Spec, type GenFile } from "@/lib/steps";
 import { buildPreview } from "@/lib/preview";
 import { captureIframe } from "@/lib/screenshot";
 import { trackEvent } from "@/lib/analytics";
-import { IconLock } from "@/components/icons";
+import { IconLock, IconTerminal } from "@/components/icons";
 import KeyNotice from "@/components/KeyNotice";
 import { AttachButton, Thumbs, type AttachedImage } from "@/components/ImageAttach";
 import BackLink from "@/components/BackLink";
@@ -33,6 +33,50 @@ function Send() {
   return (
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
       <path d="M22 2 11 13M22 2l-7 20-4-9-9-4 20-7z" />
+    </svg>
+  );
+}
+function Pause() {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.6" strokeLinecap="round" aria-hidden>
+      <path d="M9 5v14M15 5v14" />
+    </svg>
+  );
+}
+function Play() {
+  return (
+    <svg viewBox="0 0 24 24" fill="currentColor" stroke="none" aria-hidden>
+      <path d="M7 4.8v14.4a.6.6 0 0 0 .9.5l12-7.2a.6.6 0 0 0 0-1L7.9 4.3a.6.6 0 0 0-.9.5z" />
+    </svg>
+  );
+}
+function Chevron() {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
+      <path d="m6 9 6 6 6-6" />
+    </svg>
+  );
+}
+function Pencil() {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
+      <path d="M17 3a2.8 2.8 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5L17 3z" />
+    </svg>
+  );
+}
+function Warn() {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
+      <path d="M10.3 3.9 1.8 18a2 2 0 0 0 1.7 3h17a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0z" />
+      <path d="M12 9v4M12 17h.01" />
+    </svg>
+  );
+}
+function Clock() {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
+      <circle cx="12" cy="12" r="9" />
+      <path d="M12 7v5l3 2" />
     </svg>
   );
 }
@@ -59,22 +103,30 @@ function FileCard({ path, code, stub }: { path: string; code: string; stub?: boo
   return (
     <div className={styles.fileCard}>
       <button type="button" className={styles.fileCardHead} onClick={() => setOpen((o) => !o)} aria-expanded={open}>
-        <span className={styles.fileCardIcon} aria-hidden>{stub ? "⚠" : "✎"}</span>
+        <span className={styles.fileCardIcon} aria-hidden>{stub ? <Warn /> : <Pencil />}</span>
         <span className={styles.fileCardName}>{stub ? "Placeholder for " : "Wrote "}<b>{path}</b></span>
         {stub ? (
           <span className={styles.fileCardMeta} title="The model was unavailable — a safe placeholder was used. Send a correction to retry.">model unavailable</span>
         ) : (
           lines > 0 && <span className={styles.fileCardMeta}>+{lines}</span>
         )}
-        <span className={styles.fileCardChevron} data-open={open} aria-hidden>▾</span>
+        <span className={styles.fileCardChevron} data-open={open} aria-hidden><Chevron /></span>
       </button>
       {open && <pre className={styles.fileCardCode}>{code}</pre>}
     </div>
   );
 }
 
-type Role = "vibex" | "coder" | "reviewer" | "user";
-type Msg = { id: number; role: Role; text: string; verdict?: "pass" | "revise"; images?: AttachedImage[]; file?: { path: string; code: string; stub?: boolean } };
+type Role = "vibex" | "coder" | "reviewer" | "user" | "step";
+type Msg = {
+  id: number;
+  role: Role;
+  text: string;
+  verdict?: "pass" | "revise";
+  images?: AttachedImage[];
+  file?: { path: string; code: string; stub?: boolean };
+  step?: { n: number; of: number }; // set when role === "step" (feed divider)
+};
 
 type RunEvent =
   | { type: "planned"; steps: string[]; live: boolean }
@@ -115,7 +167,9 @@ export default function RunWorkspace({ initialSpec, projectId, hasKey = true, pa
   const autoSwitched = useRef(false);
   const [remaining, setRemaining] = useState<number | null>(null);
   const [usageOpen, setUsageOpen] = useState(false);
-  const [trackOpen, setTrackOpen] = useState(true);
+  // Collapsed by default — the compact "now building" line + progress bar carry the status; the
+  // full step list is one click away. An always-open list drowned the conversation.
+  const [trackOpen, setTrackOpen] = useState(false);
   const canvasRef = useRef<HTMLElement>(null);
 
   const abortRef = useRef<AbortController | null>(null);
@@ -176,6 +230,8 @@ export default function RunWorkspace({ initialSpec, projectId, hasKey = true, pa
 
   const addMsg = (role: Role, text: string, verdict?: "pass" | "revise", images?: AttachedImage[], file?: { path: string; code: string; stub?: boolean }) =>
     setMessages((m) => [...m, { id: idRef.current++, role, text, verdict, images, file }]);
+  const addStep = (title: string, n: number, of: number) =>
+    setMessages((m) => [...m, { id: idRef.current++, role: "step", text: title, step: { n, of } }]);
 
   const viewOutput = () => router.push(projectId ? `/result?project=${projectId}` : "/result");
 
@@ -199,12 +255,20 @@ export default function RunWorkspace({ initialSpec, projectId, hasKey = true, pa
     const plan = buildSteps(parsed);
     setSteps(plan);
     stepsRef.current = plan;
-    if (!startedRef.current) {
-      startedRef.current = true;
-      trackEvent("build_started", { saved: !!projectId });
-      void runBuild(parsed, 0);
-    }
+    // Deferred kickoff: under React StrictMode (dev) the mount effect runs twice — starting the
+    // stream synchronously means the throwaway first pass POSTs /api/run and instantly aborts it,
+    // and the startedRef guard then blocks the real pass, hanging the page on the typing dots.
+    // A 0ms timer is cleared by the throwaway cleanup before it can fire, so exactly one run
+    // starts in dev and prod alike.
+    const kickoff = setTimeout(() => {
+      if (!startedRef.current) {
+        startedRef.current = true;
+        trackEvent("build_started", { saved: !!projectId });
+        void runBuild(parsed, 0);
+      }
+    }, 0);
     return () => {
+      clearTimeout(kickoff);
       abortRef.current?.abort();
       if (localTimer.current) clearInterval(localTimer.current);
     };
@@ -229,6 +293,11 @@ export default function RunWorkspace({ initialSpec, projectId, hasKey = true, pa
         if (!restylingRef.current)
           addMsg("vibex", `Goal locked. Planned ${ev.steps.length} steps — building now${ev.live ? "" : " (simulated — no API key set)"}.`);
         break;
+      case "step_start":
+        // Structure the feed: every step opens with a divider, so the Coder/Reviewer turns under
+        // it always read in context ("what is it doing right now?" is one glance away).
+        addStep(ev.title || stepsRef.current[ev.index] || `Step ${ev.index + 1}`, ev.index + 1, stepsRef.current.length);
+        break;
       case "coder": {
         if (ev.path) {
           addMsg("coder", ev.path, undefined, undefined, { path: ev.path, code: ev.preview, stub: ev.stub });
@@ -238,8 +307,7 @@ export default function RunWorkspace({ initialSpec, projectId, hasKey = true, pa
               : [...p, { path: ev.path, preview: ev.preview }],
           );
         } else {
-          const title = stepsRef.current[ev.index] ?? `Step ${ev.index + 1}`;
-          addMsg("coder", `${title} — ${ev.preview}`);
+          addMsg("coder", ev.preview); // step divider already names the step
         }
         break;
       }
@@ -270,6 +338,12 @@ export default function RunWorkspace({ initialSpec, projectId, hasKey = true, pa
         }
         // Finalization (done + completion message) and the auto design-critic loop are driven by
         // runBuild() once the whole stream is consumed — restyle passes must not flip "done" early.
+        break;
+      case "error":
+        // Surface engine failures instead of hanging on the typing indicator forever — pause so
+        // Resume retries from the last completed step.
+        setPaused(true);
+        addMsg("vibex", `The engine hit an error: ${ev.message}. Resume to retry from the last completed step.`);
         break;
       default:
         break;
@@ -460,7 +534,8 @@ export default function RunWorkspace({ initialSpec, projectId, hasKey = true, pa
     let i = fromIndex;
     if (localTimer.current) clearInterval(localTimer.current);
     localTimer.current = setInterval(() => {
-      addMsg("coder", `${plan[i] ?? "Step"} — generated.`);
+      addStep(plan[i] ?? "Step", i + 1, plan.length);
+      addMsg("coder", "Generated.");
       i += 1;
       setCompleted(i);
       setTokens((t) => t + 4200);
@@ -531,7 +606,11 @@ export default function RunWorkspace({ initialSpec, projectId, hasKey = true, pa
   const pct = Math.round((completed / total) * 100);
   const status = done ? "DONE" : paused ? "PAUSED" : "LIVE";
 
-  const roleLabel: Record<Role, string> = { vibex: "Vibex", coder: "Coder", reviewer: "Reviewer", user: "You" };
+  const roleLabel: Record<Role, string> = { vibex: "Vibex", coder: "Coder", reviewer: "Reviewer", user: "You", step: "Step" };
+
+  // Who's "typing" right now — review-ish steps belong to the Reviewer, everything else the Coder.
+  const activeTitle = steps[Math.min(completed, Math.max(0, steps.length - 1))] ?? "";
+  const busyRole: "coder" | "reviewer" = /review/i.test(activeTitle) ? "reviewer" : "coder";
 
   // Canvas content: full files once complete, otherwise the live per-file previews as they stream.
   const canvasFiles: GenFile[] = files.length ? files : streamPaths.map((s) => ({ path: s.path, content: s.preview }));
@@ -568,21 +647,20 @@ export default function RunWorkspace({ initialSpec, projectId, hasKey = true, pa
       >
         {/* ── left: conversation ───────────────────────── */}
         <section className={styles.convo}>
+          {/* The locked goal IS the pane header — one glance says what's being built, with what. */}
           <div className={styles.paneHead}>
-            <span className={styles.paneLabel}>Conversation</span>
+            <span className={styles.goal}>
+              <span className={styles.lock}><IconLock size={13} /></span>
+              <span className={styles.goaltext}>
+                <b>{spec.idea ?? "Your project"}</b>
+                {spec.coder ? ` · ${spec.coder} + ${spec.reviewer}` : ""}
+              </span>
+            </span>
             {!live && <span className={styles.simBadge}>simulated</span>}
           </div>
 
-          <div className={styles.goal}>
-            <span className={styles.lock}><IconLock size={13} /></span>
-            <span className={styles.goaltext}>
-              <b>{spec.idea ?? "Your project"}</b>
-              {spec.coder ? ` · ${spec.coder} + ${spec.reviewer}` : ""}
-            </span>
-          </div>
-
           {!hasKey && (
-            <div style={{ margin: "0 0 14px" }}>
+            <div style={{ margin: "12px 16px 0" }}>
               <KeyNotice message="No AI model is connected — this build is a simulated placeholder. Connect a key, then rebuild for real code." />
             </div>
           )}
@@ -594,10 +672,16 @@ export default function RunWorkspace({ initialSpec, projectId, hasKey = true, pa
                 <span className={styles.steppill} data-done={done}>
                   {done ? "done" : `step ${Math.min(completed + 1, total)} of ~${total}`}
                 </span>
-                <span className={styles.trackChevron} data-open={trackOpen} aria-hidden>▾</span>
+                <span className={styles.trackChevron} data-open={trackOpen} aria-hidden><Chevron /></span>
               </span>
             </button>
             <div className={styles.progress}><i style={{ width: `${done ? 100 : pct}%` }} /></div>
+            {!trackOpen && !done && (
+              <div className={styles.trackNow}>
+                {paused ? <span className={styles.pending} /> : <span className={styles.spin} />}
+                <span className={styles.trackNowText}>{paused ? "Paused" : activeTitle || "Working…"}</span>
+              </div>
+            )}
             {trackOpen && (
             <div className={styles.steps}>
               {steps.map((s, i) => {
@@ -623,32 +707,69 @@ export default function RunWorkspace({ initialSpec, projectId, hasKey = true, pa
           </div>
 
           <div className={styles.feed}>
-            {messages.map((m) => (
-              <div key={m.id} className={styles.msg} data-role={m.role}>
-                <span className={styles.msgRole}>{roleLabel[m.role]}</span>
-                {m.file ? (
-                  <FileCard path={m.file.path} code={m.file.code} stub={m.file.stub} />
-                ) : (
-                  <span className={styles.msgText}>
-                    {m.role === "reviewer" && (
-                      <span className={styles.verdict} data-v={m.verdict}>{m.verdict === "revise" ? "REVISE" : "PASS"}</span>
-                    )}
-                    {m.text}
-                    {m.images && m.images.length > 0 && (
-                      <span className={styles.msgImages}>
-                        {m.images.map((im) => (
-                          // eslint-disable-next-line @next/next/no-img-element
-                          <img key={im.id} src={im.url} alt={im.name} />
-                        ))}
+            {messages.map((m, i) => {
+              // Step divider — the feed's skeleton; every step's turns hang under its label.
+              if (m.role === "step") {
+                return (
+                  <div key={m.id} className={styles.stepMark}>
+                    {m.step && <span className={styles.stepMarkNum}>{m.step.n}/{m.step.of}</span>}
+                    <span className={styles.stepMarkTitle}>{m.text}</span>
+                  </div>
+                );
+              }
+              // Orchestrator narration — quiet inset notes, not another chat participant.
+              if (m.role === "vibex") {
+                return (
+                  <div key={m.id} className={styles.note}>
+                    <span className={styles.noteText}>{m.text}</span>
+                  </div>
+                );
+              }
+              if (m.role === "user") {
+                return (
+                  <div key={m.id} className={styles.msg} data-role="user">
+                    <span className={styles.msgText}>
+                      {m.text}
+                      {m.images && m.images.length > 0 && (
+                        <span className={styles.msgImages}>
+                          {m.images.map((im) => (
+                            // eslint-disable-next-line @next/next/no-img-element
+                            <img key={im.id} src={im.url} alt={im.name} />
+                          ))}
+                        </span>
+                      )}
+                    </span>
+                  </div>
+                );
+              }
+              // Coder / Reviewer turns — one avatar chip per run of same-role messages.
+              const grouped = messages[i - 1]?.role === m.role;
+              return (
+                <div key={m.id} className={styles.msg} data-role={m.role} data-grouped={grouped || undefined}>
+                  {!grouped && (
+                    <div className={styles.msgHead}>
+                      <span className={styles.avatar} data-role={m.role} aria-hidden>{m.role === "coder" ? "C" : "R"}</span>
+                      <span className={styles.msgRole}>{roleLabel[m.role]}</span>
+                    </div>
+                  )}
+                  <div className={styles.msgBody}>
+                    {m.file ? (
+                      <FileCard path={m.file.path} code={m.file.code} stub={m.file.stub} />
+                    ) : (
+                      <span className={styles.msgText}>
+                        {m.role === "reviewer" && m.verdict && (
+                          <span className={styles.verdict} data-v={m.verdict}>{m.verdict === "revise" ? "REVISE" : "PASS"}</span>
+                        )}
+                        {m.text}
                       </span>
                     )}
-                  </span>
-                )}
-              </div>
-            ))}
+                  </div>
+                </div>
+              );
+            })}
             {!done && !paused && (
               <div className={styles.typing} aria-hidden>
-                <span className={styles.typingRole}>{roleLabel.coder}</span>
+                <span className={styles.avatar} data-role={busyRole}>{busyRole === "reviewer" ? "R" : "C"}</span>
                 <span className={styles.typingDots}><i /><i /><i /></span>
               </div>
             )}
@@ -692,9 +813,9 @@ export default function RunWorkspace({ initialSpec, projectId, hasKey = true, pa
                   {files.length > 0 && <OpenInStackBlitz files={files} title={spec.idea} />}
                 </>
               ) : paused ? (
-                <button type="button" className={styles.resumeBtn} onClick={resume}>▶ Resume</button>
+                <button type="button" className={styles.resumeBtn} onClick={resume}><Play /> Resume</button>
               ) : (
-                <button type="button" className={styles.interruptBtn} onClick={interrupt}>❚❚ Interrupt</button>
+                <button type="button" className={styles.interruptBtn} onClick={interrupt}><Pause /> Interrupt</button>
               )}
             </div>
           </div>
@@ -741,7 +862,7 @@ export default function RunWorkspace({ initialSpec, projectId, hasKey = true, pa
                 />
               ) : (
                 <div className={styles.canvasEmpty}>
-                  <div className={styles.canvasEmptyIcon} aria-hidden>◴</div>
+                  <div className={styles.canvasEmptyIcon} aria-hidden><Clock /></div>
                   <p>{done ? "No previewable HTML — check the Code tab." : "Live preview appears once the build produces the files."}</p>
                 </div>
               )
@@ -766,7 +887,7 @@ export default function RunWorkspace({ initialSpec, projectId, hasKey = true, pa
               </div>
             ) : (
               <div className={styles.canvasEmpty}>
-                <div className={styles.canvasEmptyIcon} aria-hidden>{"›_"}</div>
+                <div className={styles.canvasEmptyIcon} aria-hidden><IconTerminal size={26} /></div>
                 <p>Files appear here as the build writes them.</p>
               </div>
             )}

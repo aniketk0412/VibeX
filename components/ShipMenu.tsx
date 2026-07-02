@@ -44,8 +44,9 @@ export default function ShipMenu({
 
   return (
     <div className={styles.wrap} ref={ref}>
-      <button type="button" className="btn btn-ghost" aria-haspopup="menu" aria-expanded={open} onClick={() => setOpen((v) => !v)}>
-        Ship ▾
+      <button type="button" className="btn btn-primary btn-sm" aria-haspopup="menu" aria-expanded={open} onClick={() => setOpen((v) => !v)}>
+        Ship
+        <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round" aria-hidden><path d="m6 9 6 6 6-6" /></svg>
       </button>
       {open && (
         <div className={styles.menu} role="menu">
@@ -55,7 +56,7 @@ export default function ShipMenu({
           {projectId && <ExportToGitHub projectId={projectId} className={styles.item} />}
           {onDownload && (
             <button type="button" className={styles.item} onClick={onDownload}>
-              ⬇ Download .zip
+              Download .zip
             </button>
           )}
         </div>

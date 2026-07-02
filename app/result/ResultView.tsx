@@ -213,33 +213,60 @@ export default function ResultView({
         Editor
       </button>
       <button type="button" role="tab" className={styles.tab} aria-selected={tab === "history"} data-active={tab === "history"} onClick={() => setTab("history")}>
-        Prompt history
+        Build log
+        {history.length > 0 && <span className={styles.tabCount}>{history.length}</span>}
       </button>
     </div>
   );
 
   const body = isEmpty ? (
-    emptyState
+    inShell ? <div className={styles.canvasPad}>{emptyState}</div> : emptyState
   ) : tab === "history" ? (
-    <div className={styles.history}>
-      {history.map((h, i) => (
-        <div key={i} className={styles.hrow}>
-          <span className={styles.hnum}>{i + 1}</span>
-          <span className={styles.hstep}>{h.step}</span>
-          <span className={styles.hrole} data-role={h.role}>{h.role}</span>
-          <span className={styles.hmeta}>{(h.tokens / 1000).toFixed(1)}k · ${h.cost.toFixed(2)}</span>
+    // Build log — what each agent did, in order, with what it cost. A real table (headers,
+    // aligned numerics, role chips) instead of a vague list of rows.
+    <div className={inShell ? styles.canvasPad : undefined}>
+      <div className={styles.log}>
+        <div className={`${styles.logRow} ${styles.logHead}`} aria-hidden>
+          <span>#</span>
+          <span>Action</span>
+          <span>Agent</span>
+          <span className={styles.logNum}>Tokens</span>
+          <span className={styles.logNum}>Cost</span>
         </div>
-      ))}
-      <div className={styles.htotal}>
-        <span>Total</span>
-        <span>{(totalTokens / 1000).toFixed(1)}k tokens · ~${totalCost.toFixed(2)}</span>
+        {history.map((h, i) => {
+          // Simulated runs persist "(generated)" placeholders — show something human instead.
+          const label = h.step === "(generated)" ? (h.role === "Reviewer" ? "Review & finalize" : "Generated file") : h.step;
+          const isFile = h.role === "Coder" && /^[\w./-]+\.\w+$/.test(label);
+          return (
+            <div key={i} className={styles.logRow}>
+              <span className={styles.logIdx}>{i + 1}</span>
+              <span className={styles.logAction} title={label}>
+                {isFile ? (
+                  <>
+                    <span className={styles.logVerb}>Wrote </span>
+                    <code className={styles.logPath}>{label}</code>
+                  </>
+                ) : (
+                  label
+                )}
+              </span>
+              <span><span className={styles.agent} data-role={h.role}>{h.role}</span></span>
+              <span className={`${styles.logNum} ${styles.logMeta}`}>{(h.tokens / 1000).toFixed(1)}k</span>
+              <span className={`${styles.logNum} ${styles.logMeta}`}>${h.cost.toFixed(2)}</span>
+            </div>
+          );
+        })}
+        <div className={styles.logTotal}>
+          <span>{history.length} steps</span>
+          <span>{(totalTokens / 1000).toFixed(1)}k tokens · ~${totalCost.toFixed(2)}</span>
+        </div>
       </div>
     </div>
   ) : (
     <div className={styles.ideHost}>
       {/* Save writes to the LATEST run — hide it when viewing an older version so an edit can't
           silently overwrite the newest build from a stale base. */}
-      <CodeIDE files={files} projectId={!runs || !currentRunId || runs[0]?.id === currentRunId ? current?.id : undefined} />
+      <CodeIDE files={files} frameless={inShell} projectId={!runs || !currentRunId || runs[0]?.id === currentRunId ? current?.id : undefined} />
     </div>
   );
 
@@ -290,19 +317,16 @@ export default function ResultView({
         </aside>
 
         <div className={styles.workspace}>
-          <div className={styles.toolbar}>
+          {/* Row 1 — toolbar: identity (title · status · version) left, actions right. */}
+          <header className={styles.toolbar}>
             <div className={styles.toolbarLeft}>
-              <div className={styles.toolbarTitleWrap}>
-                {collapsed && (
-                  <button type="button" className={styles.expandBtn} onClick={toggleSidebar} aria-label="Show sidebar" title="Show sidebar">
-                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden><rect x="3" y="4" width="18" height="16" rx="2" /><path d="M9 4v16" /></svg>
-                  </button>
-                )}
-                <h1 className={styles.toolbarTitle}>{title}</h1>
-                {status && <span className={styles.statusBadge} data-s={status}>{status.toLowerCase()}</span>}
-              </div>
-            </div>
-            <div className={styles.toolbarActions}>
+              {collapsed && (
+                <button type="button" className={styles.expandBtn} onClick={toggleSidebar} aria-label="Show sidebar" title="Show sidebar">
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden><rect x="3" y="4" width="18" height="16" rx="2" /><path d="M9 4v16" /></svg>
+                </button>
+              )}
+              <h1 className={styles.toolbarTitle}>{title}</h1>
+              {status && <span className={styles.statusBadge} data-s={status}>{status.toLowerCase()}</span>}
               {runs && runs.length > 1 && (
                 <select
                   className={styles.runPicker}
@@ -318,19 +342,29 @@ export default function ResultView({
                   ))}
                 </select>
               )}
+            </div>
+            <div className={styles.toolbarActions}>
               {!isEmpty && (
                 <ShipMenu files={files} title={title} projectId={current!.id} previewable={!!preview} onDownload={download} />
               )}
-              {!isEmpty && <Link href={`/run?project=${current!.id}`} className="btn btn-ghost">Iterate</Link>}
+              {!isEmpty && <Link href={`/run?project=${current!.id}`} className="btn btn-ghost btn-sm">Iterate</Link>}
               <ProjectActions projectId={current!.id} title={title} redirectAfterDelete="/dashboard" />
             </div>
-          </div>
+          </header>
+
+          {/* Row 2 — metabar: view tabs left, the build's vitals right. */}
           {!isEmpty && (
-            <p className={styles.workspaceSub}>
-              {files.length} files · {(totalTokens / 1000).toFixed(1)}k tokens · ~${totalCost.toFixed(2)} · {spec.coder ?? "Claude"} + {spec.reviewer ?? "Claude"}
-            </p>
+            <div className={styles.metabar}>
+              {tabs}
+              <div className={styles.stats} aria-label="Build metrics">
+                <span className={styles.stat}><b>{files.length}</b> files</span>
+                <span className={styles.stat}><b>{(totalTokens / 1000).toFixed(1)}k</b> tokens</span>
+                <span className={styles.stat}><b>~${totalCost.toFixed(2)}</b> est. cost</span>
+                <span className={`${styles.stat} ${styles.statWide}`}><b>{spec.coder ?? "Claude"}</b> + <b>{spec.reviewer ?? "Claude"}</b></span>
+              </div>
+            </div>
           )}
-          {tabs}
+
           <div className={styles.canvas}>{body}</div>
         </div>
       </div>
@@ -353,7 +387,12 @@ export default function ResultView({
       <main className={styles.main}>
         <div className={styles.head}>
           <div>
-            <span className={styles.eyebrow}><span className={styles.ok}>✓</span> Build complete</span>
+            <span className={styles.eyebrow}>
+              <span className={styles.ok} aria-hidden>
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><path d="M20 6L9 17l-5-5" /></svg>
+              </span>
+              Build complete
+            </span>
             <h1 className={styles.title}>{title}</h1>
             <p className={styles.sub}>
               {files.length} files · {(totalTokens / 1000).toFixed(1)}k tokens · ~${totalCost.toFixed(2)} ·
@@ -361,7 +400,7 @@ export default function ResultView({
             </p>
           </div>
           <div className={styles.headActions}>
-            <button type="button" className="btn btn-ghost" onClick={download}>↓ Download .zip</button>
+            <button type="button" className="btn btn-ghost" onClick={download}>Download .zip</button>
             <Link href="/new" className="btn btn-primary">New project →</Link>
           </div>
         </div>

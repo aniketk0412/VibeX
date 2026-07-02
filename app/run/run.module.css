@@ -92,6 +92,7 @@
   justify-content: space-between;
   gap: 10px;
   padding: 13px 18px;
+  min-height: 54px; /* keep both panes' header hairlines level across the divider */
   border-bottom: 1px solid var(--line-soft);
 }
 .paneLabel {
@@ -122,23 +123,18 @@
   padding: 2px 8px;
 }
 
+/* locked goal, worn as the pane header */
 .goal {
-  flex: none;
   display: flex;
   align-items: center;
   gap: 9px;
-  margin: 14px 16px 0;
-  padding: 11px 13px;
-  background: var(--surface);
-  border: 1px solid var(--line-soft);
-  border-left: 2px solid var(--good);
-  border-radius: 11px;
+  min-width: 0;
   font-size: 13px;
   color: var(--dim);
 }
 .goaltext { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .goal b { color: var(--text); font-weight: 600; }
-.lock { flex: none; font-size: 12px; }
+.lock { flex: none; display: grid; place-items: center; color: var(--good); }
 
 .feed {
   flex: 1;
@@ -147,18 +143,36 @@
   padding: 16px;
   display: flex;
   flex-direction: column;
-  gap: 14px;
 }
+.feed > :first-child { margin-top: 0; }
 
-.msg { display: flex; flex-direction: column; gap: 3px; max-width: 100%; animation: msg-in 0.28s cubic-bezier(0.2, 0.7, 0.2, 1); }
+.msg { display: flex; flex-direction: column; margin-top: 14px; max-width: 100%; animation: msg-in 0.28s cubic-bezier(0.2, 0.7, 0.2, 1); }
+.msg[data-grouped] { margin-top: 5px; }
 @keyframes msg-in {
   from { opacity: 0; transform: translateY(6px); }
   to { opacity: 1; transform: translateY(0); }
 }
+
+/* avatar chip + role name — shown once per run of same-role turns */
+.msgHead { display: flex; align-items: center; gap: 8px; }
+.avatar {
+  width: 20px;
+  height: 20px;
+  flex: none;
+  display: grid;
+  place-items: center;
+  border-radius: 6px;
+  font-family: var(--mono);
+  font-size: 10.5px;
+  font-weight: 700;
+}
+.avatar[data-role="coder"] { color: var(--accent); background: var(--accent-soft); }
+.avatar[data-role="reviewer"] { color: var(--good); background: var(--good-soft); }
+.msgBody { margin-top: 4px; padding-left: 28px; min-width: 0; }
 .msgRole {
   font-family: var(--mono);
-  font-size: 10px;
-  letter-spacing: 0.06em;
+  font-size: 10.5px;
+  letter-spacing: 0.07em;
   text-transform: uppercase;
   color: var(--faint);
 }
@@ -166,17 +180,33 @@
 
 .msg[data-role="coder"] .msgRole { color: var(--accent); }
 .msg[data-role="reviewer"] .msgRole { color: var(--good); }
-.msg[data-role="vibex"] .msgText { color: var(--dim); }
 
-/* role rail — distinguishes Vibex / Coder / Reviewer turns at a glance */
-.msg[data-role="vibex"],
-.msg[data-role="coder"],
-.msg[data-role="reviewer"] {
-  padding-left: 12px;
-  border-left: 2px solid var(--line-soft);
+/* orchestrator narration — quiet inset system notes, not another chat participant */
+.note { display: flex; align-items: flex-start; gap: 8px; margin-top: 14px; animation: msg-in 0.28s cubic-bezier(0.2, 0.7, 0.2, 1); }
+.note::before { content: ""; flex: none; width: 5px; height: 5px; border-radius: 50%; background: var(--faint); margin: 8px 0 0 8px; }
+.noteText { font-size: 12.5px; line-height: 1.55; color: var(--dim); }
+
+/* step divider — the feed's skeleton */
+.stepMark { display: flex; align-items: center; gap: 9px; margin-top: 20px; animation: msg-in 0.28s cubic-bezier(0.2, 0.7, 0.2, 1); }
+.stepMark::after { content: ""; flex: 1; height: 1px; background: var(--line-soft); }
+.stepMarkNum {
+  flex: none;
+  font-family: var(--mono);
+  font-size: 10px;
+  color: var(--faint);
+  border: 1px solid var(--line);
+  border-radius: 5px;
+  padding: 1px 6px;
 }
-.msg[data-role="coder"] { border-left-color: color-mix(in srgb, var(--accent) 55%, transparent); }
-.msg[data-role="reviewer"] { border-left-color: color-mix(in srgb, var(--good) 55%, transparent); }
+.stepMarkTitle {
+  font-family: var(--mono);
+  font-size: 11.5px;
+  letter-spacing: 0.03em;
+  color: var(--dim);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
 
 .msg[data-role="user"] { align-self: flex-end; align-items: flex-end; max-width: 88%; }
 .msg[data-role="user"] .msgText {
@@ -271,6 +301,10 @@
 .actions :global(.btn) { width: 100%; text-align: center; }
 .interruptBtn, .resumeBtn {
   width: 100%;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
   font-family: var(--body);
   font-weight: 600;
   font-size: 13.5px;
@@ -279,6 +313,7 @@
   cursor: pointer;
   transition: background 0.2s ease, border-color 0.2s ease;
 }
+.interruptBtn svg, .resumeBtn svg { width: 12px; height: 12px; }
 .interruptBtn { color: var(--on-accent); background: var(--accent); border: none; }
 .interruptBtn:hover { background: var(--accent-press); }
 .resumeBtn { color: var(--text); background: transparent; border: 1px solid var(--line); }
@@ -406,12 +441,26 @@
   gap: 8px;
 }
 .trackChevron {
-  font-size: 11px;
+  display: grid;
+  place-items: center;
   color: var(--faint);
   transition: transform 0.2s ease;
 }
+.trackChevron svg { width: 12px; height: 12px; display: block; }
 .trackChevron[data-open="false"] {
   transform: rotate(-90deg);
+}
+
+/* collapsed tracker: the one line that answers "what is it doing right now?" */
+.trackNow { display: flex; align-items: center; gap: 9px; margin-top: 10px; min-width: 0; }
+.trackNow .spin { width: 13px; height: 13px; border-width: 2px; }
+.trackNow .pending { flex: none; margin: 0 2px; }
+.trackNowText {
+  font-size: 12.5px;
+  color: var(--dim);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 .steps {
   display: flex;
@@ -535,11 +584,8 @@
   color: var(--dim);
   font-size: 13.5px;
 }
-.canvasEmptyIcon {
-  font-family: var(--mono);
-  font-size: 26px;
-  color: var(--faint);
-}
+.canvasEmptyIcon { color: var(--faint); }
+.canvasEmptyIcon svg { width: 26px; height: 26px; display: block; }
 
 .stream {
   display: flex;
@@ -636,7 +682,8 @@
   transition: background 0.13s ease;
 }
 .fileCardHead:hover { background: var(--surface-2); }
-.fileCardIcon { color: var(--accent); flex: none; }
+.fileCardIcon { color: var(--accent); flex: none; display: grid; place-items: center; }
+.fileCardIcon svg { width: 13px; height: 13px; display: block; }
 .fileCardName { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-weight: 500; }
 .fileCardName b { font-family: var(--mono); font-weight: 600; font-size: 12.5px; }
 .fileCardMeta {
@@ -648,7 +695,8 @@
   border-radius: 5px;
   padding: 1px 6px;
 }
-.fileCardChevron { flex: none; font-size: 10px; color: var(--faint); transition: transform 0.2s ease; }
+.fileCardChevron { flex: none; display: grid; place-items: center; color: var(--faint); transition: transform 0.2s ease; }
+.fileCardChevron svg { width: 11px; height: 11px; display: block; }
 .fileCardChevron[data-open="false"] { transform: rotate(-90deg); }
 .fileCardCode {
   margin: 0;
@@ -668,16 +716,9 @@
 .typing {
   display: flex;
   align-items: center;
-  gap: 9px;
-  padding-left: 2px;
+  gap: 8px;
+  margin-top: 14px;
   animation: msg-in 0.28s ease;
-}
-.typingRole {
-  font-family: var(--mono);
-  font-size: 10px;
-  letter-spacing: 0.06em;
-  text-transform: uppercase;
-  color: var(--accent);
 }
 .typingDots { display: inline-flex; gap: 4px; }
 .typingDots i {

@@ -8,6 +8,11 @@
   overflow: hidden;
   background: var(--bg-elev);
 }
+/* docked into an app-shell canvas — the shell's chrome is the frame */
+.ide[data-frameless] {
+  border: none;
+  border-radius: 0;
+}
 
 .tree {
   display: flex;
@@ -17,6 +22,14 @@
   overflow-y: auto;
   background: var(--bg-elev);
   border-right: 1px solid var(--line-soft);
+}
+.treeHead {
+  font-family: var(--mono);
+  font-size: 10px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--faint);
+  padding: 4px 9px 6px;
 }
 .file {
   display: flex;
@@ -36,7 +49,9 @@
 }
 .file:hover { background: var(--surface-2); color: var(--text); }
 .file[data-active="true"] { background: var(--accent-soft); color: var(--accent); }
-.fileIcon { color: var(--faint); flex: none; }
+.fileIcon { color: var(--faint); flex: none; display: grid; place-items: center; }
+.fileIcon svg { width: 12px; height: 12px; display: block; }
+.file[data-active="true"] .fileIcon { color: var(--accent); }
 .fileName { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 
 .main {
@@ -158,7 +173,8 @@
   border: none;
   cursor: pointer;
 }
-.consoleChevron { transition: transform 0.2s ease; font-size: 10px; }
+.consoleChevron { display: grid; place-items: center; transition: transform 0.2s ease; }
+.consoleChevron svg { width: 11px; height: 11px; display: block; }
 .consoleChevron[data-open="false"] { transform: rotate(-90deg); }
 .consoleCount {
   font-size: 10px;

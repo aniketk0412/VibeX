@@ -97,6 +97,18 @@
 }
 .tab:hover { color: var(--text); }
 .tab[data-active="true"] { color: var(--text); border-bottom-color: var(--accent); }
+.tabCount {
+  font-family: var(--mono);
+  font-size: 10px;
+  font-weight: 500;
+  color: var(--faint);
+  background: var(--surface-2);
+  border-radius: 999px;
+  padding: 1px 7px;
+  margin-left: 7px;
+  vertical-align: 1px;
+}
+.tab[data-active="true"] .tabCount { color: var(--dim); }
 
 /* ── live preview ──────────────────────────────────────── */
 .previewWrap {
@@ -228,55 +240,81 @@
   tab-size: 2;
 }
 
-/* ── prompt history ────────────────────────────────────── */
-.history {
+/* ── build log (per-step agent actions, real table) ────── */
+.log {
+  --log-cols: 40px minmax(0, 1fr) 96px 76px 68px;
   border: 1px solid var(--line);
-  border-radius: 14px;
+  border-radius: 12px;
   overflow: hidden;
   background: var(--surface);
 }
-.hrow {
-  display: flex;
+.logRow {
+  display: grid;
+  grid-template-columns: var(--log-cols);
   align-items: center;
   gap: 12px;
-  padding: 13px 16px;
+  padding: 10px 16px;
   border-bottom: 1px solid var(--line-soft);
+  transition: background 0.13s ease;
 }
-.hnum {
+.logRow:not(.logHead):hover { background: color-mix(in srgb, var(--text) 2.5%, transparent); }
+.logHead {
+  padding: 9px 16px;
+  background: var(--bg-elev);
   font-family: var(--mono);
-  font-size: 11px;
-  color: var(--faint);
-  width: 18px;
-  flex: none;
-}
-.hstep { font-size: 14px; flex: 1; min-width: 0; }
-.hrole {
-  font-family: var(--mono);
-  font-size: 10.5px;
-  letter-spacing: 0.04em;
+  font-size: 10px;
+  letter-spacing: 0.08em;
   text-transform: uppercase;
-  padding: 3px 8px;
-  border-radius: 6px;
-  flex: none;
-  border: 1px solid var(--line);
-  color: var(--dim);
+  color: var(--faint);
 }
-.hrole[data-role="Reviewer"] { color: var(--accent); border-color: color-mix(in srgb, var(--accent) 40%, transparent); }
-.hmeta { font-family: var(--mono); font-size: 12px; color: var(--faint); flex: none; }
-.htotal {
+.logIdx { font-family: var(--mono); font-size: 11px; color: var(--faint); }
+.logAction {
+  font-size: 13.5px;
+  color: var(--text);
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.logVerb { color: var(--dim); }
+.logPath {
+  font-family: var(--mono);
+  font-size: 12px;
+  color: var(--text);
+  background: var(--surface-2);
+  border-radius: 5px;
+  padding: 1.5px 6px;
+}
+.logNum { text-align: right; }
+.logMeta { font-family: var(--mono); font-size: 12px; color: var(--dim); white-space: nowrap; }
+.agent {
+  display: inline-block;
+  font-family: var(--mono);
+  font-size: 10px;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  padding: 2px 8px;
+  border-radius: 999px;
+}
+.agent[data-role="Coder"] { color: var(--accent); background: var(--accent-soft); }
+.agent[data-role="Reviewer"] { color: var(--good); background: var(--good-soft); }
+.logTotal {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 14px 16px;
+  padding: 11px 16px;
   background: var(--bg-elev);
   font-family: var(--mono);
-  font-size: 12.5px;
-  color: var(--text);
+  font-size: 12px;
+  color: var(--dim);
 }
 
 @media (max-width: 680px) {
   .codeWrap { grid-template-columns: 1fr; }
   .tree { flex-direction: row; flex-wrap: wrap; border-right: none; border-bottom: 1px solid var(--line-soft); }
+  /* drop the Cost column on narrow screens; Action keeps the room */
+  .log { --log-cols: 26px minmax(0, 1fr) 84px 64px; }
+  .logRow > :last-child { display: none; }
 }
 
 /* ============================================================
@@ -441,40 +479,38 @@
   min-width: 0;
   display: flex;
   flex-direction: column;
-  gap: 16px;
-  padding: 24px 28px 28px;
   height: 100dvh;
-  overflow-y: auto;
+  overflow: hidden;
 }
+
+/* Row 1 — toolbar: a real app bar, not a floating page heading. */
 .toolbar {
+  flex: none;
   display: flex;
-  align-items: flex-start;
+  align-items: center;
   justify-content: space-between;
-  gap: 16px;
-  flex-wrap: wrap;
+  gap: 12px;
+  min-height: 56px;
+  padding: 8px 16px 8px 14px;
+  border-bottom: 1px solid var(--line-soft);
+  background: var(--bg-elev);
 }
 .toolbarLeft {
   display: flex;
-  flex-direction: column;
-  gap: 8px;
-  min-width: 0;
-}
-.toolbarTitleWrap {
-  display: flex;
   align-items: center;
-  gap: 12px;
+  gap: 10px;
   min-width: 0;
 }
 .toolbarTitle {
-  font-family: var(--display);
-  font-weight: 800;
-  letter-spacing: -0.03em;
-  font-size: clamp(22px, 3vw, 30px);
-  line-height: 1.1;
+  font-family: var(--body);
+  font-weight: 700;
+  letter-spacing: -0.01em;
+  font-size: 15.5px;
+  line-height: 1.25;
+  min-width: 0;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
-  max-width: 60vw;
 }
 .statusBadge {
   flex: none;
@@ -509,22 +545,56 @@
   transition: border-color 0.15s ease, color 0.15s ease;
 }
 .runPicker:hover { border-color: var(--faint); color: var(--text); }
-.workspaceSub {
-  font-family: var(--mono);
-  font-size: 12.5px;
-  color: var(--dim);
-  margin-top: -4px;
+
+/* Row 2 — metabar: view tabs left, build vitals right, one hairline row. */
+.metabar {
+  flex: none;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 0 16px;
+  border-bottom: 1px solid var(--line-soft);
+  background: var(--bg-elev);
 }
+.metabar .tabs { border-bottom: none; }
+.metabar .tab { padding: 11px 12px; font-size: 13.5px; }
+.stats {
+  display: flex;
+  align-items: center;
+  gap: 18px;
+  font-family: var(--mono);
+  font-size: 11.5px;
+  color: var(--faint);
+  white-space: nowrap;
+  min-width: 0;
+  overflow: hidden;
+}
+.stat { flex: none; }
+.stat b { color: var(--dim); font-weight: 600; }
+.statWide { flex: 0 1 auto; overflow: hidden; text-overflow: ellipsis; }
+
 .canvas {
   flex: 1;
   min-height: 0;
   display: flex;
   flex-direction: column;
+  overflow-y: auto;
 }
 .canvas > * {
   flex: 1;
   min-height: 0;
 }
+/* padded, scrollable canvas body for non-IDE views (build log, empty state) */
+.canvasPad {
+  flex: 1;
+  padding: 20px;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+}
+.canvasPad > * { flex: none; }
+.canvasPad > .emptyCanvas { flex: 1; }
 
 /* ── empty / failed build state ────────────────────────── */
 .emptyCanvas {
@@ -634,8 +704,15 @@
     overflow-x: auto;
   }
   .sideProj { flex: none; max-width: 200px; }
-  .workspace { max-height: none; }
-  .toolbarTitle { max-width: 80vw; }
+  .workspace { height: auto; overflow: visible; }
+  .toolbar { flex-wrap: wrap; padding: 10px 14px; }
+  .metabar { flex-wrap: wrap; }
+  .statWide { display: none; }
+  .ideHost { min-height: 70vh; }
+}
+
+@media (max-width: 560px) {
+  .stats { display: none; }
 }
 
 /* in-app IDE host (editor + live preview) — fills the workspace */
