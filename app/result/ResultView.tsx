@@ -8,6 +8,7 @@
 // sessionStorage spec and a sample.
 
 import { useEffect, useMemo, useState } from "react";
+import { useRouter } from "next/navigation";
 import dynamic from "next/dynamic";
 import Link from "next/link";
 import { zipSync, strToU8 } from "fflate";
@@ -33,6 +34,16 @@ type Tab = "editor" | "history";
 type ProjectLink = { id: string; title: string; status?: string | null };
 type CurrentMeta = { id: string; title: string; status?: string | null };
 type SessionUser = { name?: string | null; email?: string | null; image?: string | null };
+type RunVersion = { id: string; startedAt: number; status: string };
+
+// Deterministic date label (no toLocaleString — server/client timezones may differ under SSR).
+const MONTHS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+function versionLabel(v: RunVersion, index: number, total: number): string {
+  const d = new Date(v.startedAt);
+  const hh = String(d.getHours()).padStart(2, "0");
+  const mm = String(d.getMinutes()).padStart(2, "0");
+  return `v${total - index} · ${MONTHS[d.getMonth()]} ${d.getDate()}, ${hh}:${mm}${v.status === "COMPLETED" ? "" : ` (${v.status.toLowerCase()})`}`;
+}
 
 function sampleFiles(spec: Spec): GenFile[] {
   const title = spec.idea ?? "Your app";
@@ -63,6 +74,8 @@ export default function ResultView({
   projects,
   current,
   user,
+  runs,
+  currentRunId,
 }: {
   spec?: Spec;
   files?: GenFile[];
@@ -70,7 +83,10 @@ export default function ResultView({
   projects?: ProjectLink[];
   current?: CurrentMeta;
   user?: SessionUser;
+  runs?: RunVersion[];
+  currentRunId?: string;
 }) {
+  const router = useRouter();
   const [spec, setSpec] = useState<Spec>(specProp ?? {});
   const [tab, setTab] = useState<Tab>("editor");
   const [collapsed, setCollapsed] = useState(false);
@@ -221,7 +237,9 @@ export default function ResultView({
     </div>
   ) : (
     <div className={styles.ideHost}>
-      <CodeIDE files={files} projectId={current?.id} />
+      {/* Save writes to the LATEST run — hide it when viewing an older version so an edit can't
+          silently overwrite the newest build from a stale base. */}
+      <CodeIDE files={files} projectId={!runs || !currentRunId || runs[0]?.id === currentRunId ? current?.id : undefined} />
     </div>
   );
 
@@ -285,6 +303,21 @@ export default function ResultView({
               </div>
             </div>
             <div className={styles.toolbarActions}>
+              {runs && runs.length > 1 && (
+                <select
+                  className={styles.runPicker}
+                  value={currentRunId}
+                  onChange={(e) => router.push(`/result?project=${current!.id}&run=${e.target.value}`)}
+                  aria-label="Build version"
+                  suppressHydrationWarning
+                >
+                  {runs.map((v, i) => (
+                    <option key={v.id} value={v.id} suppressHydrationWarning>
+                      {versionLabel(v, i, runs.length)}
+                    </option>
+                  ))}
+                </select>
+              )}
               {!isEmpty && (
                 <ShipMenu files={files} title={title} projectId={current!.id} previewable={!!preview} onDownload={download} />
               )}

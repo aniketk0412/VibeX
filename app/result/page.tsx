@@ -23,15 +23,14 @@ export default async function ResultPage({
   const session = await auth();
   if (!session?.user) redirect(`/signin?callbackUrl=${encodeURIComponent(`/result?project=${projectId}`)}`);
 
+  // ?run=<id> selects an older build (version history); default is the latest run.
+  const runParam = typeof searchParams.run === "string" ? searchParams.run : undefined;
+
   const [project, projects] = await Promise.all([
     prisma.project.findFirst({
       where: { id: projectId, userId: session.user.id },
       include: {
-        runs: {
-          orderBy: { startedAt: "desc" },
-          take: 1,
-          include: { prompts: { orderBy: [{ step: "asc" }, { createdAt: "asc" }] } },
-        },
+        runs: { orderBy: { startedAt: "desc" }, select: { id: true, status: true, startedAt: true } },
       },
     }),
     prisma.project.findMany({
@@ -44,9 +43,17 @@ export default async function ResultPage({
   // Unknown or not-yours → 404 instead of silently showing a sample app.
   if (!project) notFound();
 
-  const run = project.runs[0];
+  const runMeta = runParam ? project.runs.find((r) => r.id === runParam) : project.runs[0];
+  if (runParam && !runMeta) notFound(); // forged/stale run id
   // Still building → resume the live stream rather than show an empty result.
-  if (run?.status === "RUNNING") redirect(`/run?project=${project.id}`);
+  if (runMeta?.status === "RUNNING") redirect(`/run?project=${project.id}`);
+
+  const run = runMeta
+    ? await prisma.run.findUnique({
+        where: { id: runMeta.id },
+        include: { prompts: { orderBy: [{ step: "asc" }, { createdAt: "asc" }] } },
+      })
+    : null;
 
   const spec = project.spec as Spec;
   const files = (run?.files as unknown as GenFile[] | null) ?? [];
@@ -57,6 +64,11 @@ export default async function ResultPage({
     cost: p.cost,
   }));
 
+  // Version history: every non-live run, newest first (only meaningful with 2+ builds).
+  const versions = project.runs
+    .filter((r) => r.status !== "RUNNING")
+    .map((r) => ({ id: r.id, startedAt: r.startedAt.getTime(), status: r.status }));
+
   return (
     <ResultView
       spec={{ idea: spec.idea, platform: spec.platform, coder: spec.coder, reviewer: spec.reviewer }}
@@ -65,6 +77,8 @@ export default async function ResultPage({
       projects={projects.map((p) => ({ id: p.id, title: p.title, status: p.runs[0]?.status ?? null }))}
       current={{ id: project.id, title: project.title, status: run?.status ?? null }}
       user={{ name: session.user.name, email: session.user.email, image: session.user.image }}
+      runs={versions}
+      currentRunId={run?.id}
     />
   );
 }
