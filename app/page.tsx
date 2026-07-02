@@ -54,64 +54,83 @@ const HOW: { n: string; t: string; d: string }[] = [
   },
 ];
 
-const FEATURES: { icon: string; t: string; d: string }[] = [
-  { icon: "◑", t: "Two-AI build loop", d: "A Coder writes, a Reviewer verifies — every prompt, hands-free. You get working code, not a rough first draft." },
-  { icon: "▷", t: "Live preview + in-app IDE", d: "Watch it run as it's built, then edit the code and read the console without leaving the page." },
-  { icon: "⌘", t: "Bring your own key", d: "Anthropic, OpenAI, Gemini, or OpenRouter — its free models cost $0. Or run on a Vibex plan." },
-  { icon: "⤓", t: "Your code, yours to keep", d: "A real file tree, a downloadable .zip, and one-click export to a fresh GitHub repo." },
-  { icon: "⚡", t: "Ship in one click", d: "Deploy straight to Vercel or Netlify, or open the project in StackBlitz." },
-  { icon: "⟳", t: "Limits that never burn you", d: "Time-based rolling windows auto-pause and resume — you never lose progress or a credit." },
-];
+// Real stroke icons (not dingbats/emoji — random Unicode glyphs in tinted tiles is the #1
+// "AI-generated page" tell). One consistent 24-viewBox stroke style, inherits currentColor.
+function Ic({ d, children }: { d?: string; children?: React.ReactNode }) {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
+      {d ? <path d={d} /> : children}
+    </svg>
+  );
+}
+const ICONS = {
+  loop: <Ic d="M17 2l4 4-4 4M3 11v-1a4 4 0 0 1 4-4h14M7 22l-4-4 4-4M21 13v1a4 4 0 0 1-4 4H3" />,
+  monitor: (
+    <Ic>
+      <rect x="2" y="3" width="20" height="14" rx="2" />
+      <path d="M8 21h8M12 17v4M9.5 8l3 2.5-3 2.5" />
+    </Ic>
+  ),
+  key: <Ic d="M21 2l-2 2m-5.5 5.5L21 2m-7.5 7.5L16 12m-2.5-2.5a5.5 5.5 0 1 0-7.8 7.8 5.5 5.5 0 0 0 7.8-7.8z" />,
+  box: (
+    <Ic>
+      <path d="M21 8v13H3V8M1 3h22v5H1z" />
+      <path d="M10 12h4" />
+    </Ic>
+  ),
+  zap: <Ic d="M13 2L3 14h9l-1 8 10-12h-9l1-8z" />,
+  rewind: <Ic d="M1 4v6h6M3.5 15a9 9 0 1 0 2.1-9.4L1 10" />,
+  lock: (
+    <Ic>
+      <rect x="3" y="11" width="18" height="11" rx="2" />
+      <path d="M7 11V7a5 5 0 0 1 10 0v4" />
+    </Ic>
+  ),
+} as const;
+type IconKey = keyof typeof ICONS;
 
-const STATS: { v: string; l: string }[] = [
-  { v: "0", l: "prompts to write" },
-  { v: "2", l: "AIs: Coder + Reviewer" },
-  { v: "3", l: "targets: web · API · CLI" },
-  { v: "1", l: "free project, no card" },
+const FEATURES: { icon: IconKey; t: string; d: string }[] = [
+  { icon: "loop", t: "Two-AI build loop", d: "A Coder writes, a Reviewer verifies — every prompt, hands-free. You get working code, not a rough first draft." },
+  { icon: "monitor", t: "Live preview + in-app IDE", d: "Watch it run as it's built, then edit the code and read the console without leaving the page." },
+  { icon: "key", t: "Bring your own key", d: "Anthropic, OpenAI, Gemini, or OpenRouter — its free models cost $0. Or run on a Vibex plan." },
+  { icon: "box", t: "Your code, yours to keep", d: "A real file tree, a downloadable .zip, and one-click export to a fresh GitHub repo." },
+  { icon: "zap", t: "Ship in one click", d: "Deploy straight to Vercel or Netlify, or open the project in StackBlitz." },
+  { icon: "rewind", t: "Limits that never burn you", d: "Time-based rolling windows auto-pause and resume — you never lose progress or a credit." },
 ];
 
 // Reassurance, framed as a contrast: the failure mode users hit elsewhere → what Vibex does
 // instead. Every claim maps to a real safeguard shipped in the build pipeline.
-const GUARANTEES: { icon: string; risk: string; without: string; withVibex: string }[] = [
+const GUARANTEES: { risk: string; without: string; withVibex: string }[] = [
   {
-    icon: "⚡",
     risk: "Builds that freeze halfway",
     without: "With other AI tools a single stuck model means an endless spinner — and the work so far is gone.",
     withVibex: "Vibex times out and recovers automatically. Your build always finishes with openable code.",
   },
   {
-    icon: "✦",
     risk: "Cookie-cutter, templated apps",
     without: "Most AI coders stop at a generic first draft that instantly reads as “AI-made.”",
     withVibex: "A Coder writes, a Reviewer checks, then an art-director AI redesigns it until it looks hand-built.",
   },
   {
-    icon: "?",
     risk: "Vague questions, vague results",
     without: "Generic prompts give every idea the same shallow treatment — so you get something off.",
     withVibex: "Vibex asks sharp, idea-specific questions first, so it builds what you actually meant.",
   },
   {
-    icon: "🔒",
     risk: "Exposed API keys",
     without: "Paste a key into the wrong tool and it can leak or get logged.",
     withVibex: "Your keys are encrypted (AES-256) and never leave the server or touch the browser.",
   },
   {
-    icon: "⟳",
     risk: "Losing progress at a limit",
     without: "Hit a usage cap elsewhere and the run dies — you start over from scratch.",
     withVibex: "Vibex pauses on rolling windows and auto-resumes. You never lose progress.",
   },
 ];
 
-// PLACEHOLDER testimonials — replace each entry with a real customer quote before launch.
-// The section auto-hides when this array is empty, so clear it to remove the block entirely.
-const TESTIMONIALS: { quote: string; name: string; role: string }[] = [
-  { quote: "Placeholder — drop a real quote here: what they were stuck on, and what changed after Vibex.", name: "Name Surname", role: "Role · Company" },
-  { quote: "Placeholder — a second quote lands best when it speaks to a different win (speed, code quality, shipping).", name: "Name Surname", role: "Role · Company" },
-  { quote: "Placeholder — keep it short and specific; one concrete outcome beats three vague adjectives.", name: "Name Surname", role: "Role · Company" },
-];
+// Testimonials — the section auto-hides while this is empty. Add REAL customer quotes only:
+// shipping placeholder quotes to production is the fastest way to look AI-generated.
+const TESTIMONIALS: { quote: string; name: string; role: string }[] = [];
 
 const JSON_LD = {
   "@context": "https://schema.org",
@@ -158,16 +177,15 @@ export default function Home() {
             <p className={styles.sub}>
               Describe it once. Vibex writes the prompts and a Reviewer AI checks every file — so you ship working code, not a rough draft.
             </p>
-            <p className={styles.tag}>// automated vibe coding that actually runs</p>
             <div className={styles.ctaRow}>
               <Link href="/new" className="btn btn-primary btn-lg">Build something →</Link>
-              <button className="btn btn-ghost btn-lg" type="button">Watch a run</button>
+              <a href="/#how" className="btn btn-ghost btn-lg">See how it works</a>
             </div>
             <p className={styles.note}><b>1 free project</b> — no prompt-writing, no babysitting. Interrupt anytime.</p>
             <ul className={styles.heroProof}>
-              <li><span aria-hidden>⚡</span> Builds always finish</li>
-              <li><span aria-hidden>◑</span> Coder + Reviewer + design review</li>
-              <li><span aria-hidden>🔒</span> Keys encrypted</li>
+              <li><span className={styles.proofIcon}>{ICONS.zap}</span> Builds always finish</li>
+              <li><span className={styles.proofIcon}>{ICONS.loop}</span> Coder + Reviewer + design review</li>
+              <li><span className={styles.proofIcon}>{ICONS.lock}</span> Keys encrypted</li>
             </ul>
           </div>
 
@@ -186,7 +204,7 @@ export default function Home() {
         <Reveal>
           <section className={styles.how} id="how">
             <div className={styles.sectionHead}>
-              <span className="eyebrow"><span className="dot" /> How it works</span>
+              <span className={styles.kicker}>How it works</span>
               <h2 className={styles.h2}>Three steps. Zero prompts.</h2>
               <p className={styles.h2sub}>From a sentence to running code, without you writing or babysitting a single prompt.</p>
             </div>
@@ -203,28 +221,22 @@ export default function Home() {
         </Reveal>
 
         <Reveal>
-          <div className={styles.stats}>
-            {STATS.map((s) => (
-              <div key={s.l} className={styles.statCell}>
-                <span className={styles.statV}>{s.v}</span>
-                <span className={styles.statL}>{s.l}</span>
-              </div>
-            ))}
-          </div>
-        </Reveal>
-
-        <Reveal>
           <section className={styles.features} id="features">
             <div className={styles.sectionHead}>
-              <span className="eyebrow"><span className="dot" /> What you get</span>
+              <span className={styles.kicker}>What you get</span>
               <h2 className={styles.h2}>Everything to go from idea to shipped</h2>
             </div>
-            <div className={styles.featGrid}>
-              {FEATURES.map((f) => (
+            <div className={styles.featIndex}>
+              {FEATURES.map((f, i) => (
                 <div key={f.t} className={styles.feat}>
-                  <span className={styles.featIcon} aria-hidden>{f.icon}</span>
-                  <h3 className={styles.featTitle}>{f.t}</h3>
-                  <p className={styles.featBody}>{f.d}</p>
+                  <span className={styles.featNum} aria-hidden>{String(i + 1).padStart(2, "0")}</span>
+                  <div className={styles.featMain}>
+                    <div className={styles.featTop}>
+                      <span className={styles.featIcon} aria-hidden>{ICONS[f.icon]}</span>
+                      <h3 className={styles.featTitle}>{f.t}</h3>
+                    </div>
+                    <p className={styles.featBody}>{f.d}</p>
+                  </div>
                 </div>
               ))}
             </div>
@@ -234,7 +246,7 @@ export default function Home() {
         <Reveal>
           <section className={styles.safeguards} id="guarantees">
             <div className={styles.sectionHead}>
-              <span className="eyebrow"><span className="dot" /> Built so it doesn&apos;t break</span>
+              <span className={styles.kicker}>Built so it doesn&apos;t break</span>
               <h2 className={styles.h2}>What breaks other AI builders — handled here</h2>
               <p className={styles.h2sub}>Every build runs through the same safeguards, automatically. Here&apos;s what that saves you from.</p>
             </div>
@@ -243,7 +255,6 @@ export default function Home() {
               {GUARANTEES.map((g) => (
                 <div key={g.risk} className={styles.sgCard}>
                   <div className={styles.sgHead}>
-                    <span className={styles.sgIcon} aria-hidden>{g.icon}</span>
                     <h3 className={styles.sgRisk}>{g.risk}</h3>
                   </div>
                   <p className={styles.sgLine}>
@@ -264,7 +275,7 @@ export default function Home() {
           <Reveal>
             <section className={styles.testimonials} id="testimonials">
               <div className={styles.sectionHead}>
-                <span className="eyebrow"><span className="dot" /> Testimonials</span>
+                <span className={styles.kicker}>Testimonials</span>
                 <h2 className={styles.h2}>What builders say</h2>
               </div>
               <div className={styles.tGrid}>
@@ -288,7 +299,7 @@ export default function Home() {
         <Reveal>
           <section className={styles.pricing} id="pricing">
             <div className={styles.pricingHead}>
-              <span className="eyebrow"><span className="dot" /> Plans</span>
+              <span className={styles.kicker}>Plans</span>
               <h2 className={styles.h2}>Simple, usage-based plans</h2>
               <p className={styles.h2sub}>
                 Start free. Limits are <b>time-based rolling windows</b> — never credit top-ups — so a run
@@ -301,9 +312,13 @@ export default function Home() {
 
         <Reveal>
           <section className={styles.faq} id="faq">
-            <div className={styles.faqHead}>
-              <span className="eyebrow"><span className="dot" /> FAQ</span>
+            <div className={styles.faqIntro}>
+              <span className={styles.kicker}>FAQ</span>
               <h2 className={styles.h2}>Questions, answered</h2>
+              <p className={styles.faqLead}>
+                The short version: describe it once, get working, reviewed code. The details are here.
+              </p>
+              <Link href="/new" className={styles.faqCta}>Or just try it — one project is free →</Link>
             </div>
             <div className={styles.faqList}>
               {FAQS.map((f) => (
@@ -319,17 +334,6 @@ export default function Home() {
           </section>
         </Reveal>
 
-        <Reveal>
-          <section className={styles.cta}>
-            <h2 className={styles.ctaTitle}>Ready to stop writing prompts?</h2>
-            <p className={styles.ctaSub}>Describe your idea once and watch Vibex build it — live, end to end.</p>
-            <div className={styles.ctaRow}>
-              <Link href="/new" className="btn btn-primary btn-lg">Build something →</Link>
-              <Link href="/pricing" className="btn btn-ghost btn-lg">See plans</Link>
-            </div>
-            <p className={styles.note}><b>1 free project</b> — no card, interrupt anytime.</p>
-          </section>
-        </Reveal>
       </main>
 
       <SiteFooter />

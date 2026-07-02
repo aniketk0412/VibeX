@@ -67,7 +67,12 @@ export default function CockpitPanel() {
       {/* body — the live execution stream is the hero */}
       <div className={styles.body}>
         <div className={styles.goalchip}>
-          <span className={styles.lock}>🔒</span>
+          <span className={styles.lock}>
+            <svg viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
+              <rect x="3" y="11" width="18" height="11" rx="2" />
+              <path d="M7 11V7a5 5 0 0 1 10 0v4" />
+            </svg>
+          </span>
           <span><b>Goal locked</b> · habit tracker · web · Sonnet + Opus</span>
         </div>
 
@@ -121,7 +126,7 @@ export default function CockpitPanel() {
 
       {/* status / interrupt bar — always visible at the bottom */}
       <div className={styles.statusbar}>
-        <span className={styles.gear}>{complete ? "✓" : "⚙"}</span>
+        <span className={styles.gear}>{complete ? <Check /> : <span className={styles.spin} />}</span>
         <span className={styles.slabel}>{current}</span>
         <span className={styles.steppill}>step {stepNo} of ~{TOTAL}</span>
 

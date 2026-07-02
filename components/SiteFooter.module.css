@@ -1,14 +1,48 @@
 .footer {
   border-top: 1px solid var(--line-soft);
-  margin-top: 40px;
-  padding: 44px 0 28px;
+  margin-top: 48px;
+  padding: 0 0 28px;
 }
+
+/* ── the close — a single confident invitation ─────────── */
+.close {
+  padding-top: 92px;
+  padding-bottom: 76px;
+}
+.closeKicker {
+  font-family: var(--mono);
+  font-size: 12px;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--faint);
+}
+.closeLine {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 20px;
+  margin-top: 16px;
+  font-family: var(--display);
+  font-weight: 800;
+  letter-spacing: -0.03em;
+  line-height: 1;
+  font-size: clamp(42px, 7vw, 84px);
+  color: var(--text);
+  transition: color 0.18s ease;
+}
+.closeLine span {
+  color: var(--accent);
+  transition: transform 0.22s var(--ease, ease);
+}
+.closeLine:hover { color: var(--accent); }
+.closeLine:hover span { transform: translateX(12px); }
 
 .inner {
   display: flex;
   justify-content: space-between;
   flex-wrap: wrap;
   gap: 36px;
+  border-top: 1px solid var(--line-soft);
+  padding-top: 44px;
 }
 
 .brand {

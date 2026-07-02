@@ -6,6 +6,15 @@ export default function SiteFooter() {
   const year = new Date().getFullYear();
   return (
     <footer className={styles.footer}>
+      {/* The close: one confident invitation. Replaces the templated "Ready to…?" CTA banner —
+          a designer lets the footer carry the close instead of bolting on a beg. */}
+      <div className={`wrap ${styles.close}`}>
+        <p className={styles.closeKicker}>One free project · no card</p>
+        <Link href="/new" className={styles.closeLine}>
+          Build something<span aria-hidden>→</span>
+        </Link>
+      </div>
+
       <div className={`wrap ${styles.inner}`}>
         <div className={styles.brand}>
           <Logo size={26} />

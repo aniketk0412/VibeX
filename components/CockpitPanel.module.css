@@ -54,7 +54,7 @@
   color: var(--dim);
 }
 .goalchip b { color: var(--text); font-weight: 600; }
-.lock { font-size: 12px; }
+.lock { display: inline-flex; align-items: center; color: var(--good); flex: none; }
 
 /* inset "terminal log" — the execution stream is the hero */
 .stream {
@@ -159,7 +159,9 @@
   background: var(--bg-elev);
   border-top: 1px solid var(--line-soft);
 }
-.gear { font-size: 14px; flex: none; }
+.gear { flex: none; display: inline-flex; align-items: center; width: 15px; height: 15px; }
+.gear svg { width: 100%; height: 100%; color: var(--good); }
+.gear .spin { width: 13px; height: 13px; }
 .slabel {
   font-size: 13.5px;
   white-space: nowrap;
