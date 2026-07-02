@@ -87,27 +87,35 @@ export async function POST(req: NextRequest) {
   const audience: string = typeof body?.audience === "string" ? body.audience.slice(0, 80) : "";
   if (!idea.trim()) return Response.json({ ok: false, reason: "no-idea" });
 
-  // BYOK (if signed in) then env, same precedence as the engine's buildCall.
+  // BYOK (if signed in) then env. Anonymous callers may use the free OpenRouter route but never our
+  // paid server env keys — this endpoint is reachable pre-signup, so that would be uncapped spend.
   let keys: Awaited<ReturnType<typeof getUserKeys>> = {};
+  let allowServerKeys = false;
   try {
     const session = await auth();
-    if (session?.user) keys = await getUserKeys(session.user.id);
+    if (session?.user) {
+      keys = await getUserKeys(session.user.id);
+      allowServerKeys = true;
+    }
   } catch {
-    /* anonymous — env keys only */
+    /* anonymous — free route only */
   }
 
+  // Precedence: 1) the user's own provider key (honour their spend), 2) the free OpenRouter route,
+  // 3) — signed-in only — a server env key.
   let call: ((system: string, user: string, maxTokens: number) => Promise<GenResult>) | null = null;
+  const modelFor = (p: Provider) => (p === "anthropic" ? "claude-sonnet-4-6" : p === "openai" ? "gpt-4o" : "gemini-1.5-flash");
+  const ownProvider: Provider | null = keys.anthropic ? "anthropic" : keys.openai ? "openai" : keys.google ? "google" : null;
   const orKey = keys.openrouter ?? process.env.OPENROUTER_API_KEY;
-  if (orKey) {
+  if (ownProvider) {
+    const key = keys[ownProvider]!;
+    call = (s, u, m) => generate(ownProvider, modelFor(ownProvider), s, u, m, key);
+  } else if (orKey) {
     call = (s, u, m) => generateOpenRouter(s, u, m, orKey);
-  } else {
+  } else if (allowServerKeys) {
     const provider: Provider | null =
-      keys.anthropic ?? process.env.ANTHROPIC_API_KEY ? "anthropic" : keys.openai ?? process.env.OPENAI_API_KEY ? "openai" : keys.google ?? process.env.GOOGLE_GENERATIVE_AI_API_KEY ? "google" : null;
-    if (provider) {
-      const model = provider === "anthropic" ? "claude-sonnet-4-6" : provider === "openai" ? "gpt-4o" : "gemini-1.5-flash";
-      const key = keys[provider] ?? envKey(provider);
-      call = (s, u, m) => generate(provider, model, s, u, m, key);
-    }
+      process.env.ANTHROPIC_API_KEY ? "anthropic" : process.env.OPENAI_API_KEY ? "openai" : process.env.GOOGLE_GENERATIVE_AI_API_KEY ? "google" : null;
+    if (provider) call = (s, u, m) => generate(provider, modelFor(provider), s, u, m, envKey(provider));
   }
   if (!call) return Response.json({ ok: false, reason: "no-key" });
 

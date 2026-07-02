@@ -5,8 +5,10 @@
 export const EMBED_DIM = 1536;
 const EMBED_MODEL = "text-embedding-3-small";
 
-export async function embed(text: string, keys: { openai?: string } = {}): Promise<number[] | null> {
-  const apiKey = keys.openai ?? process.env.OPENAI_API_KEY;
+// `allowServerKeys` is false for anonymous callers: they must never trigger a paid embeddings call
+// on our server env key (the seeder and signed-in paths keep the default).
+export async function embed(text: string, keys: { openai?: string } = {}, allowServerKeys = true): Promise<number[] | null> {
+  const apiKey = keys.openai ?? (allowServerKeys ? process.env.OPENAI_API_KEY : undefined);
   if (!apiKey) return null;
   try {
     const r = await fetch("https://api.openai.com/v1/embeddings", {

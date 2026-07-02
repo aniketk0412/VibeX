@@ -5,7 +5,7 @@ import { redirect } from "next/navigation";
 import Link from "next/link";
 import { auth } from "@/auth";
 import { prisma } from "@/lib/prisma";
-import { getUserPlan } from "@/lib/runs";
+import { getUserPlan, reapStaleRuns } from "@/lib/runs";
 import { TOKEN_LIMITS, formatDuration } from "@/lib/usage";
 import { greeting, firstName } from "@/lib/format";
 import { hasModelAccess } from "@/lib/keys";
@@ -22,6 +22,9 @@ export default async function DashboardPage() {
   if (!session?.user) redirect(`/signin?callbackUrl=${encodeURIComponent("/dashboard")}`);
   const user = session.user;
   const uid = user.id;
+
+  // Heal orphaned RUNNING rows first so project status badges reflect reality.
+  await reapStaleRuns(uid);
 
   const [plan, projects, win, hasKey] = await Promise.all([
     getUserPlan(uid),

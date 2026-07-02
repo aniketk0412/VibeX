@@ -6,7 +6,7 @@ import type { NextRequest } from "next/server";
 import { auth } from "@/auth";
 import { prisma } from "@/lib/prisma";
 import { runEngine } from "@/lib/engine";
-import { createRun, recordPrompt, setRunStep, finishRun, saveRunOutput, interruptIfRunning, recordUsage, getUserPlan, getStartWindow } from "@/lib/runs";
+import { createRun, recordPrompt, setRunStep, finishRun, saveRunOutput, interruptIfRunning, recordUsage, getUserPlan, getStartWindow, reapStaleRuns, countActiveRuns } from "@/lib/runs";
 import { getUserKeys } from "@/lib/keys";
 import { isSameOrigin } from "@/lib/http";
 import { rateLimit, rateSubject, tooMany } from "@/lib/ratelimit";
@@ -17,11 +17,12 @@ import type { Spec } from "@/lib/steps";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
+// A build streams through several model calls (each capped at 90s); give the function room so a
+// slow provider doesn't truncate the stream into an INTERRUPTED run. Clamped to the plan limit.
+export const maxDuration = 300;
 
 export async function POST(req: NextRequest) {
   if (!isSameOrigin(req)) return new Response("Forbidden", { status: 403 });
-  const rl = await rateLimit(`run:${rateSubject(req)}`, 30, 5 * 60_000);
-  if (!rl.ok) return tooMany(rl.retryAfterMs);
   const body = await req.json().catch(() => ({}));
   let spec: Spec = body?.spec ?? {};
   const startIndex = typeof body?.startIndex === "number" ? body.startIndex : 0;
@@ -55,6 +56,13 @@ export async function POST(req: NextRequest) {
     }
   }
 
+  // Rate limit by tier: signed-in owners are limited per-user (fairer behind shared NATs); everyone
+  // else is limited per-IP with a tighter ceiling, since anonymous runs are the abuse surface.
+  const rl = userId
+    ? await rateLimit(`run:u:${userId}`, 30, 5 * 60_000)
+    : await rateLimit(`run:${rateSubject(req)}`, 8, 5 * 60_000);
+  if (!rl.ok) return tooMany(rl.retryAfterMs);
+
   // For an owned run: the user's plan (limit enforcement), BYOK keys, and real usage window.
   let plan: Plan = "free";
   let userKeys: UserKeys = {};
@@ -63,6 +71,20 @@ export async function POST(req: NextRequest) {
     plan = await getUserPlan(userId);
     userKeys = await getUserKeys(userId);
     startWindow = await getStartWindow(userId);
+
+    // Concurrency gate. Two reasons: "concurrent runs" is a Scale-plan feature, and the engine's
+    // window enforcement reads a per-run snapshot — parallel runs could each see headroom and
+    // together blow past the plan ceiling. One active run below Scale (a small cap on Scale)
+    // bounds that overspend. Reap first so a stranded RUNNING row never locks the user out.
+    await reapStaleRuns(userId);
+    const active = await countActiveRuns(userId);
+    const maxConcurrent = plan === "scale" ? 3 : 1;
+    if (active >= maxConcurrent) {
+      return new Response(
+        JSON.stringify({ ok: false, reason: "concurrent", message: plan === "scale" ? "Concurrent-run limit reached — wait for a build to finish." : "Another build is already running. Wait for it to finish (or upgrade to Scale for concurrent runs)." }),
+        { status: 409, headers: { "content-type": "application/json" } },
+      );
+    }
   }
 
   const coderModel = resolveModel(spec.coder).model;
@@ -77,7 +99,7 @@ export async function POST(req: NextRequest) {
       let prevCost = 0;
 
       try {
-        for await (const ev of runEngine(spec, { startIndex, signal: req.signal, plan, userKeys, startWindow, steer, images, only, baseFiles })) {
+        for await (const ev of runEngine(spec, { startIndex, signal: req.signal, plan, userKeys, startWindow, steer, images, anonymous: !userId, only, baseFiles })) {
           send(ev);
           if (!userId) continue;
           try {

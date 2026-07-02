@@ -18,10 +18,11 @@ export default function ExportToGitHub({
   const router = useRouter();
   const [pending, start] = useTransition();
   const [repoUrl, setRepoUrl] = useState<string | null>(null);
+  const [makePublic, setMakePublic] = useState(false);
 
   const run = () =>
     start(async () => {
-      const res = await exportToGitHub(projectId);
+      const res = await exportToGitHub(projectId, { makePublic });
       if (res.url && !res.error) {
         setRepoUrl(res.url);
         toast.success(`Pushed to ${res.repo ?? "GitHub"}`);
@@ -52,8 +53,14 @@ export default function ExportToGitHub({
   }
 
   return (
-    <button type="button" className={className} onClick={run} disabled={pending} aria-busy={pending}>
-      {pending ? "Exporting…" : "↗ Export to GitHub"}
-    </button>
+    <span style={{ display: "inline-flex", alignItems: "center", gap: "0.5rem" }}>
+      <button type="button" className={className} onClick={run} disabled={pending} aria-busy={pending}>
+        {pending ? "Exporting…" : `↗ Export to GitHub (${makePublic ? "public" : "private"})`}
+      </button>
+      <label style={{ display: "inline-flex", alignItems: "center", gap: "0.3rem", fontSize: "0.85em", cursor: "pointer" }}>
+        <input type="checkbox" checked={makePublic} onChange={(e) => setMakePublic(e.target.checked)} disabled={pending} />
+        Public
+      </label>
+    </span>
   );
 }

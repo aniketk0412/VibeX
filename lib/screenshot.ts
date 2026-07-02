@@ -1,6 +1,9 @@
-// Client-side capture of the live preview iframe → a PNG data URL for the design critic.
-// The preview is an `about:srcdoc` iframe (same-origin), so we can reach its document and render
-// it with html-to-image. Waits for fonts so the critic judges the real type. Never throws.
+// Client-side capture of a preview iframe → a PNG data URL for the design critic.
+// IMPORTANT: only ever pointed at the hidden capture iframe (sandbox="allow-same-origin" with NO
+// allow-scripts) — same-origin so we can reach its document for html-to-image, safe because the
+// generated app cannot execute code there. The visible preview is an opaque origin and its
+// contentDocument is intentionally unreachable. Waits for fonts so the critic judges the real
+// type. Never throws.
 
 import { toPng } from "html-to-image";
 

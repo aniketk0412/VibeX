@@ -62,18 +62,16 @@ export async function deleteUserKey(userId: string, provider: ProviderId) {
   await prisma.apiKey.deleteMany({ where: { userId, provider } });
 }
 
-// Can a real build run? True if the server has any model env key, or the user brought their own.
-// Drives the "connect a key" nudges so users know a build will be real vs. a simulated placeholder.
+// Can a real build run? Drives the "connect a key" nudges so users know a build will be real vs. a
+// simulated placeholder. Mirrors the engine's key policy: anonymous callers can only use the free
+// OpenRouter route (never our paid server env keys), so for them only OpenRouter counts. Signed-in
+// callers can also use the server env keys or their own BYOK key.
 export async function hasModelAccess(userId?: string | null): Promise<boolean> {
-  if (
-    process.env.OPENROUTER_API_KEY ||
-    process.env.ANTHROPIC_API_KEY ||
-    process.env.OPENAI_API_KEY ||
-    process.env.GOOGLE_GENERATIVE_AI_API_KEY
-  ) {
+  if (process.env.OPENROUTER_API_KEY) return true;
+  if (!userId) return false; // anonymous: only the free OpenRouter route is available
+  if (process.env.ANTHROPIC_API_KEY || process.env.OPENAI_API_KEY || process.env.GOOGLE_GENERATIVE_AI_API_KEY) {
     return true;
   }
-  if (!userId) return false;
   try {
     const row = await prisma.apiKey.findFirst({
       where: { userId, provider: { in: ["anthropic", "openai", "google", "openrouter"] } },

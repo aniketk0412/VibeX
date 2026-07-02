@@ -130,7 +130,11 @@ export default function CodeIDE({ files: initial, projectId }: { files: GenFile[
                   className={styles.frame}
                   srcDoc={previewDoc}
                   title="Live preview"
-                  sandbox="allow-scripts allow-same-origin allow-forms allow-modals allow-popups"
+                  // No `allow-same-origin`: with allow-scripts that pair lets the (LLM-written)
+                  // app break out of the sandbox onto our origin — parent DOM, storage, and
+                  // credentialed API calls as the signed-in user. The console bridge only needs
+                  // postMessage, which works fine from an opaque origin.
+                  sandbox="allow-scripts allow-forms allow-modals allow-popups"
                 />
               ) : (
                 <div className={styles.noPreview}>No HTML entry to preview — this is an API/CLI project. Use the editor + the deploy/export options.</div>

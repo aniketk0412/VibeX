@@ -19,6 +19,8 @@ import type { Plan, WindowState } from "@/lib/usage";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
+// The vision call is capped at 90s; give the function headroom. Clamped to the plan limit.
+export const maxDuration = 120;
 
 export async function POST(req: NextRequest) {
   if (!isSameOrigin(req)) return new Response("Forbidden", { status: 403 });
@@ -51,23 +53,29 @@ export async function POST(req: NextRequest) {
     }
   }
 
-  if (userId && win && overLimit(win, plan)) {
+  // The vision call prefers the user's own key when present (see critiqueDesign) — a critique on
+  // their own spend isn't gated by plan windows, matching the engine's BYOK enforcement rule.
+  const ownVision = !!(userKeys.anthropic || userKeys.openai || userKeys.openrouter);
+  if (userId && win && !ownVision && overLimit(win, plan)) {
     return Response.json({ ok: false, reason: "limit" });
   }
 
   // RAG: embed the project context, retrieve top references (falls back to category match).
   const category = categoryForSpec(spec.platform);
   const queryText = [spec.idea, spec.platform, spec.vibe, spec.accent].filter(Boolean).join(" ");
-  const queryVec = await embed(queryText, { openai: userKeys.openai });
+  const queryVec = await embed(queryText, { openai: userKeys.openai }, !!userId);
   const refs = await retrieveDesignRefs(queryVec, category, 4);
   const refBlock = [DESIGN_RUBRIC, refs.length ? formatRefs(refs) : ""].filter(Boolean).join("\n\n");
 
   // The art-director vision call. Null → no vision-capable key; the client skips the loop.
-  const critique = await critiqueDesign(screenshot, refBlock, spec, {
-    anthropic: userKeys.anthropic,
-    openai: userKeys.openai,
-    openrouter: userKeys.openrouter,
-  });
+  // Anonymous callers (no owned project) may only use the free OpenRouter vision route.
+  const critique = await critiqueDesign(
+    screenshot,
+    refBlock,
+    spec,
+    { anthropic: userKeys.anthropic, openai: userKeys.openai, openrouter: userKeys.openrouter },
+    !!userId,
+  );
   if (!critique) return Response.json({ ok: false, reason: "no-vision-key" });
 
   if (userId) {

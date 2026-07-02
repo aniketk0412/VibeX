@@ -11,6 +11,7 @@ import Link from "next/link";
 import Logo from "@/components/Logo";
 import ThemeToggle from "@/components/ThemeToggle";
 import { buildSteps, type Spec, type GenFile } from "@/lib/steps";
+import { buildPreview } from "@/lib/preview";
 import { captureIframe } from "@/lib/screenshot";
 import KeyNotice from "@/components/KeyNotice";
 import { AttachButton, Thumbs, type AttachedImage } from "@/components/ImageAttach";
@@ -49,10 +50,6 @@ function fileToDataUrl(file: File): Promise<string> {
   });
 }
 
-function escapeRe(s: string): string {
-  return s.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
-}
-
 // Claude-Code-style collapsible "wrote a file" card shown in the conversation.
 function FileCard({ path, code, stub }: { path: string; code: string; stub?: boolean }) {
   const [open, setOpen] = useState(false);
@@ -72,22 +69,6 @@ function FileCard({ path, code, stub }: { path: string; code: string; stub?: boo
       {open && <pre className={styles.fileCardCode}>{code}</pre>}
     </div>
   );
-}
-
-// Inline CSS/JS into the HTML so the generated app previews standalone in an iframe.
-function buildPreview(files: GenFile[]): string | null {
-  const html = files.find((f) => /\.html$/i.test(f.path));
-  if (!html) return null;
-  let doc = html.content;
-  for (const f of files.filter((x) => /\.css$/i.test(x.path))) {
-    const name = f.path.split("/").pop() ?? f.path;
-    doc = doc.replace(new RegExp(`<link[^>]*href=["'][^"']*${escapeRe(name)}["'][^>]*>`, "gi"), `<style>\n${f.content}\n</style>`);
-  }
-  for (const f of files.filter((x) => /\.js$/i.test(x.path))) {
-    const name = f.path.split("/").pop() ?? f.path;
-    doc = doc.replace(new RegExp(`<script[^>]*src=["'][^"']*${escapeRe(name)}["'][^>]*>\\s*</script>`, "gi"), `<script>\n${f.content}\n</script>`);
-  }
-  return doc;
 }
 
 type Role = "vibex" | "coder" | "reviewer" | "user";
@@ -143,7 +124,9 @@ export default function RunWorkspace({ initialSpec, projectId, hasKey = true }: 
   const feedEnd = useRef<HTMLDivElement>(null);
   const steerRef = useRef<string[]>([]); // accumulated corrections
   const imagesRef = useRef<string[]>([]); // reference images (data URLs) for the build
-  const previewIframeRef = useRef<HTMLIFrameElement>(null); // live preview, captured for design review
+  const previewIframeRef = useRef<HTMLIFrameElement>(null); // live preview (sandboxed, opaque origin)
+  const captureIframeRef = useRef<HTMLIFrameElement>(null); // hidden script-less twin, for screenshots
+  const [captureDoc, setCaptureDoc] = useState<string | null>(null); // mounted only while capturing
   const filesRef = useRef<GenFile[]>([]); // latest generated files (for capture + restyle base)
   const restylingRef = useRef(false); // true during a design-critic refine pass
   const designPassRef = useRef(0); // design refine passes done this build
@@ -318,6 +301,14 @@ export default function RunWorkspace({ initialSpec, projectId, hasKey = true }: 
         }),
         signal: ctrl.signal,
       });
+      // A deliberate rejection (concurrency gate / rate limit) is NOT a dead stream — surface the
+      // server's message instead of silently falling back to a simulated build.
+      if (res.status === 409 || res.status === 429) {
+        const j = (await res.json().catch(() => null)) as { message?: string } | null;
+        addMsg("vibex", j?.message ?? (res.status === 429 ? "Rate limit reached — wait a moment, then try again." : "Another build is already running — wait for it to finish."));
+        setDone(true);
+        return { files: null, live: false };
+      }
       if (!res.ok || !res.body) throw new Error("no stream");
       const reader = res.body.getReader();
       const dec = new TextDecoder();
@@ -376,16 +367,28 @@ export default function RunWorkspace({ initialSpec, projectId, hasKey = true }: 
     }
   }
 
-  // Wait for the preview iframe to mount the latest doc, then snapshot it for the critic.
+  // Snapshot the build for the critic. The visible preview runs in an opaque origin (no
+  // `allow-same-origin`), so its document is unreachable from here — by design. Instead we mount a
+  // hidden twin iframe that IS same-origin but has NO scripts (sandbox="allow-same-origin" only):
+  // nothing in the generated app can execute there, so reading its document is safe. The critic
+  // therefore judges the HTML/CSS-rendered state, not JS-injected DOM — acceptable, since the
+  // rubric is typography/spacing/colour/layout.
   async function capturePreview(): Promise<string | null> {
     setCanvasTab("preview");
-    for (let i = 0; i < 30; i++) {
-      const body = previewIframeRef.current?.contentDocument?.body;
-      if (body && body.childElementCount > 0) break;
-      await new Promise((res) => setTimeout(res, 100));
+    const doc = buildPreview(filesRef.current);
+    if (!doc) return null;
+    setCaptureDoc(doc);
+    try {
+      for (let i = 0; i < 30; i++) {
+        const body = captureIframeRef.current?.contentDocument?.body;
+        if (body && body.childElementCount > 0) break;
+        await new Promise((res) => setTimeout(res, 100));
+      }
+      await new Promise((res) => setTimeout(res, 200)); // let paint + fonts settle
+      return await captureIframe(captureIframeRef.current);
+    } finally {
+      setCaptureDoc(null);
     }
-    await new Promise((res) => setTimeout(res, 200)); // let paint + fonts settle
-    return captureIframe(previewIframeRef.current);
   }
 
   // Screenshot → /api/design-review → (if templated) a targeted restyle pass, up to N times.
@@ -718,7 +721,10 @@ export default function RunWorkspace({ initialSpec, projectId, hasKey = true }: 
                   className={styles.previewFrame}
                   srcDoc={previewDoc}
                   title="Live preview"
-                  sandbox="allow-scripts allow-same-origin allow-forms allow-modals allow-popups"
+                  // No `allow-same-origin`: paired with allow-scripts it would let the (LLM-written,
+                  // prompt-injectable) app escape its sandbox and act on the parent as the signed-in
+                  // user. Opaque origin = no parent DOM, no storage, no credentialed API calls.
+                  sandbox="allow-scripts allow-forms allow-modals allow-popups"
                 />
               ) : (
                 <div className={styles.canvasEmpty}>
@@ -752,6 +758,20 @@ export default function RunWorkspace({ initialSpec, projectId, hasKey = true }: 
               </div>
             )}
           </div>
+
+          {/* Hidden screenshot target for the design critic: same-origin so html-to-image can read
+              it, but with NO allow-scripts — the generated app cannot execute anything in here. */}
+          {captureDoc && (
+            <iframe
+              ref={captureIframeRef}
+              srcDoc={captureDoc}
+              title="Design review capture"
+              aria-hidden
+              tabIndex={-1}
+              sandbox="allow-same-origin"
+              style={{ position: "fixed", left: -10000, top: 0, width: 1280, height: 900, border: 0, pointerEvents: "none" }}
+            />
+          )}
 
           <button type="button" className={styles.usageDock} data-open={usageOpen} onClick={() => setUsageOpen((o) => !o)} aria-label="Token usage">
             <span className={styles.usageDockMain}>

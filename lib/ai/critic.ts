@@ -135,14 +135,16 @@ async function viaOpenAILike(
 }
 
 // Try the strongest available vision model first. Returns null when nothing is usable.
-export async function critiqueDesign(screenshot: string, refs: string, spec: Spec, keys: CriticKeys): Promise<Critique | null> {
+// `allowServerKeys` is false for anonymous callers: they may use the free OpenRouter vision route
+// but must never trigger a paid Claude/GPT-4o call on our server env keys (uncapped cost).
+export async function critiqueDesign(screenshot: string, refs: string, spec: Spec, keys: CriticKeys, allowServerKeys = true): Promise<Critique | null> {
   const system = ART_DIRECTOR;
   const user = userText(spec, refs);
 
   const attempts: Array<() => Promise<RawVision>> = [];
-  const aKey = keys.anthropic ?? process.env.ANTHROPIC_API_KEY;
+  const aKey = keys.anthropic ?? (allowServerKeys ? process.env.ANTHROPIC_API_KEY : undefined);
   if (aKey) attempts.push(() => viaAnthropic(screenshot, system, user, aKey));
-  const oKey = keys.openai ?? process.env.OPENAI_API_KEY;
+  const oKey = keys.openai ?? (allowServerKeys ? process.env.OPENAI_API_KEY : undefined);
   if (oKey) attempts.push(() => viaOpenAILike("https://api.openai.com/v1/chat/completions", "gpt-4o", screenshot, system, user, oKey));
   const orKey = keys.openrouter ?? process.env.OPENROUTER_API_KEY;
   if (orKey) {

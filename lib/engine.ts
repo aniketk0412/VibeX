@@ -176,17 +176,34 @@ p { color: #b6ac9e; margin-top: 0.75rem; }
 export type UserKeys = Partial<Record<"anthropic" | "openai" | "google" | "openrouter", string>>;
 type CallFn = (system: string, user: string, maxTokens: number) => Promise<GenResult>;
 
-// Resolve the call path for a model. Honour the user's CHOSEN model first: if they brought their
-// own key for that provider, use it (their pick is real, not cosmetic). Otherwise fall back to the
-// free OpenRouter route to keep the $0 demo working, then the server's env key. null → simulate.
-function buildCall(spec: ModelSpec, keys: UserKeys): { call: CallFn | null; free: boolean } {
+// Resolve the call path for a model under the caller's tier. The ordering encodes three rules:
+//  1) A user's OWN key always wins — their pick is real (not cosmetic) and it's their spend.
+//  2) The free OpenRouter route is the $0 demo path for FREE / anonymous callers, but only a LAST
+//     resort for PAID callers — a paying user who chose Opus must actually get Opus on our server
+//     key, never a silent downgrade to a free model.
+//  3) Anonymous callers may NEVER reach our paid server env keys (their usage is uncapped, so that
+//     would be an open-ended bill). They get the free OpenRouter route, or nothing → the engine
+//     simulates with an openable stub. `allowServerKeys` is false only for anonymous callers.
+// null → simulate.
+function buildCall(
+  spec: ModelSpec,
+  keys: UserKeys,
+  opts: { paid: boolean; allowServerKeys: boolean },
+): { call: CallFn | null; free: boolean; own: boolean } {
   const own = keys[spec.provider];
-  if (own) return { call: (s, u, m) => generate(spec.provider, spec.model, s, u, m, own), free: false };
-  const orKey = keys.openrouter ?? process.env.OPENROUTER_API_KEY;
-  if (orKey) return { call: (s, u, m) => generateOpenRouter(s, u, m, orKey), free: true };
-  const envK = envKey(spec.provider);
-  if (envK) return { call: (s, u, m) => generate(spec.provider, spec.model, s, u, m, envK), free: false };
-  return { call: null, free: false };
+  if (own) return { call: (s, u, m) => generate(spec.provider, spec.model, s, u, m, own), free: false, own: true };
+
+  const ownOr = keys.openrouter;
+  const orKey = ownOr ?? process.env.OPENROUTER_API_KEY;
+  const envK = opts.allowServerKeys ? envKey(spec.provider) : undefined;
+  const orCall = orKey ? { call: ((s, u, m) => generateOpenRouter(s, u, m, orKey)) as CallFn, free: true, own: !!ownOr } : null;
+  const envCall = envK ? { call: ((s, u, m) => generate(spec.provider, spec.model, s, u, m, envK)) as CallFn, free: false, own: false } : null;
+  const none = { call: null, free: false, own: false };
+
+  // Paid: the chosen model on our server key first, free route only as a fallback. Free/anon: the
+  // free route first, server key (signed-in free users only) as a fallback.
+  if (opts.paid) return envCall ?? orCall ?? none;
+  return orCall ?? envCall ?? none;
 }
 
 // ── engine ───────────────────────────────────────────────────────────────────
@@ -200,23 +217,30 @@ export async function* runEngine(
     startWindow?: WindowState;
     steer?: string;
     images?: string[];
+    anonymous?: boolean; // no owned project → never use our paid server env keys
     only?: string[]; // design-critic refine: regenerate just these files…
     baseFiles?: GenFile[]; // …seeded/kept from the current build for context + merge
   } = {},
 ): AsyncGenerator<RunEvent> {
   const plan = opts.plan ?? "free";
+  const paid = plan !== "free";
+  const allowServerKeys = !opts.anonymous;
   const coder = resolveModel(spec.coder);
   const reviewer = resolveModel(spec.reviewer);
   const userKeys = opts.userKeys ?? {};
-  const coderC = buildCall(coder, userKeys);
-  const reviewerC = buildCall(reviewer, userKeys);
+  const coderC = buildCall(coder, userKeys, { paid, allowServerKeys });
+  const reviewerC = buildCall(reviewer, userKeys, { paid, allowServerKeys });
   const live = !!coderC.call;
+  // A build that runs entirely on the user's OWN keys costs Vibex nothing — capping it against the
+  // plan's token windows would throttle users on their own money (the whole point of BYOK is that
+  // provider limits apply instead). Usage is still recorded for visibility; only the gate is off.
+  const enforceLimits = !(coderC.own && reviewerC.own);
 
   // Steering: the user's correction + a description of any attached reference image.
   let directions = opts.steer?.trim() ?? "";
   if (opts.images && opts.images.length) {
     try {
-      const desc = await describeImage(opts.images[0], { anthropic: userKeys.anthropic, openrouter: userKeys.openrouter });
+      const desc = await describeImage(opts.images[0], { anthropic: userKeys.anthropic, openrouter: userKeys.openrouter }, allowServerKeys);
       if (desc) directions = [directions, `Match this reference image: ${desc}`].filter(Boolean).join("\n");
     } catch {
       /* vision is best-effort */
@@ -249,7 +273,7 @@ export async function* runEngine(
     yield { type: "planned", steps: targets.map((f) => `Restyle ${f.path}`).concat("Finalize design"), live };
     for (let i = 0; i < targets.length; i++) {
       if (opts.signal?.aborted) return;
-      if (overLimit(win, plan)) {
+      if (enforceLimits && overLimit(win, plan)) {
         yield { type: "paused", reason: `${win.kind} token window reached`, resetInMs: msUntilReset(win, Date.now()) };
         return;
       }
@@ -267,6 +291,7 @@ export async function* runEngine(
         cost = coderC.free ? 0 : costOf(coder, r.inputTokens, r.outputTokens);
       } catch {
         content = "";
+        tok = 0; // a failed call cost the user nothing — don't spend their window on our outage
       }
       if (content.trim()) {
         const idx = files.findIndex((x) => x.path === f.path);
@@ -291,7 +316,7 @@ export async function* runEngine(
   // Generate each file.
   for (let i = start; i < fileList.length; i++) {
     if (opts.signal?.aborted) return;
-    if (overLimit(win, plan)) {
+    if (enforceLimits && overLimit(win, plan)) {
       yield { type: "paused", reason: `${win.kind} token window reached`, resetInMs: msUntilReset(win, Date.now()) };
       return;
     }
@@ -309,6 +334,7 @@ export async function* runEngine(
       cost = coderC.free ? 0 : costOf(coder, r.inputTokens, r.outputTokens);
     } catch {
       content = "";
+      tok = 0; // a failed call cost the user nothing — don't spend their window on our outage
     }
     const wasStub = !content.trim();
     if (wasStub) content = stubFile(f.path, spec);
@@ -320,7 +346,7 @@ export async function* runEngine(
     yield { type: "coder", index: i, path: f.path, preview: firstLine(content), tokens: tok, cost, stub: wasStub };
     yield usageEvent();
 
-    if (overLimit(win, plan)) {
+    if (enforceLimits && overLimit(win, plan)) {
       yield { type: "paused", reason: `${win.kind} token window reached`, resetInMs: msUntilReset(win, Date.now()) };
       return;
     }
@@ -343,7 +369,7 @@ export async function* runEngine(
       tok = r.inputTokens + r.outputTokens || 700;
       cost = reviewerC.free ? 0 : costOf(reviewer, r.inputTokens, r.outputTokens);
     } catch {
-      /* keep the default pass */
+      tok = 0; // review call failed — keep the default pass but don't charge for it
     }
     totalCost += cost;
     account(tok);

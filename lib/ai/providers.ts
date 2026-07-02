@@ -147,9 +147,11 @@ export async function generateOpenRouter(system: string, prompt: string, maxToke
 export async function describeImage(
   dataUrl: string,
   keys: { anthropic?: string; openrouter?: string },
+  allowServerKeys = true,
 ): Promise<string> {
   const ask = "Describe this UI / reference image for a developer in 2-3 concrete sentences: layout, colors, key components, and overall style.";
 
+  // OpenRouter free is fine for anyone; the paid Anthropic env fallback is server-key-only.
   const orKey = keys.openrouter ?? process.env.OPENROUTER_API_KEY;
   if (orKey) {
     try {
@@ -174,7 +176,7 @@ export async function describeImage(
     }
   }
 
-  const aKey = keys.anthropic ?? process.env.ANTHROPIC_API_KEY;
+  const aKey = keys.anthropic ?? (allowServerKeys ? process.env.ANTHROPIC_API_KEY : undefined);
   const m = dataUrl.match(/^data:(image\/[a-zA-Z0-9.+-]+);base64,(.*)$/);
   if (aKey && m) {
     try {
