@@ -6,6 +6,7 @@ import { revalidatePath } from "next/cache";
 import { auth, signOut } from "@/auth";
 import { prisma } from "@/lib/prisma";
 import { createProjectForUser, getUserPlan, capFiles } from "@/lib/runs";
+import { canShipDirect } from "@/lib/usage";
 import { getProjectCount } from "@/lib/projects";
 import { saveUserKey, deleteUserKey, getUserKey, type ProviderId } from "@/lib/keys";
 import { rateLimit } from "@/lib/ratelimit";
@@ -118,6 +119,8 @@ export async function exportToGitHub(projectId: string, opts?: { makePublic?: bo
   const uid = session.user.id;
   if (!(await actionAllowed(uid, "gh", 5, 10 * 60_000)))
     return { error: "failed", message: "Too many exports — try again in a few minutes" };
+  // GitHub export is a paid convenience; the code itself is always free via the .zip download.
+  if (!canShipDirect(await getUserPlan(uid))) return { error: "plan_required" };
   const isPrivate = !opts?.makePublic;
 
   const pat = await getUserKey(uid, "github");
@@ -211,6 +214,7 @@ export async function deployToVercel(projectId: string): Promise<VercelDeployRes
   const uid = session.user.id;
   if (!(await actionAllowed(uid, "deploy", 6, 10 * 60_000)))
     return { error: "failed", message: "Too many deploys — try again in a few minutes" };
+  if (!canShipDirect(await getUserPlan(uid))) return { error: "plan_required" };
 
   const shared = process.env.ALLOW_SHARED_DEPLOY === "true" ? process.env.VERCEL_DEPLOY_TOKEN : undefined;
   const token = (await getUserKey(uid, "vercel")) || shared;
@@ -273,6 +277,7 @@ export async function deployToNetlify(projectId: string): Promise<VercelDeployRe
   const uid = session.user.id;
   if (!(await actionAllowed(uid, "deploy", 6, 10 * 60_000)))
     return { error: "failed", message: "Too many deploys — try again in a few minutes" };
+  if (!canShipDirect(await getUserPlan(uid))) return { error: "plan_required" };
 
   const shared = process.env.ALLOW_SHARED_DEPLOY === "true" ? process.env.NETLIFY_DEPLOY_TOKEN : undefined;
   const token = (await getUserKey(uid, "netlify")) || shared;

@@ -200,10 +200,11 @@ function buildCall(
   const envCall = envK ? { call: ((s, u, m) => generate(spec.provider, spec.model, s, u, m, envK)) as CallFn, free: false, own: false } : null;
   const none = { call: null, free: false, own: false };
 
-  // Paid: the chosen model on our server key first, free route only as a fallback. Free/anon: the
-  // free route first, server key (signed-in free users only) as a fallback.
+  // Paid: the chosen model on our server key first, free route only as a fallback. Free/anon:
+  // STRICTLY the community route — no env-key fallback, so the free tier can never burn paid
+  // server keys and the pricing page's "community models" claim is enforced, not aspirational.
   if (opts.paid) return envCall ?? orCall ?? none;
-  return orCall ?? envCall ?? none;
+  return orCall ?? none;
 }
 
 // ── engine ───────────────────────────────────────────────────────────────────

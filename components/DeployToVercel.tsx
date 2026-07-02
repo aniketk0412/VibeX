@@ -28,6 +28,9 @@ export default function DeployToVercel({
         trackEvent("shipped", { via: "vercel" });
         toast.success("Deployed to Vercel");
         window.open(res.url, "_blank", "noopener");
+      } else if (res.error === "plan_required") {
+        toast.error("One-click deploy is a Starter feature — download the .zip free, or upgrade");
+        router.push("/pricing");
       } else if (res.error === "no_key") {
         toast.error("Add a Vercel token in Settings to deploy");
         router.push("/settings");

@@ -12,6 +12,16 @@ export const WINDOW_MS: Record<WindowKind, number> = {
 
 export type Plan = "free" | "starter" | "pro" | "scale";
 
+// ── plan feature gates — the single vocabulary for "what does paid buy" ─────
+// Free proves the loop: dual-AI build, critique score, preview, zip. Paid buys the quality
+// engine (chosen model, auto design-polish, reference images) and shipping conveniences
+// (GitHub export, one-click deploy); Pro adds version history. Enforced server-side.
+export const isPaid = (p: Plan) => p !== "free";
+export const canAutoPolish = isPaid; // automatic design-critic restyle passes
+export const canUseReferenceImages = isPaid;
+export const canShipDirect = isPaid; // GitHub export + one-click deploy (zip is always free)
+export const hasVersionHistory = (p: Plan) => p === "pro" || p === "scale";
+
 // Token ceilings per rolling window per plan (illustrative tiers).
 export const TOKEN_LIMITS: Record<Plan, Record<WindowKind, number>> = {
   free: { FIVE_HOUR: 50_000, DAILY: 120_000, MONTHLY: 300_000 },

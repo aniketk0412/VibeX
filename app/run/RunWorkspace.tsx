@@ -87,7 +87,7 @@ type RunEvent =
   | { type: "complete"; tokens: number; cost: number; steps: number; files: GenFile[] }
   | { type: "error"; message: string };
 
-export default function RunWorkspace({ initialSpec, projectId, hasKey = true }: { initialSpec?: Spec; projectId?: string; hasKey?: boolean }) {
+export default function RunWorkspace({ initialSpec, projectId, hasKey = true, paidPlan = false }: { initialSpec?: Spec; projectId?: string; hasKey?: boolean; paidPlan?: boolean }) {
   const router = useRouter();
   const [spec, setSpec] = useState<Spec>(initialSpec ?? {});
   const [live, setLive] = useState(true);
@@ -410,7 +410,7 @@ export default function RunWorkspace({ initialSpec, projectId, hasKey = true }: 
       }
       addMsg("reviewer", "Design review — assessing the rendered UI…");
 
-      let res: { ok?: boolean; reason?: string; verdict?: "pass" | "revise"; score?: number; summary?: string; directions?: string } | null = null;
+      let res: { ok?: boolean; reason?: string; verdict?: "pass" | "revise"; score?: number; summary?: string; directions?: string; gated?: boolean } | null = null;
       try {
         const r = await fetch("/api/design-review", {
           method: "POST",
@@ -429,6 +429,13 @@ export default function RunWorkspace({ initialSpec, projectId, hasKey = true }: 
       }
 
       addMsg("reviewer", `${res.summary || "Design assessed"} — ${res.score ?? 0}/100`, res.verdict);
+      if (res.gated) {
+        addMsg(
+          "vibex",
+          `The art director scored this ${res.score ?? 0}/100 and has concrete fixes — automatic design polish is a Starter feature, so this build ships as-is. Upgrade and rebuild to apply them automatically.`,
+        );
+        return;
+      }
       if (res.verdict === "pass" || !res.directions) {
         addMsg("vibex", "Design reads as distinctive — shipping it.");
         return;
@@ -655,7 +662,9 @@ export default function RunWorkspace({ initialSpec, projectId, hasKey = true }: 
               </div>
             )}
             <div className={styles.inputRow}>
-              <AttachButton onPick={(imgs) => setAttachments((a) => [...a, ...imgs])} />
+              {/* Reference images are a paid feature — the server ignores them on free anyway,
+                  so don't show a button that silently does nothing. */}
+              {paidPlan && <AttachButton onPick={(imgs) => setAttachments((a) => [...a, ...imgs])} />}
               <input
                 className={styles.input}
                 value={draft}

@@ -61,6 +61,7 @@ export default function NewIdeaPage() {
   const [mod, setMod] = useState("⌘");
   const [typeId, setTypeId] = useState("web");
   const [hasKey, setHasKey] = useState(true); // assume true until checked, so the nudge never flashes
+  const [paid, setPaid] = useState(false); // reference images are paid — hidden until confirmed
   const taRef = useRef<HTMLTextAreaElement>(null);
 
   useEffect(() => {
@@ -72,7 +73,11 @@ export default function NewIdeaPage() {
     let alive = true;
     fetch("/api/has-key")
       .then((r) => r.json())
-      .then((d) => alive && setHasKey(d?.hasKey !== false))
+      .then((d) => {
+        if (!alive) return;
+        setHasKey(d?.hasKey !== false);
+        setPaid(d?.paid === true);
+      })
       .catch(() => {});
     return () => {
       alive = false;
@@ -190,8 +195,14 @@ export default function NewIdeaPage() {
           </div>
 
           <div className={styles.attachRow}>
-            <AttachButton className={styles.attachBtn} onPick={(imgs) => setRefs((r) => [...r, ...imgs])} />
-            <span className={styles.attachLabel}>Attach a reference image (optional)</span>
+            {paid ? (
+              <>
+                <AttachButton className={styles.attachBtn} onPick={(imgs) => setRefs((r) => [...r, ...imgs])} />
+                <span className={styles.attachLabel}>Attach a reference image (optional)</span>
+              </>
+            ) : (
+              <span className={styles.attachLabel}>Reference images are a Starter feature</span>
+            )}
           </div>
 
           <div className={styles.actions}>

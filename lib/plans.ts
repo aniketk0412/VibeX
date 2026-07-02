@@ -35,9 +35,9 @@ export const PLANS: Plan[] = [
     cta: { label: "Start free", href: "/new" },
     features: [
       "Coder + Reviewer dual-AI",
-      "Live usage & always-on interrupt",
+      "Design critique & score",
+      "Live preview + .zip download",
       "Auto-pause & resume on limits",
-      "Download code + prompt history",
     ],
   },
   {
@@ -50,8 +50,8 @@ export const PLANS: Plan[] = [
     features: [
       "Everything in Free",
       "Your chosen model on Vibex keys",
-      "Higher rolling limits",
-      "Email support",
+      "Auto design-polish + reference images",
+      "GitHub export & one-click deploy",
     ],
   },
   {
@@ -65,7 +65,7 @@ export const PLANS: Plan[] = [
     features: [
       "Everything in Starter",
       "Pro-tier rolling limits",
-      "Longer runs before reset",
+      "Build version history",
       "Priority support",
     ],
   },
@@ -128,8 +128,10 @@ export const MATRIX: MatrixGroup[] = [
     group: "Build quality",
     rows: [
       { label: "Coder + Reviewer dual-AI loop", values: [true, true, true, true] },
-      { label: "Art-director design review", values: [true, true, true, true] },
+      { label: "Art-director critique & score", values: [true, true, true, true] },
+      { label: "Automatic design-polish passes", values: [false, true, true, true], note: "Free sees the critique; paid gets the fixes applied" },
       { label: "Your chosen model on Vibex keys", values: [false, true, true, true], note: "Free runs on community models" },
+      { label: "Reference images", values: [false, true, true, true] },
       { label: "Interrupt & steer mid-build", values: [true, true, true, true] },
       { label: "Auto-pause & resume on limits", values: [true, true, true, true] },
     ],
@@ -138,8 +140,10 @@ export const MATRIX: MatrixGroup[] = [
     group: "Ship",
     rows: [
       { label: "Live preview + in-app IDE", values: [true, true, true, true] },
-      { label: "Download .zip + prompt history", values: [true, true, true, true] },
-      { label: "GitHub export & one-click deploy", values: [true, true, true, true] },
+      { label: "Download .zip + prompt history", values: [true, true, true, true], note: "Your code is always yours — on every plan" },
+      { label: "GitHub export", values: [false, true, true, true] },
+      { label: "One-click deploy (Vercel / Netlify)", values: [false, true, true, true] },
+      { label: "Build version history", values: [false, false, true, true] },
     ],
   },
   {

@@ -10,6 +10,11 @@ import {
   msUntilReset,
   resetAt,
   formatDuration,
+  isPaid,
+  canAutoPolish,
+  canUseReferenceImages,
+  canShipDirect,
+  hasVersionHistory,
   type WindowState,
 } from "@/lib/usage";
 
@@ -57,6 +62,31 @@ describe("reset timing", () => {
     const w: WindowState = { kind: "DAILY", used: 0, startedAt: t0 };
     expect(msUntilReset(w, t0)).toBe(WINDOW_MS.DAILY);
     expect(msUntilReset(w, resetAt(w) + 5_000)).toBe(0);
+  });
+});
+
+describe("plan feature gates", () => {
+  it("free gets the loop but not the paid conveniences", () => {
+    expect(isPaid("free")).toBe(false);
+    expect(canAutoPolish("free")).toBe(false);
+    expect(canUseReferenceImages("free")).toBe(false);
+    expect(canShipDirect("free")).toBe(false);
+    expect(hasVersionHistory("free")).toBe(false);
+  });
+
+  it("starter unlocks polish, images, and direct shipping — not version history", () => {
+    expect(canAutoPolish("starter")).toBe(true);
+    expect(canUseReferenceImages("starter")).toBe(true);
+    expect(canShipDirect("starter")).toBe(true);
+    expect(hasVersionHistory("starter")).toBe(false);
+  });
+
+  it("pro and scale get everything", () => {
+    for (const p of ["pro", "scale"] as const) {
+      expect(canAutoPolish(p)).toBe(true);
+      expect(canShipDirect(p)).toBe(true);
+      expect(hasVersionHistory(p)).toBe(true);
+    }
   });
 });
 

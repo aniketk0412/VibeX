@@ -6,6 +6,8 @@
 import { redirect, notFound } from "next/navigation";
 import { auth } from "@/auth";
 import { prisma } from "@/lib/prisma";
+import { getUserPlan } from "@/lib/runs";
+import { hasVersionHistory } from "@/lib/usage";
 import type { Spec, GenFile } from "@/lib/steps";
 import ResultView, { type HistoryRow } from "./ResultView";
 
@@ -64,10 +66,16 @@ export default async function ResultPage({
     cost: p.cost,
   }));
 
-  // Version history: every non-live run, newest first (only meaningful with 2+ builds).
-  const versions = project.runs
-    .filter((r) => r.status !== "RUNNING")
-    .map((r) => ({ id: r.id, startedAt: r.startedAt.getTime(), status: r.status }));
+  // Version history is a Pro+ feature: below Pro only the latest build is browsable (the picker
+  // hides itself with a single entry), and a hand-crafted ?run= for an older build is refused.
+  const plan = await getUserPlan(session.user.id);
+  const versioned = hasVersionHistory(plan);
+  if (runParam && !versioned && runMeta?.id !== project.runs[0]?.id) redirect(`/result?project=${project.id}`);
+  const versions = versioned
+    ? project.runs
+        .filter((r) => r.status !== "RUNNING")
+        .map((r) => ({ id: r.id, startedAt: r.startedAt.getTime(), status: r.status }))
+    : [];
 
   return (
     <ResultView

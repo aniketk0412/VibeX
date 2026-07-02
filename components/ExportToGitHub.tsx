@@ -29,6 +29,9 @@ export default function ExportToGitHub({
         trackEvent("shipped", { via: "github" });
         toast.success(`Pushed to ${res.repo ?? "GitHub"}`);
         window.open(res.url, "_blank", "noopener");
+      } else if (res.error === "plan_required") {
+        toast.error("GitHub export is a Starter feature — your code is always yours via Download .zip");
+        router.push("/pricing");
       } else if (res.error === "no_key") {
         toast.error("Add a GitHub token in Settings to export");
         router.push("/settings");

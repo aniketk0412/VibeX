@@ -32,7 +32,7 @@ const FAQS: { q: string; a: string }[] = [
   },
   {
     q: "Is there a free plan?",
-    a: "Yes — one free project lets you run the entire loop end to end, no card required.",
+    a: "Yes — one free project runs the full Coder + Reviewer loop on free community models, with a live preview, the design critique score, and a .zip download. No card required. Paid plans add your chosen model, automatic design polish, and one-click shipping.",
   },
 ];
 

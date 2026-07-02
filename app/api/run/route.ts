@@ -11,7 +11,7 @@ import { getUserKeys } from "@/lib/keys";
 import { isSameOrigin } from "@/lib/http";
 import { rateLimit, rateSubject, tooMany } from "@/lib/ratelimit";
 import { resolveModel } from "@/lib/ai/models";
-import type { Plan, WindowState } from "@/lib/usage";
+import { canAutoPolish, canUseReferenceImages, type Plan, type WindowState } from "@/lib/usage";
 import type { UserKeys } from "@/lib/engine";
 import type { Spec } from "@/lib/steps";
 
@@ -87,6 +87,16 @@ export async function POST(req: NextRequest) {
     }
   }
 
+  // Plan feature gates (belt to the UI's braces — a crafted client must hit the same wall).
+  // Auto design-polish (restyle passes) and reference images are paid features.
+  if (only?.length && !canAutoPolish(plan)) {
+    return new Response(
+      JSON.stringify({ ok: false, reason: "plan", message: "Automatic design polish is a Starter feature." }),
+      { status: 403, headers: { "content-type": "application/json" } },
+    );
+  }
+  const allowedImages = canUseReferenceImages(plan) ? images : undefined;
+
   const coderModel = resolveModel(spec.coder).model;
   const reviewerModel = resolveModel(spec.reviewer).model;
 
@@ -99,7 +109,7 @@ export async function POST(req: NextRequest) {
       let prevCost = 0;
 
       try {
-        for await (const ev of runEngine(spec, { startIndex, signal: req.signal, plan, userKeys, startWindow, steer, images, anonymous: !userId, only, baseFiles })) {
+        for await (const ev of runEngine(spec, { startIndex, signal: req.signal, plan, userKeys, startWindow, steer, images: allowedImages, anonymous: !userId, only, baseFiles })) {
           send(ev);
           if (!userId) continue;
           try {

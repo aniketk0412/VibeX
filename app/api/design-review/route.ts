@@ -10,7 +10,7 @@ import { getUserKeys } from "@/lib/keys";
 import { isSameOrigin } from "@/lib/http";
 import { rateLimit, rateSubject, tooMany } from "@/lib/ratelimit";
 import { getUserPlan, getStartWindow, recordUsage } from "@/lib/runs";
-import { overLimit } from "@/lib/usage";
+import { overLimit, canAutoPolish } from "@/lib/usage";
 import { embed } from "@/lib/ai/embeddings";
 import { critiqueDesign } from "@/lib/ai/critic";
 import { retrieveDesignRefs, categoryForSpec, formatRefs, DESIGN_RUBRIC } from "@/lib/rag";
@@ -82,12 +82,19 @@ export async function POST(req: NextRequest) {
     await recordUsage(userId, critique.inputTokens + critique.outputTokens, critique.cost).catch(() => {});
   }
 
+  // Free tier gets the critique (score + summary — the honest teaser) but not the directions
+  // that drive the automatic restyle: auto design-polish is what Starter buys. `gated` tells
+  // the client to show the upgrade nudge instead of silently shipping.
+  const polish = userId ? canAutoPolish(plan) : false;
+  const gated = !polish && critique.verdict === "revise";
+
   return Response.json({
     ok: true,
     verdict: critique.verdict,
     score: critique.score,
     summary: critique.summary,
-    directions: critique.directions,
+    directions: gated ? "" : critique.directions,
+    gated,
     model: critique.model,
     refs: refs.map((r) => r.title),
   });

@@ -6,6 +6,8 @@
 import { auth } from "@/auth";
 import { prisma } from "@/lib/prisma";
 import { hasModelAccess } from "@/lib/keys";
+import { getUserPlan } from "@/lib/runs";
+import { isPaid } from "@/lib/usage";
 import type { Spec } from "@/lib/steps";
 import RunWorkspace from "./RunWorkspace";
 
@@ -33,6 +35,7 @@ export default async function RunPage({
   }
 
   const hasKey = await hasModelAccess(session?.user?.id);
+  const paidPlan = session?.user ? isPaid(await getUserPlan(session.user.id)) : false;
 
-  return <RunWorkspace initialSpec={spec} projectId={ownedId} hasKey={hasKey} />;
+  return <RunWorkspace initialSpec={spec} projectId={ownedId} hasKey={hasKey} paidPlan={paidPlan} />;
 }
