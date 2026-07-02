@@ -176,6 +176,25 @@
   background: var(--accent-soft);
   border: 1px solid color-mix(in srgb, var(--accent) 30%, transparent);
 }
+/* ── built-with-vibex showcase (auto-hidden until populated) ── */
+.showcase { padding: 88px 0 40px; scroll-margin-top: 84px; }
+.showGrid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 0 48px; }
+.showItem {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 22px 0 24px;
+  border-top: 1px solid var(--line-soft);
+  transition: border-color 0.15s ease;
+}
+.showItem:hover { border-top-color: var(--accent); }
+.showTitle { font-family: var(--display); font-weight: 700; font-size: 19px; letter-spacing: -0.015em; }
+.showItem:hover .showTitle { color: var(--accent); }
+.showIdea { font-size: 14px; color: var(--dim); line-height: 1.55; }
+@media (max-width: 920px) {
+  .showGrid { grid-template-columns: 1fr; }
+}
+
 /* ── testimonials (auto-hidden until real quotes exist) ── */
 .testimonials { padding: 88px 0 40px; scroll-margin-top: 84px; }
 .tGrid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; }

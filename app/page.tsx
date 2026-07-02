@@ -132,6 +132,11 @@ const GUARANTEES: { risk: string; without: string; withVibex: string }[] = [
 // shipping placeholder quotes to production is the fastest way to look AI-generated.
 const TESTIMONIALS: { quote: string; name: string; role: string }[] = [];
 
+// "Built with Vibex" — live proof beats testimonials for this product. Populate by dogfooding:
+// run a real build, deploy it (one click), then add { title, idea, url, image? }. The section
+// auto-hides while empty — never ship placeholders.
+const SHOWCASE: { title: string; idea: string; url: string }[] = [];
+
 const JSON_LD = {
   "@context": "https://schema.org",
   "@graph": [
@@ -270,6 +275,25 @@ export default function Home() {
             </div>
           </section>
         </Reveal>
+
+        {SHOWCASE.length > 0 && (
+          <Reveal>
+            <section className={styles.showcase} id="showcase">
+              <div className={styles.sectionHead}>
+                <span className={styles.kicker}>Built with Vibex</span>
+                <h2 className={styles.h2}>Real builds, live on the internet</h2>
+              </div>
+              <div className={styles.showGrid}>
+                {SHOWCASE.map((s) => (
+                  <a key={s.url} href={s.url} target="_blank" rel="noopener noreferrer" className={styles.showItem}>
+                    <span className={styles.showTitle}>{s.title} ↗</span>
+                    <span className={styles.showIdea}>{s.idea}</span>
+                  </a>
+                ))}
+              </div>
+            </section>
+          </Reveal>
+        )}
 
         {TESTIMONIALS.length > 0 && (
           <Reveal>
