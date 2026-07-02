@@ -14,6 +14,7 @@ import { buildSteps, type Spec, type GenFile } from "@/lib/steps";
 import { buildPreview } from "@/lib/preview";
 import { captureIframe } from "@/lib/screenshot";
 import { trackEvent } from "@/lib/analytics";
+import { IconLock } from "@/components/icons";
 import KeyNotice from "@/components/KeyNotice";
 import { AttachButton, Thumbs, type AttachedImage } from "@/components/ImageAttach";
 import BackLink from "@/components/BackLink";
@@ -566,7 +567,7 @@ export default function RunWorkspace({ initialSpec, projectId, hasKey = true }: 
           </div>
 
           <div className={styles.goal}>
-            <span className={styles.lock}>🔒</span>
+            <span className={styles.lock}><IconLock size={13} /></span>
             <span className={styles.goaltext}>
               <b>{spec.idea ?? "Your project"}</b>
               {spec.coder ? ` · ${spec.coder} + ${spec.reviewer}` : ""}

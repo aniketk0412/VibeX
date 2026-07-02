@@ -15,6 +15,7 @@ import AnimatedBackground from "@/components/AnimatedBackground";
 import { estimateProjectCost } from "@/lib/ai/models";
 import { startProject } from "@/app/actions";
 import { trackEvent } from "@/lib/analytics";
+import { IconSpark, IconLock } from "@/components/icons";
 import styles from "./interview.module.css";
 
 type Answers = Record<string, string>;
@@ -352,7 +353,7 @@ export default function InterviewPage() {
             {/* transcript — the idea, then every answered question */}
             <div className={styles.transcript}>
               <div className={styles.seed}>
-                <span className={styles.seedIcon}>✦</span>
+                <span className={styles.seedIcon}><IconSpark size={13} /></span>
                 <div>
                   <div className={styles.aq}>Your idea</div>
                   <div className={styles.aa}>{idea}</div>
@@ -404,7 +405,7 @@ export default function InterviewPage() {
             ) : (
               <div className={styles.goal}>
                 <div className={styles.goalHead}>
-                  <span className={styles.goalLock}>🔒</span>
+                  <span className={styles.goalLock}><IconLock size={15} /></span>
                   <div>
                     <div className={styles.goalTitle}>Lock the goal</div>
                     <div className={styles.goalSub}>Confirm the spec — Vibex builds to exactly this.</div>

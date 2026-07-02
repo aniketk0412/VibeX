@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { IconZap } from "@/components/icons";
 import styles from "./KeyNotice.module.css";
 
 // "Connect an AI key" nudge shown on pre-build screens when no model key is available, so users
@@ -14,7 +15,7 @@ export default function KeyNotice({
 }) {
   return (
     <div className={styles.notice} role="status">
-      <span className={styles.icon} aria-hidden>⚡</span>
+      <span className={styles.icon} aria-hidden><IconZap size={15} /></span>
       <p className={styles.text}>{message}</p>
       <Link href={href} className={styles.cta}>
         {cta} →

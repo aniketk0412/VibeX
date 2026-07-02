@@ -6,18 +6,19 @@ import AppHeader from "@/components/AppHeader";
 import KeyNotice from "@/components/KeyNotice";
 import StepIndicator from "@/components/StepIndicator";
 import { AttachButton, Thumbs, type AttachedImage } from "@/components/ImageAttach";
+import { IconGlobe, IconPlug, IconTerminal } from "@/components/icons";
 import styles from "./new.module.css";
 
 // Guided picker: a real capability (Web / API / CLI) → a subtype, each carrying a rich, specific
 // idea that primes the interview. Only the platforms the engine actually ships — no overclaiming.
 type Sub = { label: string; idea: string };
-type BuildType = { id: string; label: string; icon: string; prompt: string; subs: Sub[] };
+type BuildType = { id: string; label: string; icon: React.ReactNode; prompt: string; subs: Sub[] };
 
 const TYPES: BuildType[] = [
   {
     id: "web",
     label: "Web app",
-    icon: "🌐",
+    icon: <IconGlobe />,
     prompt: "Which kind of site?",
     subs: [
       { label: "Landing page", idea: "A SaaS landing page for a developer tool: a hero with headline and CTA, a feature grid, a pricing table, an FAQ, and an email waitlist form." },
@@ -32,7 +33,7 @@ const TYPES: BuildType[] = [
   {
     id: "api",
     label: "API",
-    icon: "🔌",
+    icon: <IconPlug />,
     prompt: "Which kind of service?",
     subs: [
       { label: "REST API", idea: "A REST API for a task manager with CRUD endpoints, input validation, in-memory storage, and a README documenting every route." },
@@ -43,7 +44,7 @@ const TYPES: BuildType[] = [
   {
     id: "cli",
     label: "CLI",
-    icon: "⌨️",
+    icon: <IconTerminal />,
     prompt: "Which kind of tool?",
     subs: [
       { label: "File tool", idea: "A command-line tool that bulk-renames files using glob patterns and a regex, with a --dry-run flag and a summary of changes." },

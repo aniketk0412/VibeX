@@ -10,6 +10,7 @@ import ThemeToggle from "@/components/ThemeToggle";
 import BackLink from "@/components/BackLink";
 import SubmitButton from "@/components/SubmitButton";
 import RememberMe from "@/components/RememberMe";
+import { IconMail } from "@/components/icons";
 import styles from "./signin.module.css";
 
 export const metadata = { title: "Sign in", description: "Sign in to Vibex — from idea to code, automatically." };
@@ -75,7 +76,7 @@ export default async function SignInPage({
       <main className={styles.main}>
         {verifySent ? (
           <div className={styles.card}>
-            <div className={styles.verifyIcon} aria-hidden>✉</div>
+            <div className={styles.verifyIcon} aria-hidden><IconMail size={24} /></div>
             <h1 className={styles.title}>Check your inbox</h1>
             <p className={styles.sub}>
               We sent a magic link to your email. Click it to finish signing in — you can close this tab.
