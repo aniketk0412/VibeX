@@ -27,9 +27,20 @@ export function costOf(spec: ModelSpec, inTok: number, outTok: number): number {
   return (inTok / 1e6) * spec.inPerM + (outTok / 1e6) * spec.outPerM;
 }
 
-// Typical token profile for one project, used for the pre-run estimate. Matches the
-// engine's per-step Coder/Reviewer shape so the quote tracks what a real run will spend.
-const PROFILE = { steps: 14, coderIn: 1200, coderOut: 1600, reviewerIn: 900, reviewerOut: 700 };
+// Typical token profile for one project, used for the pre-run estimate. Mirrors what the engine
+// ACTUALLY does (lib/engine.ts): ~4 coder calls (one per planned file, ≤3000 out each), 1 short
+// reviewer pass, plus a design-critic allowance of up to 2 restyle calls with file context. The
+// previous profile assumed 14 coder+reviewer step pairs and quoted users ~3× the real spend.
+const PROFILE = {
+  coderCalls: 4,
+  coderIn: 1000,
+  coderOut: 1900,
+  reviewerIn: 800,
+  reviewerOut: 150,
+  restyleCalls: 2, // design-critic refine passes (styles.css + index.html)
+  restyleIn: 2400, // includes the other files as context
+  restyleOut: 2300,
+};
 
 export function estimateProjectCost(coderLabel?: string, reviewerLabel?: string): {
   cost: number;
@@ -38,12 +49,10 @@ export function estimateProjectCost(coderLabel?: string, reviewerLabel?: string)
 } {
   const coder = resolveModel(coderLabel);
   const reviewer = resolveModel(reviewerLabel);
-  const cIn = PROFILE.steps * PROFILE.coderIn;
-  const cOut = PROFILE.steps * PROFILE.coderOut;
-  const rIn = PROFILE.steps * PROFILE.reviewerIn;
-  const rOut = PROFILE.steps * PROFILE.reviewerOut;
-  const cost = costOf(coder, cIn, cOut) + costOf(reviewer, rIn, rOut);
-  const tokens = cIn + cOut + rIn + rOut;
+  const cIn = PROFILE.coderCalls * PROFILE.coderIn + PROFILE.restyleCalls * PROFILE.restyleIn;
+  const cOut = PROFILE.coderCalls * PROFILE.coderOut + PROFILE.restyleCalls * PROFILE.restyleOut;
+  const cost = costOf(coder, cIn, cOut) + costOf(reviewer, PROFILE.reviewerIn, PROFILE.reviewerOut);
+  const tokens = cIn + cOut + PROFILE.reviewerIn + PROFILE.reviewerOut;
   const known = !!coderLabel && coderLabel in MODELS && !!reviewerLabel && reviewerLabel in MODELS;
   return { cost, tokens, known };
 }
