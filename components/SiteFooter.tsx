@@ -39,6 +39,11 @@ export default function SiteFooter() {
             <Link href="/settings">Settings</Link>
             <Link href="/pricing">Plans</Link>
           </div>
+          <div className={styles.col}>
+            <span className={styles.colHead}>Legal</span>
+            <Link href="/privacy">Privacy</Link>
+            <Link href="/terms">Terms</Link>
+          </div>
         </nav>
       </div>
 

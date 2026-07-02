@@ -1,0 +1,54 @@
+/* Shared prose layout for the legal pages (/privacy, /terms). */
+
+.page {
+  max-width: 760px;
+  margin: 0 auto;
+  padding: 56px 28px 110px;
+}
+.kicker {
+  display: inline-flex;
+  align-items: center;
+  gap: 12px;
+  font-family: var(--mono);
+  font-size: 12px;
+  font-weight: 500;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--accent);
+}
+.kicker::before { content: ""; width: 26px; height: 1px; background: var(--accent); }
+.title {
+  margin-top: 16px;
+  font-family: var(--display);
+  font-weight: 800;
+  letter-spacing: -0.03em;
+  line-height: 1.05;
+  font-size: clamp(30px, 4.5vw, 44px);
+}
+.updated {
+  margin-top: 10px;
+  font-family: var(--mono);
+  font-size: 12.5px;
+  color: var(--faint);
+}
+.body { margin-top: 34px; }
+.body h2 {
+  margin-top: 36px;
+  font-family: var(--display);
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  font-size: 21px;
+}
+.body p,
+.body li {
+  margin-top: 12px;
+  font-size: 15.5px;
+  line-height: 1.7;
+  color: var(--dim);
+}
+.body ul {
+  margin-top: 4px;
+  padding-left: 22px;
+}
+.body b { color: var(--text); font-weight: 600; }
+.body a { color: var(--accent); border-bottom: 1px solid color-mix(in srgb, var(--accent) 35%, transparent); }
