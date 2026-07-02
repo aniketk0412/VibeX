@@ -49,8 +49,8 @@ export const PLANS: Plan[] = [
     cta: { label: "Choose Starter", href: "/api/checkout?plan=starter" },
     features: [
       "Everything in Free",
+      "Your chosen model on Vibex keys",
       "Higher rolling limits",
-      "All Coder + Reviewer combos",
       "Email support",
     ],
   },
@@ -65,8 +65,8 @@ export const PLANS: Plan[] = [
     features: [
       "Everything in Starter",
       "Pro-tier rolling limits",
-      "Priority execution",
       "Longer runs before reset",
+      "Priority support",
     ],
   },
   {
@@ -79,21 +79,71 @@ export const PLANS: Plan[] = [
     features: [
       "Everything in Pro",
       "Highest rolling limits",
-      "Concurrent runs",
+      "Concurrent runs (up to 3)",
       "Priority support",
     ],
   },
 ];
 
+// BYOK is a capability, not a billable plan — nothing in the product charges or enforces a BYOK
+// fee (there's no `byok` plan id and no checkout variant), so the page must not advertise one.
+// Builds on your own keys skip Vibex's token windows entirely (see lib/engine.ts).
 export const BYOK = {
   name: "Bring your own key",
-  price: 5,
-  tagline: "Use your own provider keys — we just run the loop.",
+  price: 0,
+  priceNote: "works with every plan",
+  tagline: "Use your own provider keys — we just run the loop, billed to you.",
   cta: { label: "Set up your own key", href: "/settings" },
   features: [
-    "Your Anthropic / OpenAI / Google keys",
-    "Provider rate limits apply",
-    "Auto-retry on rate-limit errors",
-    "Full usage visibility, always",
+    "Your Anthropic / OpenAI / Google / OpenRouter keys",
+    "No Vibex token windows — provider limits apply",
+    "Your chosen model, always",
+    "Keys encrypted at rest (AES-256)",
   ],
 };
+
+// ── plan comparison matrix — drives the pricing table ─────────────────
+// One row per capability, one value per plan (order matches PLANS). `true` → included,
+// `false` → not included, string → shown verbatim. Limits derive from TOKEN_LIMITS so the
+// table can never drift from what the engine enforces.
+export type MatrixValue = boolean | string;
+export type MatrixRow = { label: string; values: [MatrixValue, MatrixValue, MatrixValue, MatrixValue]; note?: string };
+export type MatrixGroup = { group: string; rows: MatrixRow[] };
+
+function limits(kind: "FIVE_HOUR" | "MONTHLY"): [string, string, string, string] {
+  return PLANS.map((p) => compact(TOKEN_LIMITS[p.id][kind])) as [string, string, string, string];
+}
+
+export const MATRIX: MatrixGroup[] = [
+  {
+    group: "Usage",
+    rows: [
+      { label: "Projects", values: ["1 ever", "Unlimited", "Unlimited", "Unlimited"] },
+      { label: "Tokens per 5-hour window", values: limits("FIVE_HOUR") },
+      { label: "Tokens per month", values: limits("MONTHLY") },
+      { label: "Concurrent builds", values: [false, false, false, "Up to 3"] },
+    ],
+  },
+  {
+    group: "Build quality",
+    rows: [
+      { label: "Coder + Reviewer dual-AI loop", values: [true, true, true, true] },
+      { label: "Art-director design review", values: [true, true, true, true] },
+      { label: "Your chosen model on Vibex keys", values: [false, true, true, true], note: "Free runs on community models" },
+      { label: "Interrupt & steer mid-build", values: [true, true, true, true] },
+      { label: "Auto-pause & resume on limits", values: [true, true, true, true] },
+    ],
+  },
+  {
+    group: "Ship",
+    rows: [
+      { label: "Live preview + in-app IDE", values: [true, true, true, true] },
+      { label: "Download .zip + prompt history", values: [true, true, true, true] },
+      { label: "GitHub export & one-click deploy", values: [true, true, true, true] },
+    ],
+  },
+  {
+    group: "Support",
+    rows: [{ label: "Support", values: ["Community", "Email", "Priority", "Priority"] }],
+  },
+];

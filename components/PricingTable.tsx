@@ -1,8 +1,9 @@
-// Plans grid (Free · Starter · Pro · Scale) + the BYOK add-on. Pure presentation,
-// driven by lib/plans.ts so limits stay in sync with the engine.
+// Plan comparison matrix (Free · Starter · Pro · Scale) + the BYOK band. Replaces the four
+// identical plan cards: one table shows what each plan has AND lacks, side by side. Driven
+// entirely by lib/plans.ts (PLANS + MATRIX) so limits stay in sync with the engine.
 
 import Link from "next/link";
-import { PLANS, BYOK, windowNote } from "@/lib/plans";
+import { PLANS, BYOK, MATRIX, type MatrixValue } from "@/lib/plans";
 import styles from "./PricingTable.module.css";
 
 function Check() {
@@ -13,47 +14,65 @@ function Check() {
   );
 }
 
+// true → tick, false → quiet dash (the "disadvantage" is visible, not hidden), string → verbatim.
+function Cell({ v }: { v: MatrixValue }) {
+  if (v === true) return <span className={styles.tick} aria-label="Included"><Check /></span>;
+  if (v === false) return <span className={styles.no} aria-label="Not included">—</span>;
+  return <span className={styles.val}>{v}</span>;
+}
+
 export default function PricingTable() {
   return (
     <div className={styles.wrap}>
-      <div className={styles.grid}>
-        {PLANS.map((p) => (
-          <div key={p.id} className={styles.card} data-highlight={p.highlight}>
-            {p.highlight && <span className={styles.badge}>Most popular</span>}
-            <div className={styles.name}>{p.name}</div>
-            <div className={styles.priceRow}>
-              <span className={styles.price}>${p.price}</span>
-              {p.price > 0 && <span className={styles.per}>/mo</span>}
-            </div>
-            <div className={styles.tagline}>{p.tagline}</div>
-
-            <div className={styles.projects}>{p.projects}</div>
-            <div className={styles.window}>{windowNote(p.id)}</div>
-
-            <Link
-              href={p.cta.href}
-              className={`btn ${p.highlight ? "btn-primary" : "btn-ghost"}`}
-            >
-              {p.cta.label}
-            </Link>
-
-            <ul className={styles.features}>
-              {p.features.map((f) => (
-                <li key={f}>
-                  <span className={styles.tick}><Check /></span>
-                  {f}
-                </li>
+      <div className={styles.scroller}>
+        <table className={styles.table}>
+          <thead>
+            <tr>
+              <th className={styles.corner} scope="col" aria-label="Plan features" />
+              {PLANS.map((p) => (
+                <th key={p.id} scope="col" className={styles.planHead} data-highlight={p.highlight}>
+                  {p.highlight && <span className={styles.badge}>Most popular</span>}
+                  <span className={styles.planName}>{p.name}</span>
+                  <span className={styles.priceRow}>
+                    <span className={styles.price}>${p.price}</span>
+                    {p.price > 0 && <span className={styles.per}>/mo</span>}
+                  </span>
+                  <span className={styles.tagline}>{p.tagline}</span>
+                  <Link href={p.cta.href} className={`btn btn-sm ${p.highlight ? "btn-primary" : "btn-ghost"} ${styles.cta}`}>
+                    {p.cta.label}
+                  </Link>
+                </th>
               ))}
-            </ul>
-          </div>
-        ))}
+            </tr>
+          </thead>
+          {MATRIX.map((g) => (
+            <tbody key={g.group}>
+              <tr className={styles.groupRow}>
+                <th scope="rowgroup" colSpan={PLANS.length + 1}>{g.group}</th>
+              </tr>
+              {g.rows.map((row) => (
+                <tr key={row.label} className={styles.row}>
+                  <th scope="row" className={styles.rowLabel}>
+                    {row.label}
+                    {row.note && <span className={styles.rowNote}>{row.note}</span>}
+                  </th>
+                  {row.values.map((v, i) => (
+                    <td key={PLANS[i].id} className={styles.cell} data-highlight={PLANS[i].highlight}>
+                      <Cell v={v} />
+                    </td>
+                  ))}
+                </tr>
+              ))}
+            </tbody>
+          ))}
+        </table>
       </div>
 
       <div className={styles.byok}>
         <div className={styles.byokMain}>
           <div className={styles.byokHead}>
             <span className={styles.byokName}>{BYOK.name}</span>
-            <span className={styles.byokPrice}>${BYOK.price}<span className={styles.per}>/mo</span></span>
+            <span className={styles.byokPrice}>Free · {BYOK.priceNote}</span>
           </div>
           <p className={styles.byokTagline}>{BYOK.tagline}</p>
         </div>
