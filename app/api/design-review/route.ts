@@ -8,7 +8,7 @@ import { auth } from "@/auth";
 import { prisma } from "@/lib/prisma";
 import { getUserKeys } from "@/lib/keys";
 import { isSameOrigin } from "@/lib/http";
-import { rateLimit, rateSubject, tooMany } from "@/lib/ratelimit";
+import { rateLimit, tooMany } from "@/lib/ratelimit";
 import { getUserPlan, getStartWindow, recordUsage } from "@/lib/runs";
 import { overLimit, canAutoPolish } from "@/lib/usage";
 import { embed } from "@/lib/ai/embeddings";
@@ -24,7 +24,10 @@ export const maxDuration = 120;
 
 export async function POST(req: NextRequest) {
   if (!isSameOrigin(req)) return new Response("Forbidden", { status: 403 });
-  const rl = await rateLimit(`review:${rateSubject(req)}`, 60, 5 * 60_000);
+  // Signed-in only — this endpoint spends model tokens and the app surface is auth-gated now.
+  const session = await auth();
+  if (!session?.user) return Response.json({ ok: false, reason: "auth" }, { status: 401 });
+  const rl = await rateLimit(`review:u:${session.user.id}`, 60, 5 * 60_000);
   if (!rl.ok) return tooMany(rl.retryAfterMs);
   const body = await req.json().catch(() => ({}));
   const screenshot: string | undefined =
@@ -40,16 +43,13 @@ export async function POST(req: NextRequest) {
   let userKeys: Awaited<ReturnType<typeof getUserKeys>> = {};
   let win: WindowState | undefined;
   if (projectId) {
-    const session = await auth();
-    if (session?.user) {
-      const project = await prisma.project.findFirst({ where: { id: projectId, userId: session.user.id } });
-      if (project) {
-        userId = session.user.id;
-        spec = project.spec as Spec;
-        plan = await getUserPlan(userId);
-        userKeys = await getUserKeys(userId);
-        win = await getStartWindow(userId);
-      }
+    const project = await prisma.project.findFirst({ where: { id: projectId, userId: session.user.id } });
+    if (project) {
+      userId = session.user.id;
+      spec = project.spec as Spec;
+      plan = await getUserPlan(userId);
+      userKeys = await getUserKeys(userId);
+      win = await getStartWindow(userId);
     }
   }
 

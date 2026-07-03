@@ -378,11 +378,19 @@ export default function RunWorkspace({ initialSpec, projectId, hasKey = true, pa
         }),
         signal: ctrl.signal,
       });
-      // A deliberate rejection (concurrency gate / rate limit) is NOT a dead stream — surface the
-      // server's message instead of silently falling back to a simulated build.
-      if (res.status === 409 || res.status === 429) {
+      // A deliberate rejection (auth / concurrency gate / rate limit) is NOT a dead stream —
+      // surface the server's message instead of silently falling back to a simulated build.
+      if (res.status === 401 || res.status === 409 || res.status === 429) {
         const j = (await res.json().catch(() => null)) as { message?: string } | null;
-        addMsg("vibex", j?.message ?? (res.status === 429 ? "Rate limit reached — wait a moment, then try again." : "Another build is already running — wait for it to finish."));
+        addMsg(
+          "vibex",
+          j?.message ??
+            (res.status === 401
+              ? "Your session expired — sign in again to build."
+              : res.status === 429
+                ? "Rate limit reached — wait a moment, then try again."
+                : "Another build is already running — wait for it to finish."),
+        );
         setDone(true);
         return { files: null, live: false };
       }

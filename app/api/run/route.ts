@@ -10,7 +10,7 @@ import { runEngine } from "@/lib/engine";
 import { createRun, recordPrompt, setRunStep, finishRun, saveRunOutput, interruptIfRunning, recordUsage, getUserPlan, getStartWindow, reapStaleRuns, countActiveRuns } from "@/lib/runs";
 import { getUserKeys } from "@/lib/keys";
 import { isSameOrigin } from "@/lib/http";
-import { rateLimit, rateSubject, tooMany } from "@/lib/ratelimit";
+import { rateLimit, tooMany } from "@/lib/ratelimit";
 import { resolveModel } from "@/lib/ai/models";
 import { canAutoPolish, canUseReferenceImages, type Plan, type WindowState } from "@/lib/usage";
 import type { UserKeys } from "@/lib/engine";
@@ -48,49 +48,45 @@ export async function POST(req: NextRequest) {
         .slice(0, 24)
     : undefined;
 
-  // If a project id is supplied, only persist when the caller (cookie session or bearer
-  // token) owns it.
+  // Identity is required — a browser session or a CLI bearer token. Anonymous builds are gone:
+  // signed-out visitors keep only the basic tabs, and unauthenticated model spend was the
+  // biggest abuse surface this route had.
+  const uid = bearerUserId ?? (await auth())?.user?.id ?? null;
+  if (!uid) {
+    return Response.json({ ok: false, reason: "auth", message: "Sign in to run builds." }, { status: 401 });
+  }
+
+  // If a project id is supplied, only persist when the caller owns it. `userId` set = persist.
   let userId: string | null = null;
   if (projectId) {
-    const uid = bearerUserId ?? (await auth())?.user?.id ?? null;
-    if (uid) {
-      const project = await prisma.project.findFirst({ where: { id: projectId, userId: uid } });
-      if (project) {
-        userId = uid;
-        spec = project.spec as Spec;
-      }
+    const project = await prisma.project.findFirst({ where: { id: projectId, userId: uid } });
+    if (project) {
+      userId = uid;
+      spec = project.spec as Spec;
     }
   }
 
-  // Rate limit by tier: signed-in owners are limited per-user (fairer behind shared NATs); everyone
-  // else is limited per-IP with a tighter ceiling, since anonymous runs are the abuse surface.
-  const rl = userId
-    ? await rateLimit(`run:u:${userId}`, 30, 5 * 60_000)
-    : await rateLimit(`run:${rateSubject(req)}`, 8, 5 * 60_000);
+  // Every caller is identified now — rate limit per user (fairer behind shared NATs).
+  const rl = await rateLimit(`run:u:${uid}`, 30, 5 * 60_000);
   if (!rl.ok) return tooMany(rl.retryAfterMs);
 
-  // For an owned run: the user's plan (limit enforcement), BYOK keys, and real usage window.
-  let plan: Plan = "free";
-  let userKeys: UserKeys = {};
-  let startWindow: WindowState | undefined;
-  if (userId) {
-    plan = await getUserPlan(userId);
-    userKeys = await getUserKeys(userId);
-    startWindow = await getStartWindow(userId);
+  // The caller's plan (limit enforcement), BYOK keys, and real usage window.
+  const plan: Plan = await getUserPlan(uid);
+  const userKeys: UserKeys = await getUserKeys(uid);
+  const startWindow: WindowState | undefined = await getStartWindow(uid);
 
-    // Concurrency gate. Two reasons: "concurrent runs" is a Scale-plan feature, and the engine's
-    // window enforcement reads a per-run snapshot — parallel runs could each see headroom and
-    // together blow past the plan ceiling. One active run below Scale (a small cap on Scale)
-    // bounds that overspend. Reap first so a stranded RUNNING row never locks the user out.
-    await reapStaleRuns(userId);
-    const active = await countActiveRuns(userId);
-    const maxConcurrent = plan === "scale" ? 3 : 1;
-    if (active >= maxConcurrent) {
-      return new Response(
-        JSON.stringify({ ok: false, reason: "concurrent", message: plan === "scale" ? "Concurrent-run limit reached — wait for a build to finish." : "Another build is already running. Wait for it to finish (or upgrade to Scale for concurrent runs)." }),
-        { status: 409, headers: { "content-type": "application/json" } },
-      );
-    }
+  // Concurrency gate. Two reasons: "concurrent runs" is a Scale-plan feature, and the engine's
+  // window enforcement reads a per-run snapshot — parallel runs could each see headroom and
+  // together blow past the plan ceiling. One active run below Scale (a small cap on Scale)
+  // bounds that overspend. Reap first so a stranded RUNNING row never locks the user out.
+  await reapStaleRuns(uid);
+  const active = await countActiveRuns(uid);
+  const maxConcurrent = plan === "scale" ? 3 : 1;
+  if (active >= maxConcurrent) {
+    return new Response(
+      JSON.stringify({ ok: false, reason: "concurrent", message: plan === "scale" ? "Concurrent-run limit reached — wait for a build to finish." : "Another build is already running. Wait for it to finish (or upgrade to Scale for concurrent runs)." }),
+      { status: 409, headers: { "content-type": "application/json" } },
+    );
   }
 
   // Plan feature gates (belt to the UI's braces — a crafted client must hit the same wall).
@@ -115,8 +111,22 @@ export async function POST(req: NextRequest) {
       let prevCost = 0;
 
       try {
-        for await (const ev of runEngine(spec, { startIndex, signal: req.signal, plan, userKeys, startWindow, steer, images: allowedImages, anonymous: !userId, only, baseFiles })) {
+        // anonymous:false — every caller is a signed-in user now; plan (not anonymity) decides
+        // which keys the engine may use.
+        for await (const ev of runEngine(spec, { startIndex, signal: req.signal, plan, userKeys, startWindow, steer, images: allowedImages, anonymous: false, only, baseFiles })) {
           send(ev);
+          // Usage is billed to the CALLER even when the run isn't persisted (no owned project) —
+          // server-key spend is never free just because the build was ephemeral.
+          if (ev.type === "usage") {
+            try {
+              await recordUsage(uid, ev.tokens - prevTokens, ev.cost - prevCost);
+              prevTokens = ev.tokens;
+              prevCost = ev.cost;
+            } catch {
+              /* an accounting hiccup shouldn't kill the live stream */
+            }
+            continue;
+          }
           if (!userId) continue;
           try {
             switch (ev.type) {
@@ -131,11 +141,6 @@ export async function POST(req: NextRequest) {
                 break;
               case "step_done":
                 if (runId) await setRunStep(runId, ev.index + 1);
-                break;
-              case "usage":
-                await recordUsage(userId, ev.tokens - prevTokens, ev.cost - prevCost);
-                prevTokens = ev.tokens;
-                prevCost = ev.cost;
                 break;
               case "paused":
                 if (runId) await finishRun(runId, "PAUSED");

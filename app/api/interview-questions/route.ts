@@ -8,7 +8,7 @@ import { auth } from "@/auth";
 import { getUserKeys } from "@/lib/keys";
 import { generate, generateOpenRouter, envKey, type GenResult } from "@/lib/ai/providers";
 import { isSameOrigin } from "@/lib/http";
-import { rateLimit, rateSubject, tooMany } from "@/lib/ratelimit";
+import { rateLimit, tooMany } from "@/lib/ratelimit";
 import type { Provider } from "@/lib/ai/models";
 
 export const runtime = "nodejs";
@@ -79,7 +79,11 @@ function parseQuestions(text: string): GenQuestion[] {
 
 export async function POST(req: NextRequest) {
   if (!isSameOrigin(req)) return new Response("Forbidden", { status: 403 });
-  const rl = await rateLimit(`iq:${rateSubject(req)}`, 40, 5 * 60_000);
+  // Signed-in only — the interview lives behind the auth gate now, and even the free
+  // OpenRouter route shouldn't be an anonymous spam target.
+  const session = await auth();
+  if (!session?.user) return Response.json({ ok: false, reason: "auth" }, { status: 401 });
+  const rl = await rateLimit(`iq:u:${session.user.id}`, 40, 5 * 60_000);
   if (!rl.ok) return tooMany(rl.retryAfterMs);
   const body = await req.json().catch(() => ({}));
   const idea: string = typeof body?.idea === "string" ? body.idea.slice(0, 600) : "";
@@ -87,19 +91,13 @@ export async function POST(req: NextRequest) {
   const audience: string = typeof body?.audience === "string" ? body.audience.slice(0, 80) : "";
   if (!idea.trim()) return Response.json({ ok: false, reason: "no-idea" });
 
-  // BYOK (if signed in) then env. Anonymous callers may use the free OpenRouter route but never our
-  // paid server env keys — this endpoint is reachable pre-signup, so that would be uncapped spend.
   let keys: Awaited<ReturnType<typeof getUserKeys>> = {};
-  let allowServerKeys = false;
   try {
-    const session = await auth();
-    if (session?.user) {
-      keys = await getUserKeys(session.user.id);
-      allowServerKeys = true;
-    }
+    keys = await getUserKeys(session.user.id);
   } catch {
-    /* anonymous — free route only */
+    /* key vault unavailable — fall through to env keys */
   }
+  const allowServerKeys = true;
 
   // Precedence: 1) the user's own provider key (honour their spend), 2) the free OpenRouter route,
   // 3) — signed-in only — a server env key.

@@ -1,8 +1,8 @@
-// Server entry for /run. With ?project=<id>, loads the signed-in user's project spec from the
-// DB and hands it (plus the id) to the client workspace, which streams + persists the build.
-// Without a project (anonymous), the workspace reads the spec from sessionStorage and runs
-// ephemerally.
+// Server entry for /run — signed-in only. With ?project=<id>, loads the user's project spec
+// from the DB and hands it (plus the id) to the client workspace, which streams + persists the
+// build. Without a project, the workspace reads the spec from sessionStorage (interview flow).
 
+import { redirect } from "next/navigation";
 import { auth } from "@/auth";
 import { prisma } from "@/lib/prisma";
 import { hasModelAccess } from "@/lib/keys";
@@ -21,6 +21,10 @@ export default async function RunPage({
 }) {
   const projectId = typeof searchParams.project === "string" ? searchParams.project : undefined;
   const session = await auth();
+  // Hard gate (middleware only checks cookie presence): builds are for signed-in users.
+  if (!session?.user) {
+    redirect(`/signin?callbackUrl=${encodeURIComponent(projectId ? `/run?project=${projectId}` : "/run")}`);
+  }
   let spec: Spec | undefined;
   let ownedId: string | undefined;
 

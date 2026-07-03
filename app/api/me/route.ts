@@ -5,11 +5,15 @@ import type { NextRequest } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { resolveBearer } from "@/lib/cliTokens";
 import { getUserPlan } from "@/lib/runs";
+import { rateLimit, rateSubject, tooMany } from "@/lib/ratelimit";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
 export async function GET(req: NextRequest) {
+  // Per-IP: this is the token-guessing surface, so the limit applies before verification.
+  const rl = await rateLimit(`me:${rateSubject(req)}`, 30, 5 * 60_000);
+  if (!rl.ok) return tooMany(rl.retryAfterMs);
   const userId = await resolveBearer(req);
   if (!userId) {
     return Response.json({ ok: false, error: "invalid_token" }, { status: 401 });

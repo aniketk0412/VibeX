@@ -20,10 +20,14 @@ export default async function ResultPage({
   searchParams: { [key: string]: string | string[] | undefined };
 }) {
   const projectId = typeof searchParams.project === "string" ? searchParams.project : undefined;
-  if (!projectId) return <ResultView />;
 
+  // Hard gate (middleware only checks cookie presence): every result view is signed-in now,
+  // including the no-project sample view.
   const session = await auth();
-  if (!session?.user) redirect(`/signin?callbackUrl=${encodeURIComponent(`/result?project=${projectId}`)}`);
+  if (!session?.user) {
+    redirect(`/signin?callbackUrl=${encodeURIComponent(projectId ? `/result?project=${projectId}` : "/result")}`);
+  }
+  if (!projectId) return <ResultView />;
 
   // ?run=<id> selects an older build (version history); default is the latest run.
   const runParam = typeof searchParams.run === "string" ? searchParams.run : undefined;
