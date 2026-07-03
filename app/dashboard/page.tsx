@@ -69,6 +69,7 @@ export default async function DashboardPage() {
           <div className={styles.stat}>
             <span className={styles.sl}>Plan</span>
             <span className={styles.sv} style={{ textTransform: "capitalize" }}>{plan}</span>
+            <span className={styles.ss}>{(limit / 1000).toFixed(0)}k tokens per 5h window</span>
           </div>
           <div className={styles.stat}>
             <span className={styles.sl}>Usage · this 5h</span>
@@ -83,6 +84,9 @@ export default async function DashboardPage() {
           <div className={styles.stat}>
             <span className={styles.sl}>Projects</span>
             <span className={styles.sv}>{projects.length}</span>
+            <span className={styles.ss}>
+              {projects.filter((p) => p.runs[0]?.status === "COMPLETED").length} with a completed build
+            </span>
           </div>
         </div>
 

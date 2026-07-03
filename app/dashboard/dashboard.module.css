@@ -92,6 +92,13 @@
   font-weight: 600;
   color: var(--text);
 }
+/* quiet second line — keeps the three stat cards equally weighted */
+.ss {
+  display: block;
+  margin-top: 6px;
+  font-size: 12px;
+  color: var(--faint);
+}
 .bar {
   margin-top: 9px;
   height: 6px;

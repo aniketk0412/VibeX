@@ -28,7 +28,9 @@ export default function PricingTable() {
         <table className={styles.table}>
           <thead>
             <tr>
-              <th className={styles.corner} scope="col" aria-label="Plan features" />
+              <th className={styles.corner} scope="col">
+                <span className={styles.cornerLabel}>Compare plans</span>
+              </th>
               {PLANS.map((p) => (
                 <th key={p.id} scope="col" className={styles.planHead} data-highlight={p.highlight}>
                   {p.highlight && <span className={styles.badge}>Most popular</span>}
