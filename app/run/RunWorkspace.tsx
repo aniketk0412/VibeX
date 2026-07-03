@@ -546,7 +546,7 @@ export default function RunWorkspace({ initialSpec, projectId, hasKey = true, pa
         setFiles([
           {
             path: "index.html",
-            content: `<!doctype html>\n<html lang="en"><head><meta charset="utf-8"><title>${title}</title></head>\n<body style="font-family:system-ui;display:grid;place-items:center;min-height:100vh;margin:0;background:#14110f;color:#f4eee6"><main style="text-align:center"><h1 style="color:#ff5a1f">${title}</h1><p>Built by Vibex.</p></main></body></html>\n`,
+            content: `<!doctype html>\n<html lang="en"><head><meta charset="utf-8"><title>${title}</title></head>\n<body style="font-family:system-ui;display:grid;place-items:center;min-height:100vh;margin:0;background:#0f0e0b;color:#f2ede2"><main style="text-align:center"><h1 style="color:#d4a853">${title}</h1><p>Built by Vibex.</p></main></body></html>\n`,
           },
         ]);
         setDone(true);

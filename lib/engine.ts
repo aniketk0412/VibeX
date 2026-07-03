@@ -152,7 +152,7 @@ function stubFile(path: string, spec: Spec): string {
 `;
   }
   if (path.endsWith(".css")) {
-    return `:root { --bg: #14110f; --fg: #f4eee6; --accent: #ff5a1f; }
+    return `:root { --bg: #0f0e0b; --fg: #f2ede2; --accent: #d4a853; }
 * { box-sizing: border-box; margin: 0; }
 body { background: var(--bg); color: var(--fg); font-family: system-ui, sans-serif; display: grid; place-items: center; min-height: 100vh; }
 .app { text-align: center; padding: 2rem; }

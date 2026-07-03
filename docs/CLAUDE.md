@@ -20,13 +20,14 @@ Vibex is an **automated vibe-coding platform**: a user describes an app idea, a 
 - **Auth.js** (NextAuth) — sessions, OAuth (email + Google), encrypted BYOK key storage
 - **Vercel** deploy
 
-## Design system — "Ember on warm charcoal" (locked)
+## Design system — "Champagne on ink" (locked, July 3 2026 — replaced the ember/orange palette)
 
-Tokens live in `app/globals.css`. Dark is the default; light variant under `[data-theme="light"]`.
+Tokens live in `app/globals.css`. Dark is the default; light variant under `[data-theme="light"]` keeps the cream background.
 
-- bg `#14110F` · surface `#201B17` · line `#352D26` · text `#F4EEE6` · dim `#B6AC9E`
-- **accent (ember) `#FF5A1F`** — the ONE ownable accent. Never blue/purple. Light-mode accent `#E8480D`.
-- good `#46C08C`
+- dark: bg `#0F0E0B` (ink) · surface `#1A1712` · line `#2B261D` · text `#F2EDE2` · dim `#B4AB9A`
+- light: bg `#F6F1E9` (cream) · original warm neutrals
+- **accent (champagne gold) `#D4A853`** dark / **bronze `#8A671C`** light — the ONE ownable accent. Never blue/purple, and never bring back the orange. On-accent text is INK on gold (dark) / ivory on bronze (light) — never white-on-gold.
+- good `#46C08C` (dark) / `#1F9D6E` (light)
 - Fonts via `next/font` (`app/layout.tsx`): **Bricolage Grotesque** (`--font-display`), **Hanken Grotesk** (`--font-body`), **JetBrains Mono** (`--font-mono`).
 - Theme is set before paint in `layout.tsx`, toggled by `components/ThemeToggle.tsx`, persisted to `localStorage('vibex-theme')`, default dark.
 

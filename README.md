@@ -98,9 +98,9 @@ prisma/schema.prisma    User/Account/Session/Project/Run/Prompt/UsageWindow/ApiK
 | `npm run start` | Serve the production build |
 | `npm run lint` | Next lint |
 
-## Design system — Ember on warm charcoal
+## Design system — Champagne on ink
 
-Tokens live in `app/globals.css` (dark default + a light variant). The accent is ember `#FF5A1F` — the one ownable color, never blue/purple. Fonts via `next/font`: **Bricolage Grotesque** (display), **Hanken Grotesk** (body), **JetBrains Mono** (mono). Theme is set before first paint in `app/layout.tsx`, toggled by `components/ThemeToggle.tsx`, persisted to `localStorage`. No gradients, glassmorphism, or stock AI art — typography does the heavy lifting.
+Tokens live in `app/globals.css` (dark ink default + a cream light variant). The accent is champagne gold `#D4A853` (bronze `#8A671C` in light mode) — the one ownable color, never blue/purple. Fonts via `next/font`: **Bricolage Grotesque** (display), **Hanken Grotesk** (body), **JetBrains Mono** (mono). Theme is set before first paint in `app/layout.tsx`, toggled by `components/ThemeToggle.tsx`, persisted to `localStorage`. No gradients, glassmorphism, or stock AI art — typography does the heavy lifting.
 
 ## Deploy (Vercel)
 

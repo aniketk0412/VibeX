@@ -1,35 +1,36 @@
 /* ============================================================
-   VIBEX — design system  ·  Ember on cool graphite
+   VIBEX — design system  ·  Champagne on ink
+   One luxury accent (champagne gold), warm ink dark, cream light.
    Tokens, base styles, and primitives. No generic templates.
    ============================================================ */
 
 :root {
-  /* dark is the default (premium dev-tool feel) — ember accent on slate/graphite neutrals */
-  --bg: #0B0E13;
-  --bg-elev: #10141B;
-  --surface: #151A23;
-  --surface-2: #1C232E;
-  --surface-3: #232C3A;
-  --line: #252E3B;
-  --line-soft: #1B222D;
+  /* dark is the default — warm near-black ink under a champagne-gold accent */
+  --bg: #0F0E0B;
+  --bg-elev: #14120E;
+  --surface: #1A1712;
+  --surface-2: #211D16;
+  --surface-3: #2A251C;
+  --line: #2B261D;
+  --line-soft: #211D16;
 
-  --text: #E9EEF5;
-  --dim: #A3AEBF;
-  --faint: #6B7689;
+  --text: #F2EDE2;
+  --dim: #B4AB9A;
+  --faint: #7D7463;
 
-  --accent: #FF5A1F;
-  --accent-press: #FF7038;
-  --accent-soft: rgba(255, 90, 31, 0.13);
-  --on-accent: #FFFFFF;
-  --glyph: #FFF6EF;
+  --accent: #D4A853;
+  --accent-press: #E0B968;
+  --accent-soft: rgba(212, 168, 83, 0.14);
+  --on-accent: #1F1808; /* ink text on gold — the monogram look, never white-on-gold */
+  --glyph: #241C0B;
 
-  --good: #3ECF8E;
-  --good-soft: rgba(62, 207, 142, 0.13);
+  --good: #46C08C;
+  --good-soft: rgba(70, 192, 140, 0.14);
 
   /* elevation scale */
-  --shadow-sm: 0 1px 2px rgba(2, 6, 14, 0.35), 0 2px 8px -5px rgba(2, 6, 14, 0.55);
-  --shadow-md: 0 4px 14px -6px rgba(2, 6, 14, 0.55), 0 14px 32px -12px rgba(2, 6, 14, 0.6);
-  --shadow: 0 26px 64px -32px rgba(2, 6, 14, 0.75);
+  --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.3), 0 2px 8px -5px rgba(0, 0, 0, 0.5);
+  --shadow-md: 0 4px 14px -6px rgba(0, 0, 0, 0.5), 0 14px 32px -12px rgba(0, 0, 0, 0.55);
+  --shadow: 0 26px 64px -32px rgba(0, 0, 0, 0.7);
   --r-xs: 8px;
   --r-sm: 11px;
   --r: 16px;
@@ -53,30 +54,31 @@
 }
 
 [data-theme="light"] {
-  --bg: #F5F7FA;
+  /* the cream stays — bronze-gold accent deep enough to hold contrast on it */
+  --bg: #F6F1E9;
   --bg-elev: #FFFFFF;
   --surface: #FFFFFF;
-  --surface-2: #EEF2F7;
-  --surface-3: #E4EAF2;
-  --line: #DDE4EE;
-  --line-soft: #E8EDF4;
+  --surface-2: #F1EADF;
+  --surface-3: #E9E0D2;
+  --line: #E4DACB;
+  --line-soft: #EDE5D8;
 
-  --text: #131820;
-  --dim: #5B6575;
-  --faint: #8B96A8;
+  --text: #1A1512;
+  --dim: #665B50;
+  --faint: #98897B;
 
-  --accent: #E8480D;
-  --accent-press: #C73A06;
-  --accent-soft: rgba(232, 72, 13, 0.10);
-  --on-accent: #FFFFFF;
-  --glyph: #FFF6EF;
+  --accent: #8A671C;
+  --accent-press: #745616;
+  --accent-soft: rgba(138, 103, 28, 0.12);
+  --on-accent: #FFF8E9; /* ivory text on bronze */
+  --glyph: #FFF6E8;
 
-  --good: #14966B;
-  --good-soft: rgba(20, 150, 107, 0.12);
+  --good: #1F9D6E;
+  --good-soft: rgba(31, 157, 110, 0.12);
 
-  --shadow-sm: 0 1px 2px rgba(15, 26, 42, 0.06), 0 2px 8px -5px rgba(15, 26, 42, 0.12);
-  --shadow-md: 0 4px 14px -6px rgba(15, 26, 42, 0.1), 0 14px 32px -12px rgba(15, 26, 42, 0.15);
-  --shadow: 0 24px 60px -30px rgba(15, 26, 42, 0.26);
+  --shadow-sm: 0 1px 2px rgba(60, 40, 20, 0.06), 0 2px 8px -5px rgba(60, 40, 20, 0.12);
+  --shadow-md: 0 4px 14px -6px rgba(60, 40, 20, 0.12), 0 14px 32px -12px rgba(60, 40, 20, 0.16);
+  --shadow: 0 24px 60px -30px rgba(60, 40, 20, 0.28);
 }
 
 * { box-sizing: border-box; margin: 0; padding: 0; }

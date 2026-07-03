@@ -54,7 +54,7 @@ function sampleFiles(spec: Spec): GenFile[] {
     },
     {
       path: "styles.css",
-      content: `body{font-family:system-ui,sans-serif;display:grid;place-items:center;min-height:100vh;margin:0;background:#14110f;color:#f4eee6}.app{text-align:center}h1{color:#ff5a1f}`,
+      content: `body{font-family:system-ui,sans-serif;display:grid;place-items:center;min-height:100vh;margin:0;background:#0f0e0b;color:#f2ede2}.app{text-align:center}h1{color:#d4a853}`,
     },
     { path: "app.js", content: `console.log(${JSON.stringify(title)});\n` },
   ];

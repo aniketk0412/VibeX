@@ -32,7 +32,7 @@ export default function GlobalError({
           }}
         >
           <h1 style={{ fontWeight: 800, fontSize: 30, letterSpacing: "-0.02em" }}>Something went wrong</h1>
-          <p style={{ color: "#B6AC9E", maxWidth: 420, lineHeight: 1.5 }}>
+          <p style={{ color: "#B4AB9A", maxWidth: 420, lineHeight: 1.5 }}>
             The app hit an unexpected error. Reloading usually fixes it.
           </p>
           <button
@@ -40,8 +40,8 @@ export default function GlobalError({
             onClick={reset}
             style={{
               marginTop: 8,
-              background: "#FF5A1F",
-              color: "#fff",
+              background: "#D4A853",
+              color: "#1F1808",
               border: "none",
               borderRadius: 11,
               padding: "13px 24px",
