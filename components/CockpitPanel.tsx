@@ -21,6 +21,13 @@ function Chevron() {
     </svg>
   );
 }
+function Pause() {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.6" strokeLinecap="round" aria-hidden>
+      <path d="M9 5v14M15 5v14" />
+    </svg>
+  );
+}
 
 const STEPS = [
   "Scaffolded project",
@@ -141,7 +148,7 @@ export default function CockpitPanel() {
           <span className={styles.chev} data-open={usageOpen}><Chevron /></span>
         </button>
 
-        <button className={styles.ibtn} type="button">❚❚ Interrupt</button>
+        <button className={styles.ibtn} type="button"><Pause /> Interrupt</button>
       </div>
     </div>
   );

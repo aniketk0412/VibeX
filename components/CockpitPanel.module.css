@@ -203,6 +203,9 @@
 
 .ibtn {
   flex: none;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
   font-family: var(--body);
   font-weight: 600;
   font-size: 12.5px;
@@ -215,6 +218,7 @@
   white-space: nowrap;
   transition: background 0.2s ease;
 }
+.ibtn svg { width: 11px; height: 11px; }
 .ibtn:hover { background: var(--accent-press); }
 
 @media (max-width: 460px) {

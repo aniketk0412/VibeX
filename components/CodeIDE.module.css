@@ -117,6 +117,13 @@
 /* Both axes scroll INSIDE the code pane (no line wrap → long lines pan horizontally); the
    global tokened scrollbars make the affordance visible instead of near-invisible. */
 .editor :global(.cm-scroller) { font-family: var(--mono); overflow: auto; }
+/* Warm oneDark's cool #282c34 chrome into the brand ink. Hardcoded (not tokens) on purpose:
+   the editor stays dark in BOTH site themes, and oneDark's syntax colors need a dark ground. */
+.editor :global(.cm-editor),
+.editor :global(.cm-gutters) { background: #14120e; }
+.editor :global(.cm-gutters) { border-right: 1px solid #211d16; }
+.editor :global(.cm-activeLine) { background: rgba(212, 168, 83, 0.05); }
+.editor :global(.cm-activeLineGutter) { background: rgba(212, 168, 83, 0.08); }
 
 .previewPane {
   flex: 1;
