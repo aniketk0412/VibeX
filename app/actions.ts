@@ -9,6 +9,7 @@ import { createProjectForUser, getUserPlan, capFiles } from "@/lib/runs";
 import { canShipDirect } from "@/lib/usage";
 import { getProjectCount } from "@/lib/projects";
 import { saveUserKey, deleteUserKey, getUserKey, type ProviderId } from "@/lib/keys";
+import { mintToken, revokeToken } from "@/lib/cliTokens";
 import { rateLimit } from "@/lib/ratelimit";
 import type { Spec, GenFile } from "@/lib/steps";
 import type { Prisma } from "@prisma/client";
@@ -36,6 +37,25 @@ export async function startProject(spec: Spec): Promise<{ id: string | null; err
 // Sign out from anywhere (header user menu, settings) → back to the marketing home.
 export async function signOutAction() {
   await signOut({ redirectTo: "/" });
+}
+
+// ── CLI access tokens (Settings → CLI access) ──────────────────────────────
+// The plaintext token is returned exactly once, straight to the client that minted it.
+export async function mintCliToken(name: string): Promise<{ token?: string; error?: string }> {
+  const session = await auth();
+  if (!session?.user) return { error: "unauthorized" };
+  if (!(await actionAllowed(session.user.id, "cli-token", 10, 60 * 60_000))) return { error: "rate_limited" };
+  const token = await mintToken(session.user.id, name);
+  revalidatePath("/settings");
+  return { token };
+}
+
+export async function revokeCliToken(tokenId: string): Promise<{ ok?: boolean }> {
+  const session = await auth();
+  if (!session?.user) return {};
+  await revokeToken(session.user.id, tokenId);
+  revalidatePath("/settings");
+  return { ok: true };
 }
 
 // ── Project management (rename / delete / duplicate) ───────────────────────

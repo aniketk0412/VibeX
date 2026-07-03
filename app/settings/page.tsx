@@ -8,8 +8,10 @@ import AppHeader from "@/components/AppHeader";
 import SubmitButton from "@/components/SubmitButton";
 import ConfirmDialog from "@/components/ConfirmDialog";
 import { KEY_PROVIDERS, listKeyProviders, type ProviderId } from "@/lib/keys";
+import { listTokens } from "@/lib/cliTokens";
 import { getUserPlan } from "@/lib/runs";
 import { saveApiKey, removeApiKey, devSetPlan, signOutAction } from "@/app/actions";
+import CliTokens from "@/components/CliTokens";
 import styles from "./settings.module.css";
 
 export const dynamic = "force-dynamic";
@@ -27,9 +29,10 @@ export default async function SettingsPage() {
   if (!session?.user) redirect(`/signin?callbackUrl=${encodeURIComponent("/settings")}`);
   const user = session.user;
 
-  const [connected, plan] = await Promise.all([
+  const [connected, plan, cliTokens] = await Promise.all([
     listKeyProviders(user.id),
     getUserPlan(user.id),
+    listTokens(user.id),
   ]);
   const has = (p: ProviderId) => connected.includes(p);
   const devPlans = process.env.ALLOW_DEV_PLAN === "true";
@@ -96,6 +99,24 @@ export default async function SettingsPage() {
               </div>
             ))}
           </div>
+        </section>
+
+        <section className={styles.card}>
+          <div className={styles.cardHead}>
+            <h2>CLI access</h2>
+            <p>
+              Build from your terminal: <code>npm i -g vibex</code>, then <code>vibex login</code> with a token.
+              A token acts as your account — builds run against your plan and appear on your dashboard.
+            </p>
+          </div>
+          <CliTokens
+            tokens={cliTokens.map((t) => ({
+              id: t.id,
+              name: t.name,
+              createdAt: t.createdAt.toISOString(),
+              lastUsedAt: t.lastUsedAt ? t.lastUsedAt.toISOString() : null,
+            }))}
+          />
         </section>
 
         <section className={styles.card}>

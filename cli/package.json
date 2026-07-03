@@ -1,0 +1,29 @@
+{
+  "name": "vibex-cli",
+  "version": "0.1.0",
+  "description": "Vibex from your terminal — describe an app, a Coder + Reviewer AI pair builds it into a local folder.",
+  "license": "MIT",
+  "type": "module",
+  "bin": {
+    "vibex": "./dist/index.js"
+  },
+  "files": [
+    "dist",
+    "README.md"
+  ],
+  "engines": {
+    "node": ">=18.17"
+  },
+  "scripts": {
+    "build": "tsc",
+    "dev": "tsc --watch",
+    "prepublishOnly": "tsc"
+  },
+  "dependencies": {
+    "picocolors": "^1.1.1"
+  },
+  "devDependencies": {
+    "@types/node": "^20.14.0",
+    "typescript": "^5.5.0"
+  }
+}

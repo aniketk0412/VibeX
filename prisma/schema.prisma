@@ -26,6 +26,7 @@ model User {
   projects     Project[]
   apiKeys      ApiKey[]
   usageWindows UsageWindow[]
+  accessTokens AccessToken[]
 }
 
 model Account {
@@ -180,5 +181,21 @@ model ApiKey {
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@unique([userId, provider])
+  @@index([userId])
+}
+
+// CLI access tokens (vibex CLI / future desktop app). Only a SHA-256 hash is stored — the
+// plaintext (vx_…) is shown once at mint time. Bearer auth replaces the session cookie for
+// non-browser clients, so these requests are exempt from the same-origin check.
+model AccessToken {
+  id         String    @id @default(cuid())
+  userId     String
+  name       String // e.g. "CLI on DESKTOP-XYZ"
+  tokenHash  String    @unique // sha256 hex of the vx_ token
+  createdAt  DateTime  @default(now())
+  lastUsedAt DateTime?
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
   @@index([userId])
 }

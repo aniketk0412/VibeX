@@ -5,6 +5,7 @@
 import type { NextRequest } from "next/server";
 import { auth } from "@/auth";
 import { prisma } from "@/lib/prisma";
+import { resolveBearer } from "@/lib/cliTokens";
 import { runEngine } from "@/lib/engine";
 import { createRun, recordPrompt, setRunStep, finishRun, saveRunOutput, interruptIfRunning, recordUsage, getUserPlan, getStartWindow, reapStaleRuns, countActiveRuns } from "@/lib/runs";
 import { getUserKeys } from "@/lib/keys";
@@ -22,7 +23,11 @@ export const dynamic = "force-dynamic";
 export const maxDuration = 300;
 
 export async function POST(req: NextRequest) {
-  if (!isSameOrigin(req)) return new Response("Forbidden", { status: 403 });
+  // Non-browser clients (vibex CLI) authenticate with a bearer token instead of the session
+  // cookie. Bearer requests carry no ambient credentials, so the same-origin (CSRF) guard
+  // only applies to the cookie path.
+  const bearerUserId = await resolveBearer(req);
+  if (!bearerUserId && !isSameOrigin(req)) return new Response("Forbidden", { status: 403 });
   const body = await req.json().catch(() => ({}));
   let spec: Spec = body?.spec ?? {};
   const startIndex = typeof body?.startIndex === "number" ? body.startIndex : 0;
@@ -43,14 +48,15 @@ export async function POST(req: NextRequest) {
         .slice(0, 24)
     : undefined;
 
-  // If a project id is supplied, only persist when the signed-in user owns it.
+  // If a project id is supplied, only persist when the caller (cookie session or bearer
+  // token) owns it.
   let userId: string | null = null;
   if (projectId) {
-    const session = await auth();
-    if (session?.user) {
-      const project = await prisma.project.findFirst({ where: { id: projectId, userId: session.user.id } });
+    const uid = bearerUserId ?? (await auth())?.user?.id ?? null;
+    if (uid) {
+      const project = await prisma.project.findFirst({ where: { id: projectId, userId: uid } });
       if (project) {
-        userId = session.user.id;
+        userId = uid;
         spec = project.spec as Spec;
       }
     }
