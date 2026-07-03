@@ -9,8 +9,26 @@ import OpenInStackBlitz from "./OpenInStackBlitz";
 import DeployToVercel from "./DeployToVercel";
 import DeployToNetlify from "./DeployToNetlify";
 import ExportToGitHub from "./ExportToGitHub";
+import { toast } from "@/lib/toast";
 import type { GenFile } from "@/lib/steps";
 import styles from "./ShipMenu.module.css";
+
+// Native bridge exposed by the Vibex desktop app (Electron preload). Absent in browsers —
+// the "Save to folder" item only renders when the site runs inside the desktop shell.
+declare global {
+  interface Window {
+    vibexDesktop?: {
+      version: string;
+      saveProject: (payload: { name?: string; files: GenFile[] }) => Promise<{
+        ok?: boolean;
+        written?: number;
+        dir?: string;
+        canceled?: boolean;
+        error?: string;
+      }>;
+    };
+  }
+}
 
 export default function ShipMenu({
   files,
@@ -57,6 +75,20 @@ export default function ShipMenu({
           {onDownload && (
             <button type="button" className={styles.item} onClick={onDownload}>
               Download .zip
+            </button>
+          )}
+          {typeof window !== "undefined" && window.vibexDesktop && (
+            <button
+              type="button"
+              className={styles.item}
+              onClick={async () => {
+                setOpen(false);
+                const r = await window.vibexDesktop!.saveProject({ name: title, files });
+                if (r.ok) toast.success(`${r.written} files saved to ${r.dir}`);
+                else if (!r.canceled) toast.error("Couldn't save the project");
+              }}
+            >
+              Save to folder…
             </button>
           )}
         </div>
