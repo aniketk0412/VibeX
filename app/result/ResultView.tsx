@@ -266,7 +266,7 @@ export default function ResultView({
     <div className={styles.ideHost}>
       {/* Save writes to the LATEST run — hide it when viewing an older version so an edit can't
           silently overwrite the newest build from a stale base. */}
-      <CodeIDE files={files} frameless={inShell} projectId={!runs || !currentRunId || runs[0]?.id === currentRunId ? current?.id : undefined} />
+      <CodeIDE files={files} projectId={!runs || !currentRunId || runs[0]?.id === currentRunId ? current?.id : undefined} />
     </div>
   );
 

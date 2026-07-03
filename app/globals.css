@@ -1,21 +1,21 @@
 /* ============================================================
-   VIBEX — design system  ·  Ember on warm charcoal
+   VIBEX — design system  ·  Ember on cool graphite
    Tokens, base styles, and primitives. No generic templates.
    ============================================================ */
 
 :root {
-  /* dark is the default (premium dev-tool feel) */
-  --bg: #14110F;
-  --bg-elev: #1A1613;
-  --surface: #201B17;
-  --surface-2: #2A231E;
-  --surface-3: #332B24;
-  --line: #352D26;
-  --line-soft: #2A231E;
+  /* dark is the default (premium dev-tool feel) — ember accent on slate/graphite neutrals */
+  --bg: #0B0E13;
+  --bg-elev: #10141B;
+  --surface: #151A23;
+  --surface-2: #1C232E;
+  --surface-3: #232C3A;
+  --line: #252E3B;
+  --line-soft: #1B222D;
 
-  --text: #F4EEE6;
-  --dim: #B6AC9E;
-  --faint: #7E7368;
+  --text: #E9EEF5;
+  --dim: #A3AEBF;
+  --faint: #6B7689;
 
   --accent: #FF5A1F;
   --accent-press: #FF7038;
@@ -23,13 +23,13 @@
   --on-accent: #FFFFFF;
   --glyph: #FFF6EF;
 
-  --good: #46C08C;
-  --good-soft: rgba(70, 192, 140, 0.14);
+  --good: #3ECF8E;
+  --good-soft: rgba(62, 207, 142, 0.13);
 
   /* elevation scale */
-  --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.3), 0 2px 8px -5px rgba(0, 0, 0, 0.5);
-  --shadow-md: 0 4px 14px -6px rgba(0, 0, 0, 0.5), 0 14px 32px -12px rgba(0, 0, 0, 0.55);
-  --shadow: 0 26px 64px -32px rgba(0, 0, 0, 0.7);
+  --shadow-sm: 0 1px 2px rgba(2, 6, 14, 0.35), 0 2px 8px -5px rgba(2, 6, 14, 0.55);
+  --shadow-md: 0 4px 14px -6px rgba(2, 6, 14, 0.55), 0 14px 32px -12px rgba(2, 6, 14, 0.6);
+  --shadow: 0 26px 64px -32px rgba(2, 6, 14, 0.75);
   --r-xs: 8px;
   --r-sm: 11px;
   --r: 16px;
@@ -53,17 +53,17 @@
 }
 
 [data-theme="light"] {
-  --bg: #F6F1E9;
+  --bg: #F5F7FA;
   --bg-elev: #FFFFFF;
   --surface: #FFFFFF;
-  --surface-2: #F1EADF;
-  --surface-3: #E9E0D2;
-  --line: #E4DACB;
-  --line-soft: #EDE5D8;
+  --surface-2: #EEF2F7;
+  --surface-3: #E4EAF2;
+  --line: #DDE4EE;
+  --line-soft: #E8EDF4;
 
-  --text: #1A1512;
-  --dim: #665B50;
-  --faint: #98897B;
+  --text: #131820;
+  --dim: #5B6575;
+  --faint: #8B96A8;
 
   --accent: #E8480D;
   --accent-press: #C73A06;
@@ -71,12 +71,12 @@
   --on-accent: #FFFFFF;
   --glyph: #FFF6EF;
 
-  --good: #1F9D6E;
-  --good-soft: rgba(31, 157, 110, 0.12);
+  --good: #14966B;
+  --good-soft: rgba(20, 150, 107, 0.12);
 
-  --shadow-sm: 0 1px 2px rgba(60, 40, 20, 0.06), 0 2px 8px -5px rgba(60, 40, 20, 0.12);
-  --shadow-md: 0 4px 14px -6px rgba(60, 40, 20, 0.12), 0 14px 32px -12px rgba(60, 40, 20, 0.16);
-  --shadow: 0 24px 60px -30px rgba(60, 40, 20, 0.28);
+  --shadow-sm: 0 1px 2px rgba(15, 26, 42, 0.06), 0 2px 8px -5px rgba(15, 26, 42, 0.12);
+  --shadow-md: 0 4px 14px -6px rgba(15, 26, 42, 0.1), 0 14px 32px -12px rgba(15, 26, 42, 0.15);
+  --shadow: 0 24px 60px -30px rgba(15, 26, 42, 0.26);
 }
 
 * { box-sizing: border-box; margin: 0; padding: 0; }
@@ -205,6 +205,19 @@ a:focus:not(:focus-visible) { outline: none; }
 
 /* ── text selection ────────────────────────────────────── */
 ::selection { background: color-mix(in srgb, var(--accent) 26%, transparent); color: var(--text); }
+
+/* ── scrollbars: thin + tokened everywhere (incl. CodeMirror panes) ── */
+* { scrollbar-width: thin; scrollbar-color: var(--surface-3) transparent; }
+*::-webkit-scrollbar { width: 10px; height: 10px; }
+*::-webkit-scrollbar-track { background: transparent; }
+*::-webkit-scrollbar-thumb {
+  background: var(--surface-3);
+  border-radius: 8px;
+  border: 2px solid transparent;
+  background-clip: padding-box;
+}
+*::-webkit-scrollbar-thumb:hover { background: var(--faint); }
+*::-webkit-scrollbar-corner { background: transparent; }
 
 /* ── scroll-reveal entrance (used by <Reveal>) ─────────── */
 .reveal { will-change: opacity, transform; }

@@ -574,22 +574,22 @@
 .stat b { color: var(--dim); font-weight: 600; }
 .statWide { flex: 0 1 auto; overflow: hidden; text-overflow: ellipsis; }
 
+/* Inset canvas: every view (IDE, build log, empty state) sits as a bordered panel with clear
+   edges on all four sides — content visibly ends before the viewport does. */
 .canvas {
   flex: 1;
   min-height: 0;
   display: flex;
   flex-direction: column;
   overflow-y: auto;
+  padding: 14px 16px 16px;
 }
 .canvas > * {
   flex: 1;
   min-height: 0;
 }
-/* padded, scrollable canvas body for non-IDE views (build log, empty state) */
 .canvasPad {
   flex: 1;
-  padding: 20px;
-  overflow-y: auto;
   display: flex;
   flex-direction: column;
 }

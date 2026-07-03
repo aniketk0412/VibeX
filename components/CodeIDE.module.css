@@ -7,13 +7,8 @@
   border-radius: 14px;
   overflow: hidden;
   background: var(--bg-elev);
+  box-shadow: var(--shadow-sm);
 }
-/* docked into an app-shell canvas — the shell's chrome is the frame */
-.ide[data-frameless] {
-  border: none;
-  border-radius: 0;
-}
-
 .tree {
   display: flex;
   flex-direction: column;
@@ -119,7 +114,9 @@
   overflow: hidden;
 }
 .editor :global(.cm-editor) { height: 100%; font-size: 13px; }
-.editor :global(.cm-scroller) { font-family: var(--mono); }
+/* Both axes scroll INSIDE the code pane (no line wrap → long lines pan horizontally); the
+   global tokened scrollbars make the affordance visible instead of near-invisible. */
+.editor :global(.cm-scroller) { font-family: var(--mono); overflow: auto; }
 
 .previewPane {
   flex: 1;

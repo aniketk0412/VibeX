@@ -78,21 +78,22 @@ export const metadata: Metadata = {
   category: "technology",
 };
 
-// Set the theme before first paint to avoid a flash. Defaults to light.
+// Set the theme before first paint to avoid a flash. Defaults to dark (dev-tool posture);
+// a stored toggle choice always wins.
 const themeInit = `
 (function(){
   try {
-    var t = localStorage.getItem('vibex-theme') || 'light';
+    var t = localStorage.getItem('vibex-theme') || 'dark';
     document.documentElement.setAttribute('data-theme', t);
   } catch (e) {
-    document.documentElement.setAttribute('data-theme', 'light');
+    document.documentElement.setAttribute('data-theme', 'dark');
   }
 })();
 `;
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="en" data-theme="light" className={`${sans.variable} ${display.variable} ${mono.variable}`}>
+    <html lang="en" data-theme="dark" className={`${sans.variable} ${display.variable} ${mono.variable}`}>
       <head>
         <script dangerouslySetInnerHTML={{ __html: themeInit }} />
         {/* Without JS the IntersectionObserver never fires — keep revealed content visible. */}

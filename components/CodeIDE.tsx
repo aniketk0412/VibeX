@@ -32,9 +32,7 @@ function langFor(path: string): Extension[] {
 // Injected into the preview so the running app's console + errors stream back to the Console panel.
 const CONSOLE_BRIDGE = `<script>(function(){function s(l,a){try{parent.postMessage({__vibexlog:1,level:l,text:Array.prototype.map.call(a,function(x){try{return typeof x==='object'?JSON.stringify(x):String(x)}catch(e){return String(x)}}).join(' ')},'*')}catch(e){}}['log','info','warn','error'].forEach(function(l){var o=console[l];console[l]=function(){s(l,arguments);if(o)o.apply(console,arguments)}});window.addEventListener('error',function(e){s('error',[e.message+' ('+(e.filename||'').split('/').pop()+':'+(e.lineno||'')+')'])});window.addEventListener('unhandledrejection',function(e){s('error',['Unhandled rejection: '+((e.reason&&e.reason.message)||e.reason)])});})();</script>`;
 
-// `frameless` docks the IDE into an app-shell canvas: no own border/radius — the shell's chrome
-// provides the frame. Default (standalone pages) keeps the bordered card look.
-export default function CodeIDE({ files: initial, projectId, frameless }: { files: GenFile[]; projectId?: string; frameless?: boolean }) {
+export default function CodeIDE({ files: initial, projectId }: { files: GenFile[]; projectId?: string }) {
   const [files, setFiles] = useState<GenFile[]>(initial);
   const [active, setActive] = useState(0);
   const [dirty, setDirty] = useState(false);
@@ -83,7 +81,7 @@ export default function CodeIDE({ files: initial, projectId, frameless }: { file
   };
 
   return (
-    <div className={styles.ide} data-view={view} data-frameless={frameless || undefined}>
+    <div className={styles.ide} data-view={view}>
       <aside className={styles.tree}>
         <div className={styles.treeHead}>Files</div>
         {files.map((f, i) => (
