@@ -42,3 +42,11 @@
     display: none;
   }
 }
+
+/* phones: icon-only logo + compact actions so the signed-in header (toggle + Dashboard +
+   avatar) fits without overlap */
+@media (max-width: 480px) {
+  .logo > span { display: none; }
+  .right { gap: 8px; }
+  .right :global(.btn) { padding: 8px 12px; font-size: 14px; }
+}

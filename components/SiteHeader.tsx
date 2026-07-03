@@ -15,7 +15,7 @@ export default async function SiteHeader() {
     <header className={styles.nav}>
       <div className={`wrap ${styles.inner}`}>
         <Link href="/" aria-label="Vibex home">
-          <Logo size={30} />
+          <Logo size={30} className={styles.logo} />
         </Link>
         <div className={styles.right}>
           <nav className={styles.links}>

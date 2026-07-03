@@ -27,3 +27,10 @@
 @media (max-width: 560px) {
   .inner { padding: 13px 18px; }
 }
+
+/* phones: icon-only logo + tighter cluster so back/action/toggle/avatar never collide */
+@media (max-width: 480px) {
+  .brand span > span { display: none; }
+  .right { gap: 8px; }
+  .right :global(.btn) { padding: 8px 12px; font-size: 14px; }
+}
