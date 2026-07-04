@@ -8,7 +8,7 @@ import { prisma } from "@/lib/prisma";
 import { hasModelAccess } from "@/lib/keys";
 import { getUserPlan } from "@/lib/runs";
 import { isPaid } from "@/lib/usage";
-import type { Spec } from "@/lib/steps";
+import type { Spec, GenFile } from "@/lib/steps";
 import RunWorkspace from "./RunWorkspace";
 
 export const dynamic = "force-dynamic";
@@ -27,6 +27,7 @@ export default async function RunPage({
   }
   let spec: Spec | undefined;
   let ownedId: string | undefined;
+  let initialFiles: GenFile[] | undefined;
 
   if (projectId && session?.user) {
     const project = await prisma.project.findFirst({
@@ -35,6 +36,22 @@ export default async function RunPage({
     if (project) {
       spec = project.spec as Spec;
       ownedId = project.id;
+      // The latest build that actually PRODUCED files — so the canvas shows the current app
+      // (preview + code) the moment the workspace opens. Interrupted/failed runs leave
+      // files: null rows on top of the history; skip past them.
+      const recent = await prisma.run.findMany({
+        where: { projectId: project.id, status: { not: "RUNNING" } },
+        orderBy: { startedAt: "desc" },
+        take: 5,
+        select: { files: true },
+      });
+      for (const r of recent) {
+        const f = r.files as unknown as GenFile[] | null;
+        if (Array.isArray(f) && f.length) {
+          initialFiles = f;
+          break;
+        }
+      }
     }
   }
 
@@ -46,5 +63,5 @@ export default async function RunPage({
   // asks for an as-is rebuild).
   const awaitSteer = searchParams.iterate === "1" && !!ownedId;
 
-  return <RunWorkspace initialSpec={spec} projectId={ownedId} hasKey={hasKey} paidPlan={paidPlan} awaitSteer={awaitSteer} />;
+  return <RunWorkspace initialSpec={spec} projectId={ownedId} initialFiles={initialFiles} hasKey={hasKey} paidPlan={paidPlan} awaitSteer={awaitSteer} />;
 }

@@ -49,6 +49,21 @@
   cursor: col-resize;
   user-select: none;
 }
+
+/* Code mode (Firebase-Studio arrangement): the editor takes the stage, chat docks right */
+@media (min-width: 901px) {
+  .workspace[data-flip="true"] { grid-template-columns: 1fr 7px var(--convo-w, 400px); }
+  .workspace[data-flip="true"] .convo { order: 3; border-right: none; border-left: 1px solid var(--line-soft); }
+  .workspace[data-flip="true"] .divider { order: 2; }
+  .workspace[data-flip="true"] .canvas { order: 1; }
+
+  /* Chat hidden (toggle in the canvas header) — canvas gets the whole stage. A single 1fr
+     column (not 0 0 1fr): with flip active the canvas is the FIRST placed item, so fixed
+     zero-width columns would swallow it. display:none removes chat + divider from the grid. */
+  .workspace[data-chat-hidden="true"] { grid-template-columns: 1fr; }
+  .workspace[data-chat-hidden="true"] .convo,
+  .workspace[data-chat-hidden="true"] .divider { display: none; }
+}
 /* canvas maximize → conversation collapses; minimize → canvas collapses */
 
 /* draggable divider between conversation and working canvas */
@@ -181,6 +196,44 @@
 
 .msg[data-role="coder"] .msgRole { color: var(--accent); }
 .msg[data-role="reviewer"] .msgRole { color: var(--good); }
+
+/* blueprint card — the locked goal at a glance (iterate intro) */
+.bpCard {
+  margin-top: 14px;
+  border: 1px solid var(--line);
+  border-radius: 7px;
+  background: var(--surface);
+  overflow: hidden;
+  animation: msg-in 0.28s cubic-bezier(0.2, 0.7, 0.2, 1);
+}
+.bpTitle {
+  font-family: var(--mono);
+  font-size: 10.5px;
+  letter-spacing: 0.09em;
+  text-transform: uppercase;
+  color: var(--faint);
+  padding: 9px 12px 7px;
+  border-bottom: 1px solid var(--line-soft);
+}
+.bpRow {
+  display: flex;
+  gap: 12px;
+  padding: 8px 12px;
+  border-bottom: 1px solid var(--line-soft);
+  font-size: 12.5px;
+}
+.bpRow:last-child { border-bottom: none; }
+.bpKey {
+  flex: none;
+  width: 64px;
+  font-family: var(--mono);
+  font-size: 10.5px;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--faint);
+  padding-top: 1px;
+}
+.bpVal { color: var(--text); min-width: 0; line-height: 1.45; }
 
 /* orchestrator narration — quiet inset system notes, not another chat participant */
 .note { display: flex; align-items: flex-start; gap: 8px; margin-top: 14px; animation: msg-in 0.28s cubic-bezier(0.2, 0.7, 0.2, 1); }
@@ -572,6 +625,22 @@
   overflow: auto;
   white-space: pre;
   tab-size: 2;
+}
+
+/* full-editor host (Code mode, nothing streaming) — inset panel, same as /result */
+.ideFull {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  padding: 12px;
+}
+.ideFull > * { flex: 1; min-width: 0; min-height: 0; }
+.ideLoading {
+  flex: 1;
+  display: grid;
+  place-items: center;
+  color: var(--dim);
+  font-size: 13.5px;
 }
 
 .canvasEmpty {

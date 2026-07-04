@@ -7,6 +7,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
+import dynamic from "next/dynamic";
 import Link from "next/link";
 import Logo from "@/components/Logo";
 import ThemeToggle from "@/components/ThemeToggle";
@@ -21,6 +22,13 @@ import BackLink from "@/components/BackLink";
 import CopyButton from "@/components/CopyButton";
 import OpenInStackBlitz from "@/components/OpenInStackBlitz";
 import styles from "./run.module.css";
+
+// Full editor (CodeMirror) for the Code tab once files exist and nothing is streaming —
+// client-only and heavy, so it loads on demand.
+const CodeIDE = dynamic(() => import("@/components/CodeIDE"), {
+  ssr: false,
+  loading: () => <div className={styles.ideLoading}>Loading editor…</div>,
+});
 
 function Check() {
   return (
@@ -126,6 +134,7 @@ type Msg = {
   images?: AttachedImage[];
   file?: { path: string; code: string; stub?: boolean };
   step?: { n: number; of: number }; // set when role === "step" (feed divider)
+  card?: { title: string; rows: { k: string; v: string }[] }; // blueprint card (iterate intro)
 };
 
 type RunEvent =
@@ -139,7 +148,7 @@ type RunEvent =
   | { type: "complete"; tokens: number; cost: number; steps: number; files: GenFile[] }
   | { type: "error"; message: string };
 
-export default function RunWorkspace({ initialSpec, projectId, hasKey = true, paidPlan = false, awaitSteer = false }: { initialSpec?: Spec; projectId?: string; hasKey?: boolean; paidPlan?: boolean; awaitSteer?: boolean }) {
+export default function RunWorkspace({ initialSpec, projectId, initialFiles, hasKey = true, paidPlan = false, awaitSteer = false }: { initialSpec?: Spec; projectId?: string; initialFiles?: GenFile[]; hasKey?: boolean; paidPlan?: boolean; awaitSteer?: boolean }) {
   const router = useRouter();
   const [spec, setSpec] = useState<Spec>(initialSpec ?? {});
   const [live, setLive] = useState(true);
@@ -161,10 +170,13 @@ export default function RunWorkspace({ initialSpec, projectId, hasKey = true, pa
   const [draft, setDraft] = useState("");
   const [attachments, setAttachments] = useState<AttachedImage[]>([]);
 
-  // Working canvas: Preview ⇄ Code over the generated files (live previews while building,
-  // full contents once the run completes).
-  const [canvasTab, setCanvasTab] = useState<"preview" | "code">("code");
-  const [files, setFiles] = useState<GenFile[]>([]);
+  // Working canvas: Preview ⇄ Code over the generated files. Seeded with the project's latest
+  // build (initialFiles) so the current app is visible immediately; live previews take over
+  // while a build streams, full contents once it completes.
+  const [canvasTab, setCanvasTab] = useState<"preview" | "code">(initialFiles?.length ? "preview" : "code");
+  const [files, setFiles] = useState<GenFile[]>(initialFiles ?? []);
+  const [chatHidden, setChatHidden] = useState(false);
+  const [buildSeq, setBuildSeq] = useState(0); // bumps per finished build — remounts the editor
   const [streamPaths, setStreamPaths] = useState<{ path: string; preview: string }[]>([]);
   const [activeFile, setActiveFile] = useState(0);
   const autoSwitched = useRef(false);
@@ -187,7 +199,7 @@ export default function RunWorkspace({ initialSpec, projectId, hasKey = true, pa
   const previewIframeRef = useRef<HTMLIFrameElement>(null); // live preview (sandboxed, opaque origin)
   const captureIframeRef = useRef<HTMLIFrameElement>(null); // hidden script-less twin, for screenshots
   const [captureDoc, setCaptureDoc] = useState<string | null>(null); // mounted only while capturing
-  const filesRef = useRef<GenFile[]>([]); // latest generated files (for capture + restyle base)
+  const filesRef = useRef<GenFile[]>(initialFiles ?? []); // latest generated files (for capture + restyle base)
   const restylingRef = useRef(false); // true during a design-critic refine pass
   const designPassRef = useRef(0); // design refine passes done this build
 
@@ -212,7 +224,10 @@ export default function RunWorkspace({ initialSpec, projectId, hasKey = true, pa
       const rect = workspaceRef.current?.getBoundingClientRect();
       if (!rect) return;
       const max = Math.min(760, rect.width - 380);
-      const w = Math.max(300, Math.min(max, ev.clientX - rect.left));
+      // In Code mode the chat is docked on the RIGHT — the drag math mirrors.
+      const flipped = workspaceRef.current?.getAttribute("data-flip") === "true";
+      const raw = flipped ? rect.right - ev.clientX : ev.clientX - rect.left;
+      const w = Math.max(300, Math.min(max, raw));
       setConvoW(w);
     };
     const onUp = () => {
@@ -236,6 +251,8 @@ export default function RunWorkspace({ initialSpec, projectId, hasKey = true, pa
     setMessages((m) => [...m, { id: idRef.current++, role, text, verdict, images, file }]);
   const addStep = (title: string, n: number, of: number) =>
     setMessages((m) => [...m, { id: idRef.current++, role: "step", text: title, step: { n, of } }]);
+  const addCard = (title: string, rows: { k: string; v: string }[]) =>
+    setMessages((m) => [...m, { id: idRef.current++, role: "vibex", text: "", card: { title, rows } }]);
 
   const viewOutput = () => router.push(projectId ? `/result?project=${projectId}` : "/result");
 
@@ -269,7 +286,14 @@ export default function RunWorkspace({ initialSpec, projectId, hasKey = true, pa
       // Iterate mode: no auto-build. The composer is the starting gun.
       if (!startedRef.current) {
         startedRef.current = true; // reuse the guard so StrictMode doesn't double the intro note
-        addMsg("vibex", "This project already has a build. Tell me what to change and I'll rebuild with your direction folded into every file — or use “Rebuild as-is” below.");
+        // Blueprint card (Firebase-Studio style): what's locked in, at a glance.
+        addCard("Build blueprint", [
+          { k: "Goal", v: parsed.idea ?? "Your project" },
+          { k: "Platform", v: parsed.platform ?? "web" },
+          { k: "Models", v: parsed.coder ? `${parsed.coder} + ${parsed.reviewer}` : "Default pair" },
+          { k: "Plan", v: `${plan.length} steps — rebuilt on every iteration` },
+        ]);
+        addMsg("vibex", "This project already has a build — it's on the canvas. Tell me what to change and I'll rebuild with your direction folded into every file — or use “Rebuild as-is” below.");
       }
       inputRef.current?.focus();
     } else {
@@ -456,6 +480,7 @@ export default function RunWorkspace({ initialSpec, projectId, hasKey = true, pa
     if (!r.files) return; // local fallback / aborted handle their own state
     await runDesignLoop(theSpec, r.live);
     setDone(true);
+    setBuildSeq((s) => s + 1); // fresh files → remount the editor with them
     trackEvent("build_completed", { live: r.live });
     if (r.live) {
       addMsg("vibex", "Build complete — reviewed and design-checked, and saved. Preview is on the canvas →");
@@ -564,6 +589,7 @@ export default function RunWorkspace({ initialSpec, projectId, hasKey = true, pa
       setCost((c) => c + 0.04);
       if (i >= plan.length) {
         if (localTimer.current) clearInterval(localTimer.current);
+        setBuildSeq((s) => s + 1);
         const title = theSpec.idea ?? "Your app";
         setFiles([
           {
@@ -650,6 +676,8 @@ export default function RunWorkspace({ initialSpec, projectId, hasKey = true, pa
   const canvasFiles: GenFile[] = files.length ? files : streamPaths.map((s) => ({ path: s.path, content: s.preview }));
   const safeFile = Math.min(activeFile, Math.max(0, canvasFiles.length - 1));
   const previewDoc = files.length ? buildPreview(files) : null;
+  // Full editor only when nothing is streaming — mid-build, the lightweight viewer follows the writes.
+  const canEdit = (done || paused) && files.length > 0;
 
   // When the build finishes and there's something previewable, flip the canvas to Preview once.
   useEffect(() => {
@@ -678,6 +706,8 @@ export default function RunWorkspace({ initialSpec, projectId, hasKey = true, pa
         ref={workspaceRef}
         className={`${styles.workspace} ${dragging ? styles.dragging : ""}`}
         style={{ "--convo-w": `${convoW}px` } as React.CSSProperties}
+        data-flip={canvasTab === "code" ? "true" : undefined}
+        data-chat-hidden={chatHidden ? "true" : undefined}
       >
         {/* ── left: conversation ───────────────────────── */}
         <section className={styles.convo}>
@@ -744,6 +774,20 @@ export default function RunWorkspace({ initialSpec, projectId, hasKey = true, pa
 
           <div className={styles.feed}>
             {messages.map((m, i) => {
+              // Blueprint card — the locked goal at a glance (iterate intro).
+              if (m.card) {
+                return (
+                  <div key={m.id} className={styles.bpCard}>
+                    <div className={styles.bpTitle}>{m.card.title}</div>
+                    {m.card.rows.map((r) => (
+                      <div key={r.k} className={styles.bpRow}>
+                        <span className={styles.bpKey}>{r.k}</span>
+                        <span className={styles.bpVal}>{r.v}</span>
+                      </div>
+                    ))}
+                  </div>
+                );
+              }
               // Step divider — the feed's skeleton; every step's turns hang under its label.
               if (m.role === "step") {
                 return (
@@ -886,6 +930,9 @@ export default function RunWorkspace({ initialSpec, projectId, hasKey = true, pa
               </button>
             </div>
             <div className={styles.canvasCtrls}>
+              <button type="button" className={styles.ctrlBtn} onClick={() => setChatHidden((v) => !v)} aria-label={chatHidden ? "Show chat" : "Hide chat"} title={chatHidden ? "Show chat" : "Hide chat"} data-active={chatHidden}>
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden><rect x="3" y="4" width="18" height="16" rx="2" /><path d="M9 4v16" /></svg>
+              </button>
               <button type="button" className={styles.ctrlBtn} onClick={toggleFullscreen} aria-label="Toggle fullscreen" title="Fullscreen">
                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden><path d="M8 3H5a2 2 0 0 0-2 2v3M16 3h3a2 2 0 0 1 2 2v3M21 16v3a2 2 0 0 1-2 2h-3M3 16v3a2 2 0 0 0 2 2h3" /></svg>
               </button>
@@ -911,6 +958,12 @@ export default function RunWorkspace({ initialSpec, projectId, hasKey = true, pa
                   <p>{done ? "No previewable HTML — check the Code tab." : "Live preview appears once the build produces the files."}</p>
                 </div>
               )
+            ) : canEdit ? (
+              // Firebase-Studio-style Code mode: the real editor (tree + CodeMirror + split
+              // preview + console), with Save wired to the project's latest run.
+              <div className={styles.ideFull}>
+                <CodeIDE key={`b${buildSeq}`} files={files} projectId={projectId} />
+              </div>
             ) : canvasFiles.length ? (
               <div className={styles.ide}>
                 <aside className={styles.ideTree}>
