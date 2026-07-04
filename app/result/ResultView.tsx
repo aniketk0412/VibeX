@@ -347,7 +347,7 @@ export default function ResultView({
               {!isEmpty && (
                 <ShipMenu files={files} title={title} projectId={current!.id} previewable={!!preview} onDownload={download} />
               )}
-              {!isEmpty && <Link href={`/run?project=${current!.id}`} className="btn btn-ghost btn-sm">Iterate</Link>}
+              {!isEmpty && <Link href={`/run?project=${current!.id}&iterate=1`} className="btn btn-ghost btn-sm">Iterate</Link>}
               <ProjectActions projectId={current!.id} title={title} redirectAfterDelete="/dashboard" />
             </div>
           </header>

@@ -139,14 +139,17 @@ type RunEvent =
   | { type: "complete"; tokens: number; cost: number; steps: number; files: GenFile[] }
   | { type: "error"; message: string };
 
-export default function RunWorkspace({ initialSpec, projectId, hasKey = true, paidPlan = false }: { initialSpec?: Spec; projectId?: string; hasKey?: boolean; paidPlan?: boolean }) {
+export default function RunWorkspace({ initialSpec, projectId, hasKey = true, paidPlan = false, awaitSteer = false }: { initialSpec?: Spec; projectId?: string; hasKey?: boolean; paidPlan?: boolean; awaitSteer?: boolean }) {
   const router = useRouter();
   const [spec, setSpec] = useState<Spec>(initialSpec ?? {});
   const [live, setLive] = useState(true);
 
   const [steps, setSteps] = useState<string[]>([]);
   const [completed, setCompleted] = useState(0);
-  const [paused, setPaused] = useState(false);
+  // Iterate mode (awaitSteer): arrive paused and AWAITING the user's direction — nothing runs
+  // (and nothing is spent) until they say what should change, or explicitly rebuild as-is.
+  const [awaiting, setAwaiting] = useState(awaitSteer);
+  const [paused, setPaused] = useState(awaitSteer);
   const [limitPause, setLimitPause] = useState(false);
   const [done, setDone] = useState(false);
 
@@ -173,6 +176,7 @@ export default function RunWorkspace({ initialSpec, projectId, hasKey = true, pa
   const canvasRef = useRef<HTMLElement>(null);
 
   const abortRef = useRef<AbortController | null>(null);
+  const inputRef = useRef<HTMLInputElement>(null);
   const localTimer = useRef<ReturnType<typeof setInterval> | null>(null);
   const startedRef = useRef(false);
   const stepsRef = useRef<string[]>([]);
@@ -260,15 +264,25 @@ export default function RunWorkspace({ initialSpec, projectId, hasKey = true, pa
     // and the startedRef guard then blocks the real pass, hanging the page on the typing dots.
     // A 0ms timer is cleared by the throwaway cleanup before it can fire, so exactly one run
     // starts in dev and prod alike.
-    const kickoff = setTimeout(() => {
+    let kickoff: ReturnType<typeof setTimeout> | undefined;
+    if (awaitSteer) {
+      // Iterate mode: no auto-build. The composer is the starting gun.
       if (!startedRef.current) {
-        startedRef.current = true;
-        trackEvent("build_started", { saved: !!projectId });
-        void runBuild(parsed, 0);
+        startedRef.current = true; // reuse the guard so StrictMode doesn't double the intro note
+        addMsg("vibex", "This project already has a build. Tell me what to change and I'll rebuild with your direction folded into every file — or use “Rebuild as-is” below.");
       }
-    }, 0);
+      inputRef.current?.focus();
+    } else {
+      kickoff = setTimeout(() => {
+        if (!startedRef.current) {
+          startedRef.current = true;
+          trackEvent("build_started", { saved: !!projectId });
+          void runBuild(parsed, 0);
+        }
+      }, 0);
+    }
     return () => {
-      clearTimeout(kickoff);
+      if (kickoff) clearTimeout(kickoff);
       abortRef.current?.abort();
       if (localTimer.current) clearInterval(localTimer.current);
     };
@@ -574,7 +588,14 @@ export default function RunWorkspace({ initialSpec, projectId, hasKey = true, pa
   function resume() {
     setPaused(false);
     setLimitPause(false);
-    addMsg("vibex", "Resuming.");
+    if (awaiting) {
+      // Iterate mode's explicit "run it again unchanged" path — the first spend happens here.
+      setAwaiting(false);
+      trackEvent("build_started", { saved: !!projectId, iterate: true });
+      addMsg("vibex", "Rebuilding as-is.");
+    } else {
+      addMsg("vibex", "Resuming.");
+    }
     void runBuild(spec, completed);
   }
 
@@ -601,6 +622,11 @@ export default function RunWorkspace({ initialSpec, projectId, hasKey = true, pa
     setDone(false);
     setPaused(false);
     setLimitPause(false);
+    if (awaiting) {
+      // Iterate mode: this first instruction is what starts the build (and the spend).
+      setAwaiting(false);
+      trackEvent("build_started", { saved: !!projectId, iterate: true });
+    }
     // Keep the current files on the canvas during the rebuild — a correction shouldn't blank
     // the user's working app; the new build replaces them only once it completes.
     setStreamPaths([]);
@@ -612,7 +638,7 @@ export default function RunWorkspace({ initialSpec, projectId, hasKey = true, pa
 
   const total = steps.length || 1;
   const pct = Math.round((completed / total) * 100);
-  const status = done ? "DONE" : paused ? "PAUSED" : "LIVE";
+  const status = done ? "DONE" : awaiting ? "READY" : paused ? "PAUSED" : "LIVE";
 
   const roleLabel: Record<Role, string> = { vibex: "Vibex", coder: "Coder", reviewer: "Reviewer", user: "You", step: "Step" };
 
@@ -687,7 +713,9 @@ export default function RunWorkspace({ initialSpec, projectId, hasKey = true, pa
             {!trackOpen && !done && (
               <div className={styles.trackNow}>
                 {paused ? <span className={styles.pending} /> : <span className={styles.spin} />}
-                <span className={styles.trackNowText}>{paused ? "Paused" : activeTitle || "Working…"}</span>
+                <span className={styles.trackNowText}>
+                  {awaiting ? "Waiting for your direction" : paused ? "Paused" : activeTitle || "Working…"}
+                </span>
               </div>
             )}
             {trackOpen && (
@@ -795,6 +823,7 @@ export default function RunWorkspace({ initialSpec, projectId, hasKey = true, pa
                   so don't show a button that silently does nothing. */}
               {paidPlan && <AttachButton onPick={(imgs) => setAttachments((a) => [...a, ...imgs])} />}
               <input
+                ref={inputRef}
                 className={styles.input}
                 value={draft}
                 onChange={(e) => setDraft(e.target.value)}
@@ -804,7 +833,15 @@ export default function RunWorkspace({ initialSpec, projectId, hasKey = true, pa
                     send();
                   }
                 }}
-                placeholder={done ? "Build finished" : paused ? "Add a correction, then resume…" : "Steer the build — e.g. use a calendar view…"}
+                placeholder={
+                  done
+                    ? "Build finished"
+                    : awaiting
+                      ? "What should change? e.g. add dark mode, use a calendar view…"
+                      : paused
+                        ? "Add a correction, then resume…"
+                        : "Steer the build — e.g. use a calendar view…"
+                }
                 disabled={done}
                 aria-label="Steer the build"
               />
@@ -821,7 +858,7 @@ export default function RunWorkspace({ initialSpec, projectId, hasKey = true, pa
                   {files.length > 0 && <OpenInStackBlitz files={files} title={spec.idea} />}
                 </>
               ) : paused ? (
-                <button type="button" className={styles.resumeBtn} onClick={resume}><Play /> Resume</button>
+                <button type="button" className={styles.resumeBtn} onClick={resume}><Play /> {awaiting ? "Rebuild as-is" : "Resume"}</button>
               ) : (
                 <button type="button" className={styles.interruptBtn} onClick={interrupt}><Pause /> Interrupt</button>
               )}

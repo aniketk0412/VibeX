@@ -41,5 +41,10 @@ export default async function RunPage({
   const hasKey = await hasModelAccess(session?.user?.id);
   const paidPlan = session?.user ? isPaid(await getUserPlan(session.user.id)) : false;
 
-  return <RunWorkspace initialSpec={spec} projectId={ownedId} hasKey={hasKey} paidPlan={paidPlan} />;
+  // ?iterate=1 (the Iterate button on /result): arrive AWAITING direction instead of instantly
+  // rebuilding — tokens only start burning once the user says what should change (or explicitly
+  // asks for an as-is rebuild).
+  const awaitSteer = searchParams.iterate === "1" && !!ownedId;
+
+  return <RunWorkspace initialSpec={spec} projectId={ownedId} hasKey={hasKey} paidPlan={paidPlan} awaitSteer={awaitSteer} />;
 }
