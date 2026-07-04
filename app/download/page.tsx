@@ -1,12 +1,13 @@
 // /download — Vibex on every surface: browser, Windows desktop, terminal. Public page (not in
-// the auth-gate matcher). The Windows button is driven by NEXT_PUBLIC_DESKTOP_DOWNLOAD_URL so
-// the page can ship before the installer is uploaded; absent env → honest "almost here" state.
+// the auth-gate matcher). Featured desktop panel first (it's the page's namesake), then web +
+// terminal. The Windows button is driven by NEXT_PUBLIC_DESKTOP_DOWNLOAD_URL so the page can
+// ship before the installer is hosted; absent env → honest "almost here" state, no dead links.
 
 import type { Metadata } from "next";
 import Link from "next/link";
 import SiteHeader from "@/components/SiteHeader";
 import SiteFooter from "@/components/SiteFooter";
-import { IconGlobe, IconTerminal } from "@/components/icons";
+import { IconGlobe, IconZap, IconLock } from "@/components/icons";
 import styles from "./download.module.css";
 
 export const metadata: Metadata = {
@@ -15,19 +16,10 @@ export const metadata: Metadata = {
   alternates: { canonical: "/download" },
 };
 
-// Set in Vercel once the installer is uploaded (e.g. a GitHub release asset URL).
+// Set in Vercel once the installer is uploaded (e.g. a public release asset URL).
 const DESKTOP_URL = process.env.NEXT_PUBLIC_DESKTOP_DOWNLOAD_URL;
 // Flip when `npm publish` has run from cli/ (package: vibex-app, command: vibex).
 const CLI_PUBLISHED = false;
-
-function IconMonitor() {
-  return (
-    <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
-      <rect x="2" y="3" width="20" height="14" rx="2" />
-      <path d="M8 21h8M12 17v4" />
-    </svg>
-  );
-}
 
 export default function DownloadPage() {
   return (
@@ -36,62 +28,100 @@ export default function DownloadPage() {
       <main className="wrap">
         <section className={styles.head}>
           <span className="eyebrow"><span className="dot" /> Get Vibex</span>
-          <h1 className={styles.title}>One engine. Three ways in.</h1>
+          <h1 className={styles.title}>One engine.<br />Three ways in.</h1>
           <p className={styles.sub}>
-            Browser, Windows app, or terminal — same account, same plans, and every build lands on
-            your dashboard no matter where it started.
+            Browser, Windows app, or terminal — same account, same plans. Every build lands on your
+            dashboard no matter where it started.
           </p>
         </section>
 
-        <section className={styles.grid} aria-label="Ways to use Vibex">
+        {/* ── featured: the desktop app ─────────────────────────────── */}
+        <section className={styles.feature} aria-label="Vibex for Windows">
+          <div className={styles.featureText}>
+            <span className={styles.kicker}>Desktop</span>
+            <h2 className={styles.featureName}>Vibex for Windows</h2>
+            <p className={styles.featureBlurb}>
+              The whole workspace in its own window — plus the thing a browser tab can&apos;t do:
+              <b> save any build straight into a local folder</b>, ready for git and your editor.
+            </p>
+            <div className={styles.metaRow}>
+              <span className={styles.metaChip}>v0.1.0</span>
+              <span className={styles.metaChip}>~78 MB</span>
+              <span className={styles.metaChip}>Windows 10 / 11 · x64</span>
+              <span className={styles.metaChip}>macOS soon</span>
+            </div>
+            {DESKTOP_URL ? (
+              <div className={styles.ctaRow}>
+                <a href={DESKTOP_URL} className="btn btn-primary btn-lg">Download for Windows</a>
+                <span className={styles.note}>Unsigned preview build — SmartScreen may ask you to confirm.</span>
+              </div>
+            ) : (
+              <div className={styles.ctaRow}>
+                <span className={`btn btn-secondary btn-lg ${styles.btnDisabled}`} aria-disabled>Almost here</span>
+                <span className={styles.note}>Built and in final checks. Meanwhile, the web app is the same engine.</span>
+              </div>
+            )}
+          </div>
+
+          {/* CSS-drawn app window — concrete, not a stock screenshot */}
+          <div className={styles.shot} aria-hidden>
+            <div className={styles.shotBar}>
+              <span className={styles.shotDots}><i /><i /><i /></span>
+              <span className={styles.shotTitle}>Vibex</span>
+            </div>
+            <div className={styles.shotBody}>
+              <div className={styles.shotChat}>
+                <span className={styles.shotLine} style={{ width: "72%" }} />
+                <span className={styles.shotLine} style={{ width: "88%" }} />
+                <span className={styles.shotLineGold} style={{ width: "56%" }} />
+                <span className={styles.shotLine} style={{ width: "80%" }} />
+                <span className={styles.shotInput} />
+              </div>
+              <div className={styles.shotCanvas}>
+                <span className={styles.shotChip} />
+                <span className={styles.shotBlock} />
+                <span className={styles.shotBtn}>Save to folder</span>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        {/* ── web + terminal ────────────────────────────────────────── */}
+        <section className={styles.pair}>
           <div className={styles.card}>
-            <span className={styles.cardIcon}><IconGlobe size={18} /></span>
+            <span className={styles.cardIcon}><IconGlobe size={17} /></span>
             <h2 className={styles.cardName}>Web</h2>
             <p className={styles.cardBlurb}>
               Nothing to install. Describe the idea, watch the Coder + Reviewer build it, edit in
               the in-app VS Code editor, ship from the browser.
             </p>
-            <span className={styles.meta}>Works everywhere · live now</span>
             <Link href="/new" className={`btn btn-primary ${styles.cardBtn}`}>Start building →</Link>
           </div>
 
-          <div className={styles.card}>
-            <span className={styles.cardIcon}><IconMonitor /></span>
-            <h2 className={styles.cardName}>Windows</h2>
-            <p className={styles.cardBlurb}>
-              Vibex in its own window — plus what a browser tab can&apos;t do: save any build straight
-              into a local folder, ready for git and your editor.
+          <div className={styles.term}>
+            <div className={styles.termBar}>
+              <span className={styles.termDots}><i /><i /><i /></span>
+              <span className={styles.termTitle}>terminal</span>
+              {!CLI_PUBLISHED && <span className={styles.termSoon}>npm · rolling out</span>}
+            </div>
+            <pre className={styles.termBody}>
+              <span className={styles.p}>$ </span><span className={styles.c}>npm i -g vibex-app</span>{"\n"}
+              <span className={styles.p}>$ </span><span className={styles.c}>vibex login</span>{"\n"}
+              <span className={styles.p}>$ </span><span className={styles.c}>vibex build</span> <span className={styles.a}>&quot;a habit tracker&quot;</span>{"\n"}
+              <span className={styles.o}>✔ Build complete — 4 files → ./habit-tracker</span>
+            </pre>
+            <p className={styles.termFoot}>
+              The Claude-Code-style CLI: builds land in the folder you&apos;re standing in.
+              Token auth from Settings · Node 18+ · Windows, macOS, Linux.
             </p>
-            <span className={styles.meta}>v0.1.0 · ~78 MB · Windows 10/11 (x64)</span>
-            {DESKTOP_URL ? (
-              <>
-                <a href={DESKTOP_URL} className={`btn btn-primary ${styles.cardBtn}`}>Download for Windows</a>
-                <span className={styles.note}>Unsigned preview build — Windows SmartScreen may ask you to confirm.</span>
-              </>
-            ) : (
-              <>
-                <span className={`btn btn-ghost ${styles.cardBtn} ${styles.btnDisabled}`} aria-disabled>Almost here</span>
-                <span className={styles.note}>The installer is built and in final checks — days, not weeks. macOS later.</span>
-              </>
-            )}
           </div>
+        </section>
 
-          <div className={styles.card}>
-            <span className={styles.cardIcon}><IconTerminal size={18} /></span>
-            <h2 className={styles.cardName}>Terminal</h2>
-            <p className={styles.cardBlurb}>
-              The Claude-Code-style CLI: one command builds the app into the folder you&apos;re
-              standing in. Token auth from Settings, usage on your plan.
-            </p>
-            <pre className={styles.code}>{`npm i -g vibex-app
-vibex login
-vibex build "a habit tracker"`}</pre>
-            {CLI_PUBLISHED ? (
-              <span className={styles.meta}>Node 18+ · npm · Windows, macOS, Linux</span>
-            ) : (
-              <span className={styles.note}>Landing on npm shortly — the web app is live today.</span>
-            )}
-          </div>
+        {/* ── the constants, whichever door they pick ───────────────── */}
+        <section className={styles.strip} aria-label="Included everywhere">
+          <span className={styles.stripItem}><IconZap size={14} /> Coder + Reviewer on every build</span>
+          <span className={styles.stripItem}><IconGlobe size={14} /> One account, one dashboard</span>
+          <span className={styles.stripItem}><IconLock size={14} /> Your code stays yours</span>
         </section>
       </main>
       <SiteFooter />
