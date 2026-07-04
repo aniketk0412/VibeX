@@ -93,7 +93,9 @@ const themeInit = `
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="en" data-theme="dark" className={`${sans.variable} ${display.variable} ${mono.variable}`}>
+    // suppressHydrationWarning: themeInit intentionally rewrites data-theme before hydration
+    // when the user has a stored preference — that mismatch is by design, not a bug.
+    <html lang="en" data-theme="dark" suppressHydrationWarning className={`${sans.variable} ${display.variable} ${mono.variable}`}>
       <head>
         <script dangerouslySetInnerHTML={{ __html: themeInit }} />
         {/* Without JS the IntersectionObserver never fires — keep revealed content visible. */}

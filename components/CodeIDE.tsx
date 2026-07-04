@@ -1,17 +1,14 @@
 "use client";
 
-// In-app code editor (CodeMirror) with a live preview beside it. Edit any generated file and the
-// preview re-renders instantly; Save persists edits back to the project. Loaded client-only
-// (dynamic ssr:false from the result view) since CodeMirror needs the DOM.
+// In-app IDE — Monaco (the actual VS Code editor) with a live preview beside it. Real editor
+// affordances: per-file models with their own undo stacks, open-file tabs, Ctrl+P quick-open,
+// find/replace, multi-cursor, minimap, HTML/CSS/JS IntelliSense. Edit any generated file and
+// the preview re-renders instantly; Save persists edits back to the project. Loaded client-only
+// (dynamic ssr:false from the host views); Monaco itself arrives lazily via the loader CDN, so
+// the app bundle stays lean.
 
-import { useEffect, useMemo, useState } from "react";
-import CodeMirror from "@uiw/react-codemirror";
-import { html } from "@codemirror/lang-html";
-import { css } from "@codemirror/lang-css";
-import { javascript } from "@codemirror/lang-javascript";
-import { markdown } from "@codemirror/lang-markdown";
-import { oneDark } from "@codemirror/theme-one-dark";
-import type { Extension } from "@codemirror/state";
+import { useEffect, useMemo, useRef, useState } from "react";
+import Editor, { type BeforeMount, type OnMount } from "@monaco-editor/react";
 import type { GenFile } from "@/lib/steps";
 import { buildPreview } from "@/lib/preview";
 import { saveProjectFiles } from "@/app/actions";
@@ -20,21 +17,44 @@ import styles from "./CodeIDE.module.css";
 
 type View = "split" | "code" | "preview";
 
-function langFor(path: string): Extension[] {
-  if (/\.html?$/i.test(path)) return [html()];
-  if (/\.css$/i.test(path)) return [css()];
-  if (/\.(jsx|tsx)$/i.test(path)) return [javascript({ jsx: true, typescript: /\.tsx$/i.test(path) })];
-  if (/\.(js|mjs|cjs|ts)$/i.test(path)) return [javascript({ typescript: /\.ts$/i.test(path) })];
-  if (/\.md$/i.test(path)) return [markdown()];
-  return [];
+function langFor(path: string): string {
+  if (/\.html?$/i.test(path)) return "html";
+  if (/\.css$/i.test(path)) return "css";
+  if (/\.tsx?$/i.test(path)) return "typescript";
+  if (/\.(js|jsx|mjs|cjs)$/i.test(path)) return "javascript";
+  if (/\.md$/i.test(path)) return "markdown";
+  if (/\.json$/i.test(path)) return "json";
+  return "plaintext";
 }
+
+// The editor stays brand-ink in BOTH site themes (like the app's other code surfaces).
+const defineInkTheme: BeforeMount = (monaco) => {
+  monaco.editor.defineTheme("vibex-ink", {
+    base: "vs-dark",
+    inherit: true,
+    rules: [],
+    colors: {
+      "editor.background": "#14120e",
+      "editor.lineHighlightBackground": "#1d1913",
+      "editorLineNumber.foreground": "#59503e",
+      "editorLineNumber.activeForeground": "#a89877",
+      "editorIndentGuide.background1": "#211d16",
+      "editorCursor.foreground": "#d4a853",
+      "editor.selectionBackground": "#3a3018",
+      "minimap.background": "#14120e",
+      "scrollbarSlider.background": "#2a251b80",
+      "scrollbarSlider.hoverBackground": "#3a3324a0",
+    },
+  });
+};
 
 // Injected into the preview so the running app's console + errors stream back to the Console panel.
 const CONSOLE_BRIDGE = `<script>(function(){function s(l,a){try{parent.postMessage({__vibexlog:1,level:l,text:Array.prototype.map.call(a,function(x){try{return typeof x==='object'?JSON.stringify(x):String(x)}catch(e){return String(x)}}).join(' ')},'*')}catch(e){}}['log','info','warn','error'].forEach(function(l){var o=console[l];console[l]=function(){s(l,arguments);if(o)o.apply(console,arguments)}});window.addEventListener('error',function(e){s('error',[e.message+' ('+(e.filename||'').split('/').pop()+':'+(e.lineno||'')+')'])});window.addEventListener('unhandledrejection',function(e){s('error',['Unhandled rejection: '+((e.reason&&e.reason.message)||e.reason)])});})();</script>`;
 
 export default function CodeIDE({ files: initial, projectId }: { files: GenFile[]; projectId?: string }) {
   const [files, setFiles] = useState<GenFile[]>(initial);
-  const [active, setActive] = useState(0);
+  const [openPaths, setOpenPaths] = useState<string[]>(initial.length ? [initial[0].path] : []);
+  const [activePath, setActivePath] = useState<string>(initial[0]?.path ?? "");
   const [dirty, setDirty] = useState(false);
   const [saving, setSaving] = useState(false);
   const [view, setView] = useState<View>("split");
@@ -42,12 +62,10 @@ export default function CodeIDE({ files: initial, projectId }: { files: GenFile[
   const [logs, setLogs] = useState<{ level: string; text: string }[]>([]);
   const [consoleOpen, setConsoleOpen] = useState(false);
 
-  const safe = Math.min(active, Math.max(0, files.length - 1));
-  const file = files[safe];
+  const file = files.find((f) => f.path === activePath) ?? files[0];
   const preview = useMemo(() => buildPreview(files), [files]);
   // Inject a console bridge so the preview's console.log + errors stream into our Console panel.
   const previewDoc = useMemo(() => (preview ? preview + CONSOLE_BRIDGE : null), [preview]);
-  const extensions = useMemo(() => langFor(file?.path ?? ""), [file?.path]);
   const errorCount = logs.filter((l) => l.level === "error").length;
 
   useEffect(() => {
@@ -62,15 +80,32 @@ export default function CodeIDE({ files: initial, projectId }: { files: GenFile[
     return () => window.removeEventListener("message", onMsg);
   }, []);
 
-  const onChange = (val: string) => {
-    setFiles((fs) => fs.map((f, i) => (i === safe ? { ...f, content: val } : f)));
+  const openFile = (path: string) => {
+    setOpenPaths((p) => (p.includes(path) ? p : [...p, path]));
+    setActivePath(path);
+  };
+
+  const closeTab = (path: string) => {
+    setOpenPaths((p) => {
+      const next = p.filter((x) => x !== path);
+      if (path === activePath) setActivePath(next[next.length - 1] ?? "");
+      return next;
+    });
+  };
+
+  const onChange = (val?: string) => {
+    const target = file?.path;
+    if (!target) return;
+    setFiles((fs) => fs.map((f) => (f.path === target ? { ...f, content: val ?? "" } : f)));
     setDirty(true);
   };
 
   const save = async () => {
-    if (!projectId || saving) return;
+    if (!projectId || savingRef.current) return;
+    savingRef.current = true;
     setSaving(true);
-    const res = await saveProjectFiles(projectId, files);
+    const res = await saveProjectFiles(projectId, filesRef.current);
+    savingRef.current = false;
     setSaving(false);
     if (res?.ok) {
       setDirty(false);
@@ -79,13 +114,23 @@ export default function CodeIDE({ files: initial, projectId }: { files: GenFile[
       toast.error("Couldn’t save changes");
     }
   };
+  // Refs so Monaco's Ctrl+S command (bound once at mount) always saves the CURRENT files.
+  const filesRef = useRef(files);
+  filesRef.current = files;
+  const savingRef = useRef(false);
+  const saveRef = useRef(save);
+  saveRef.current = save;
+
+  const onMount: OnMount = (editor, monaco) => {
+    editor.addCommand(monaco.KeyMod.CtrlCmd | monaco.KeyCode.KeyS, () => void saveRef.current());
+  };
 
   return (
     <div className={styles.ide} data-view={view}>
       <aside className={styles.tree}>
         <div className={styles.treeHead}>Files</div>
-        {files.map((f, i) => (
-          <button key={f.path} type="button" className={styles.file} data-active={safe === i} onClick={() => setActive(i)}>
+        {files.map((f) => (
+          <button key={f.path} type="button" className={styles.file} data-active={file?.path === f.path} onClick={() => openFile(f.path)}>
             <span className={styles.fileIcon} aria-hidden>
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" /><path d="M14 2v6h6" /></svg>
             </span>
@@ -96,7 +141,21 @@ export default function CodeIDE({ files: initial, projectId }: { files: GenFile[
 
       <div className={styles.main}>
         <div className={styles.bar}>
-          <span className={styles.barPath}>{file?.path}{dirty ? " •" : ""}</span>
+          <div className={styles.etabs}>
+            {openPaths.map((p) => (
+              <span key={p} className={styles.etab} data-active={p === (file?.path ?? "")}>
+                <button type="button" className={styles.etabName} onClick={() => setActivePath(p)}>
+                  {p}
+                </button>
+                {openPaths.length > 1 && (
+                  <button type="button" className={styles.etabClose} onClick={() => closeTab(p)} aria-label={`Close ${p}`}>
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" aria-hidden><path d="M6 6l12 12M18 6L6 18" /></svg>
+                  </button>
+                )}
+              </span>
+            ))}
+            {dirty && <span className={styles.dirtyDot} title="Unsaved changes" aria-hidden />}
+          </div>
           <div className={styles.barRight}>
             <div className={styles.viewTabs} role="tablist">
               {(["split", "code", "preview"] as View[]).map((v) => (
@@ -106,7 +165,7 @@ export default function CodeIDE({ files: initial, projectId }: { files: GenFile[
               ))}
             </div>
             {projectId && (
-              <button type="button" className={styles.save} onClick={save} disabled={!dirty || saving}>
+              <button type="button" className={styles.save} onClick={() => void save()} disabled={!dirty || saving}>
                 {saving ? "Saving…" : dirty ? "Save" : "Saved"}
               </button>
             )}
@@ -116,13 +175,28 @@ export default function CodeIDE({ files: initial, projectId }: { files: GenFile[
         <div className={styles.panes}>
           {view !== "preview" && (
             <div className={styles.editor}>
-              <CodeMirror
-                value={file?.content ?? ""}
+              <Editor
                 height="100%"
-                theme={oneDark}
-                extensions={extensions}
+                path={file?.path}
+                language={langFor(file?.path ?? "")}
+                value={file?.content ?? ""}
                 onChange={onChange}
-                basicSetup={{ lineNumbers: true, highlightActiveLine: true, tabSize: 2 }}
+                theme="vibex-ink"
+                beforeMount={defineInkTheme}
+                onMount={onMount}
+                loading={<div className={styles.editorLoading}>Loading VS Code editor…</div>}
+                options={{
+                  fontSize: 13,
+                  fontFamily: "ui-monospace, 'Cascadia Code', Consolas, 'JetBrains Mono', monospace",
+                  minimap: { enabled: true },
+                  scrollBeyondLastLine: false,
+                  tabSize: 2,
+                  automaticLayout: true,
+                  padding: { top: 10 },
+                  smoothScrolling: true,
+                  renderLineHighlight: "all",
+                  fixedOverflowWidgets: true,
+                }}
               />
             </div>
           )}
