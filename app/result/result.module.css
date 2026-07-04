@@ -58,7 +58,7 @@
 }
 .title {
   font-family: var(--display);
-  font-weight: 800;
+  font-weight: 700;
   letter-spacing: -0.03em;
   font-size: clamp(26px, 4vw, 38px);
   margin-top: 10px;
@@ -617,7 +617,7 @@
   display: grid;
   place-items: center;
   font-family: var(--display);
-  font-weight: 800;
+  font-weight: 700;
   font-size: 22px;
 }
 .emptyIcon svg {

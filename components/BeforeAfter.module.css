@@ -15,20 +15,20 @@
 .after {
   position: absolute;
   inset: 0;
-  background: #f6f1e9;
+  background: #FAFAFC;
   padding: 16px;
   display: flex;
   flex-direction: column;
 }
 .vNav { display: flex; align-items: center; gap: 8px; }
-.vDot { width: 14px; height: 14px; border-radius: 4px; background: #8a671c; }
+.vDot { width: 14px; height: 14px; border-radius: 4px; background: #4F4CD8; }
 .vNavBar { width: 70px; height: 7px; border-radius: 4px; background: #d8cdbd; }
 .vHero { display: flex; gap: 14px; flex: 1; margin-top: 14px; }
 .vLeft { display: flex; flex-direction: column; gap: 8px; flex: 1; justify-content: center; }
 .vH1 { width: 82%; height: 22px; border-radius: 5px; background: #1f1a16; }
 .vLine { width: 92%; height: 8px; border-radius: 4px; background: #bcb0a0; }
 .vLineShort { width: 58%; height: 8px; border-radius: 4px; background: #cabdac; }
-.vBtn { width: 84px; height: 24px; border-radius: 5px; background: #8a671c; margin-top: 8px; box-shadow: 0 6px 14px -6px rgba(138, 103, 28, 0.6); }
+.vBtn { width: 84px; height: 24px; border-radius: 5px; background: #4F4CD8; margin-top: 8px; box-shadow: 0 6px 14px -6px rgba(79, 76, 216, 0.55); }
 .vCard {
   width: 38%;
   border-radius: 7px;
@@ -80,7 +80,7 @@
   border-radius: 999px;
 }
 .tagBefore { color: #8a8a90; background: rgba(0, 0, 0, 0.06); border: 1px solid rgba(0, 0, 0, 0.1); animation: ba-fade 7s ease-in-out infinite; }
-.tagAfter { color: #fff8e9; background: #8a671c; animation: ba-fade-inv 7s ease-in-out infinite; }
+.tagAfter { color: #FFFFFF; background: #4F4CD8; animation: ba-fade-inv 7s ease-in-out infinite; }
 
 @keyframes ba-fade {
   0%, 32% { opacity: 1; }

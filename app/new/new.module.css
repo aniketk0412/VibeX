@@ -22,7 +22,7 @@
 
 .heading {
   font-family: var(--display);
-  font-weight: 800;
+  font-weight: 700;
   letter-spacing: -0.03em;
   line-height: 1.04;
   font-size: clamp(32px, 5vw, 46px);

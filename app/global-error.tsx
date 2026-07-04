@@ -18,7 +18,7 @@ export default function GlobalError({
 
   return (
     <html lang="en">
-      <body style={{ margin: 0, background: "#14110F", color: "#F4EEE6", fontFamily: "system-ui, sans-serif" }}>
+      <body style={{ margin: 0, background: "#0B0C10", color: "#EEEFF3", fontFamily: "system-ui, sans-serif" }}>
         <div
           style={{
             minHeight: "100vh",
@@ -32,7 +32,7 @@ export default function GlobalError({
           }}
         >
           <h1 style={{ fontWeight: 800, fontSize: 30, letterSpacing: "-0.02em" }}>Something went wrong</h1>
-          <p style={{ color: "#B4AB9A", maxWidth: 420, lineHeight: 1.5 }}>
+          <p style={{ color: "#A5A9B8", maxWidth: 420, lineHeight: 1.5 }}>
             The app hit an unexpected error. Reloading usually fixes it.
           </p>
           <button
@@ -41,9 +41,9 @@ export default function GlobalError({
             style={{
               marginTop: 8,
               background: "#5E5CE6",
-              color: "#1F1808",
+              color: "#FFFFFF",
               border: "none",
-              borderRadius: 11,
+              borderRadius: 7,
               padding: "13px 24px",
               fontSize: 16,
               fontWeight: 600,
