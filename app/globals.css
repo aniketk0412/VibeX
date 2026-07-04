@@ -1,36 +1,36 @@
 /* ============================================================
-   VIBEX — design system  ·  Champagne on ink
-   One luxury accent (champagne gold), warm ink dark, cream light.
+   VIBEX — design system  ·  Indigo on graphite
+   One electric-indigo accent, cool near-black dark, porcelain light.
    Tokens, base styles, and primitives. No generic templates.
    ============================================================ */
 
 :root {
-  /* dark is the default — warm near-black ink under a champagne-gold accent */
-  --bg: #0F0E0B;
-  --bg-elev: #14120E;
-  --surface: #1A1712;
-  --surface-2: #211D16;
-  --surface-3: #2A251C;
-  --line: #2B261D;
-  --line-soft: #211D16;
+  /* dark is the default — cool graphite under an electric-indigo accent */
+  --bg: #0B0C10;
+  --bg-elev: #0F1116;
+  --surface: #14161D;
+  --surface-2: #1B1E27;
+  --surface-3: #232734;
+  --line: #272B37;
+  --line-soft: #1C1F29;
 
-  --text: #F2EDE2;
-  --dim: #B4AB9A;
-  --faint: #7D7463;
+  --text: #EEEFF3;
+  --dim: #A5A9B8;
+  --faint: #6B7084;
 
-  --accent: #D4A853;
-  --accent-press: #E0B968;
-  --accent-soft: rgba(212, 168, 83, 0.14);
-  --on-accent: #1F1808; /* ink text on gold — the monogram look, never white-on-gold */
-  --glyph: #241C0B;
+  --accent: #5E5CE6;
+  --accent-press: #7473F0;
+  --accent-soft: rgba(94, 92, 230, 0.16);
+  --on-accent: #FFFFFF;
+  --glyph: #FFFFFF;
 
-  --good: #46C08C;
-  --good-soft: rgba(70, 192, 140, 0.14);
+  --good: #32D583;
+  --good-soft: rgba(50, 213, 131, 0.13);
 
   /* elevation scale */
-  --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.3), 0 2px 8px -5px rgba(0, 0, 0, 0.5);
-  --shadow-md: 0 4px 14px -6px rgba(0, 0, 0, 0.5), 0 14px 32px -12px rgba(0, 0, 0, 0.55);
-  --shadow: 0 26px 64px -32px rgba(0, 0, 0, 0.7);
+  --shadow-sm: 0 1px 2px rgba(4, 6, 14, 0.35), 0 2px 8px -5px rgba(4, 6, 14, 0.55);
+  --shadow-md: 0 4px 14px -6px rgba(4, 6, 14, 0.55), 0 14px 32px -12px rgba(4, 6, 14, 0.6);
+  --shadow: 0 26px 64px -32px rgba(4, 6, 14, 0.75);
   /* sharp radius scale — luxury reads crisp, not bubbly: chips 4, controls 7, cards 10, hero 12 */
   --r-xs: 4px;
   --r-sm: 7px;
@@ -48,38 +48,38 @@
   /* font variables are injected by next/font in layout.tsx */
   /* UI/body font (one source of truth for prose + controls) */
   --font: var(--font-sans), system-ui, sans-serif;
-  /* display serif for headings — editorial character, used via var(--display) */
-  --display: var(--font-display), Georgia, "Times New Roman", serif;
+  /* geometric grotesk for display headings, used via var(--display) */
+  --display: var(--font-display), var(--font-sans), system-ui, sans-serif;
   --mono: var(--font-mono), ui-monospace, monospace;
   --body: var(--font);
 }
 
 [data-theme="light"] {
-  /* the cream stays — bronze-gold accent deep enough to hold contrast on it */
-  --bg: #F6F1E9;
+  /* porcelain light — deep indigo holds AA contrast on white */
+  --bg: #FAFAFC;
   --bg-elev: #FFFFFF;
   --surface: #FFFFFF;
-  --surface-2: #F1EADF;
-  --surface-3: #E9E0D2;
-  --line: #E4DACB;
-  --line-soft: #EDE5D8;
+  --surface-2: #F1F1F6;
+  --surface-3: #E7E8F0;
+  --line: #E2E3EB;
+  --line-soft: #ECEDF3;
 
-  --text: #1A1512;
-  --dim: #665B50;
-  --faint: #98897B;
+  --text: #16171D;
+  --dim: #5A5E6B;
+  --faint: #8D91A0;
 
-  --accent: #8A671C;
-  --accent-press: #745616;
-  --accent-soft: rgba(138, 103, 28, 0.12);
-  --on-accent: #FFF8E9; /* ivory text on bronze */
-  --glyph: #FFF6E8;
+  --accent: #4F4CD8;
+  --accent-press: #423FC4;
+  --accent-soft: rgba(79, 76, 216, 0.10);
+  --on-accent: #FFFFFF;
+  --glyph: #FFFFFF;
 
-  --good: #1F9D6E;
-  --good-soft: rgba(31, 157, 110, 0.12);
+  --good: #17A56A;
+  --good-soft: rgba(23, 165, 106, 0.12);
 
-  --shadow-sm: 0 1px 2px rgba(60, 40, 20, 0.06), 0 2px 8px -5px rgba(60, 40, 20, 0.12);
-  --shadow-md: 0 4px 14px -6px rgba(60, 40, 20, 0.12), 0 14px 32px -12px rgba(60, 40, 20, 0.16);
-  --shadow: 0 24px 60px -30px rgba(60, 40, 20, 0.28);
+  --shadow-sm: 0 1px 2px rgba(20, 22, 40, 0.06), 0 2px 8px -5px rgba(20, 22, 40, 0.12);
+  --shadow-md: 0 4px 14px -6px rgba(20, 22, 40, 0.1), 0 14px 32px -12px rgba(20, 22, 40, 0.15);
+  --shadow: 0 24px 60px -30px rgba(20, 22, 40, 0.26);
 }
 
 * { box-sizing: border-box; margin: 0; padding: 0; }

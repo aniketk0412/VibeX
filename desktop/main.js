@@ -30,7 +30,7 @@ function createWindow() {
     height: 840,
     minWidth: 720,
     minHeight: 520,
-    backgroundColor: "#0F0E0B", // brand ink — no white flash while the app loads
+    backgroundColor: "#0B0C10", // brand ink — no white flash while the app loads
     icon: path.join(__dirname, "build", "icon.ico"),
     autoHideMenuBar: true,
     webPreferences: {

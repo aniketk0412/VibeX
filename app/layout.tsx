@@ -1,20 +1,20 @@
 import type { Metadata } from "next";
-import { Hanken_Grotesk, JetBrains_Mono, Fraunces } from "next/font/google";
+import { Inter, JetBrains_Mono, Space_Grotesk } from "next/font/google";
 import { Analytics } from "@vercel/analytics/next";
 import Toaster from "@/components/Toaster";
 import "./globals.css";
 
-// Type system: Hanken Grotesk for body/UI, a Fraunces serif for display headings (editorial
-// character against the techy charcoal), JetBrains Mono for code + numeric chips.
-const sans = Hanken_Grotesk({
+// Type system: Inter for body/UI (the modern dev-tool workhorse), Space Grotesk for display
+// headings (geometric, technical, zero bakery-serif energy), JetBrains Mono for code + chips.
+const sans = Inter({
   subsets: ["latin"],
   weight: ["400", "500", "600", "700", "800"],
   variable: "--font-sans",
   display: "swap",
 });
-const display = Fraunces({
+const display = Space_Grotesk({
   subsets: ["latin"],
-  style: ["normal", "italic"],
+  weight: ["500", "600", "700"],
   variable: "--font-display",
   display: "swap",
 });

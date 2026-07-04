@@ -35,7 +35,7 @@
   height: 460px;
   top: 32%;
   left: 44%;
-  background: radial-gradient(circle, #d8b25e, transparent 70%);
+  background: radial-gradient(circle, #38BDF8, transparent 70%);
   opacity: 0.32;
   animation: drift3 28s ease-in-out infinite alternate;
 }

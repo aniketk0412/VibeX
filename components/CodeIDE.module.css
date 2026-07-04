@@ -156,7 +156,7 @@
   min-width: 0;
   height: 100%;
   overflow: hidden;
-  background: #14120e;
+  background: #12141B;
 }
 .editorLoading {
   height: 100%;
@@ -164,7 +164,7 @@
   place-items: center;
   font-family: var(--mono);
   font-size: 12px;
-  color: #59503e;
+  color: #565B6E;
 }
 
 .previewPane {
