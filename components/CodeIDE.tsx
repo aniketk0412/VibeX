@@ -8,7 +8,14 @@
 // the app bundle stays lean.
 
 import { useEffect, useMemo, useRef, useState } from "react";
-import Editor, { type BeforeMount, type OnMount } from "@monaco-editor/react";
+import Editor, { loader, type BeforeMount, type OnMount } from "@monaco-editor/react";
+
+// Self-hosted Monaco: the AMD build is staged into /public by scripts/copy-monaco.mjs (part of
+// `npm run build`; `npm run monaco` locally after a fresh install). Same-origin only — no
+// third-party CDN at runtime.
+if (typeof window !== "undefined") {
+  loader.config({ paths: { vs: "/monaco/vs" } });
+}
 import type { GenFile } from "@/lib/steps";
 import { buildPreview } from "@/lib/preview";
 import { saveProjectFiles } from "@/app/actions";

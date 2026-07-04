@@ -3,6 +3,9 @@
 /.pnp
 .pnp.js
 
+# monaco — staged from node_modules by scripts/copy-monaco.mjs (npm run build / npm run monaco)
+/public/monaco/
+
 # next.js
 /.next/
 /out/

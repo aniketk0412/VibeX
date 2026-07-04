@@ -5,7 +5,8 @@
   "description": "Vibex — automated vibe-coding platform. From idea to code, automatically.",
   "scripts": {
     "dev": "next dev",
-    "build": "next build",
+    "build": "node scripts/copy-monaco.mjs && next build",
+    "monaco": "node scripts/copy-monaco.mjs",
     "start": "next start",
     "lint": "next lint",
     "test": "vitest run",
@@ -29,6 +30,7 @@
     "@types/node": "20.14.10",
     "@types/react": "18.3.3",
     "@types/react-dom": "18.3.0",
+    "monaco-editor": "^0.55.1",
     "typescript": "5.5.3",
     "vitest": "^4.1.9"
   }
