@@ -21,17 +21,17 @@
   flex-direction: column;
 }
 .vNav { display: flex; align-items: center; gap: 8px; }
-.vDot { width: 14px; height: 14px; border-radius: 5px; background: #8a671c; }
+.vDot { width: 14px; height: 14px; border-radius: 4px; background: #8a671c; }
 .vNavBar { width: 70px; height: 7px; border-radius: 4px; background: #d8cdbd; }
 .vHero { display: flex; gap: 14px; flex: 1; margin-top: 14px; }
 .vLeft { display: flex; flex-direction: column; gap: 8px; flex: 1; justify-content: center; }
-.vH1 { width: 82%; height: 22px; border-radius: 6px; background: #1f1a16; }
+.vH1 { width: 82%; height: 22px; border-radius: 5px; background: #1f1a16; }
 .vLine { width: 92%; height: 8px; border-radius: 4px; background: #bcb0a0; }
 .vLineShort { width: 58%; height: 8px; border-radius: 4px; background: #cabdac; }
-.vBtn { width: 84px; height: 24px; border-radius: 8px; background: #8a671c; margin-top: 8px; box-shadow: 0 6px 14px -6px rgba(138, 103, 28, 0.6); }
+.vBtn { width: 84px; height: 24px; border-radius: 5px; background: #8a671c; margin-top: 8px; box-shadow: 0 6px 14px -6px rgba(138, 103, 28, 0.6); }
 .vCard {
   width: 38%;
-  border-radius: 11px;
+  border-radius: 7px;
   background: #fff;
   border: 1px solid #e8e0d2;
   box-shadow: 0 12px 26px -16px rgba(60, 40, 20, 0.45);
@@ -44,7 +44,7 @@
 .vCardBar { width: 82%; height: 9px; border-radius: 4px; background: #e9e0d2; }
 .vCardBar2 { width: 55%; height: 9px; border-radius: 4px; background: #efe7da; }
 .vRow { display: flex; gap: 8px; margin-top: 12px; }
-.vMini { flex: 1; height: 26px; border-radius: 8px; background: #fff; border: 1px solid #ece4d6; box-shadow: 0 6px 14px -10px rgba(60, 40, 20, 0.35); }
+.vMini { flex: 1; height: 26px; border-radius: 5px; background: #fff; border: 1px solid #ece4d6; box-shadow: 0 6px 14px -10px rgba(60, 40, 20, 0.35); }
 
 /* ── Before: the generic template (centered, gray, default blue) ── */
 .before {
@@ -62,8 +62,8 @@
 .tBar { width: 46%; height: 14px; border-radius: 4px; background: #d7d7db; }
 .tBar2 { width: 30%; height: 9px; border-radius: 4px; background: #e3e3e7; }
 .tRow { display: flex; gap: 10px; margin-top: 4px; }
-.tBox { width: 54px; height: 40px; border-radius: 6px; background: #ebebef; border: 1px solid #e0e0e6; }
-.tBtn { width: 92px; height: 24px; border-radius: 6px; background: #3b82f6; margin-top: 6px; }
+.tBox { width: 54px; height: 40px; border-radius: 5px; background: #ebebef; border: 1px solid #e0e0e6; }
+.tBtn { width: 92px; height: 24px; border-radius: 5px; background: #3b82f6; margin-top: 6px; }
 
 /* ── labels ── */
 .tagBefore,

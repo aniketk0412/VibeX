@@ -11,7 +11,7 @@
   min-width: 220px;
   background: var(--bg-elev);
   border: 1px solid var(--line);
-  border-radius: 13px;
+  border-radius: 10px;
   box-shadow: var(--shadow);
   padding: 6px;
   display: flex;
@@ -36,7 +36,7 @@
   color: var(--text);
   background: transparent;
   border: none;
-  border-radius: 8px;
+  border-radius: 5px;
   padding: 9px 11px;
   cursor: pointer;
   transition: background 0.13s ease, color 0.13s ease;

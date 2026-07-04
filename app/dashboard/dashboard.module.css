@@ -72,8 +72,8 @@
   min-width: 150px;
   background: var(--bg-elev);
   border: 1px solid var(--line-soft);
-  border-radius: 12px;
-  padding: 13px 15px;
+  border-radius: var(--r); /* card, not control — matches the project cards below */
+  padding: 14px 16px;
   box-shadow: var(--shadow-sm);
 }
 .sl {

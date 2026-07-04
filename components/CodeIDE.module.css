@@ -4,7 +4,7 @@
   display: grid;
   grid-template-columns: 178px 1fr;
   border: 1px solid var(--line);
-  border-radius: 14px;
+  border-radius: 10px;
   overflow: hidden;
   background: var(--bg-elev);
   box-shadow: var(--shadow-sm);
@@ -37,7 +37,7 @@
   color: var(--dim);
   background: transparent;
   border: none;
-  border-radius: 7px;
+  border-radius: 5px;
   padding: 7px 9px;
   cursor: pointer;
   transition: background 0.13s ease, color 0.13s ease;
@@ -74,7 +74,7 @@
 }
 .barRight { display: flex; align-items: center; gap: 10px; flex: none; }
 
-.viewTabs { display: flex; gap: 2px; background: var(--surface-2); border-radius: 8px; padding: 2px; }
+.viewTabs { display: flex; gap: 2px; background: var(--surface-2); border-radius: 5px; padding: 2px; }
 .viewTab {
   font-family: var(--font);
   font-size: 12px;
@@ -82,7 +82,7 @@
   color: var(--dim);
   background: transparent;
   border: none;
-  border-radius: 6px;
+  border-radius: 5px;
   padding: 4px 10px;
   cursor: pointer;
 }
@@ -95,7 +95,7 @@
   color: var(--on-accent);
   background: var(--accent);
   border: none;
-  border-radius: 8px;
+  border-radius: 5px;
   padding: 5px 13px;
   cursor: pointer;
 }
@@ -202,7 +202,7 @@
   color: var(--faint);
   background: transparent;
   border: 1px solid var(--line);
-  border-radius: 6px;
+  border-radius: 5px;
   padding: 2px 9px;
   cursor: pointer;
 }

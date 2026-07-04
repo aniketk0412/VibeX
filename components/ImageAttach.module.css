@@ -5,7 +5,7 @@
   display: grid;
   place-items: center;
   border: none;
-  border-radius: 9px;
+  border-radius: 7px;
   background: transparent;
   color: var(--faint);
   cursor: pointer;
@@ -29,7 +29,7 @@
   position: relative;
   width: 52px;
   height: 52px;
-  border-radius: 9px;
+  border-radius: 7px;
   overflow: hidden;
   border: 1px solid var(--line);
   background: var(--surface-2);

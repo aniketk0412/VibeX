@@ -8,7 +8,7 @@
   height: 32px;
   display: grid;
   place-items: center;
-  border-radius: 8px;
+  border-radius: 5px;
   border: 1px solid transparent;
   background: transparent;
   color: var(--dim);
@@ -29,7 +29,7 @@
   min-width: 152px;
   background: var(--bg-elev);
   border: 1px solid var(--line);
-  border-radius: 11px;
+  border-radius: 7px;
   box-shadow: var(--shadow);
   padding: 5px;
   animation: menu-in 0.13s ease;
@@ -48,7 +48,7 @@
   color: var(--text);
   background: transparent;
   border: none;
-  border-radius: 7px;
+  border-radius: 5px;
   padding: 8px 10px;
   cursor: pointer;
   transition: background 0.13s ease;
@@ -107,7 +107,7 @@
   color: var(--text);
   background: var(--surface);
   border: 1px solid var(--line);
-  border-radius: 11px;
+  border-radius: 7px;
   padding: 11px 13px;
   transition: border-color 0.2s ease, box-shadow 0.2s ease;
 }
@@ -130,7 +130,7 @@
   color: var(--text);
   background: transparent;
   border: 1px solid var(--line);
-  border-radius: 10px;
+  border-radius: 7px;
   padding: 9px 16px;
   cursor: pointer;
   transition: border-color 0.18s ease;
@@ -148,7 +148,7 @@
   color: var(--on-accent);
   background: var(--accent);
   border: none;
-  border-radius: 10px;
+  border-radius: 7px;
   padding: 9px 16px;
   cursor: pointer;
   transition: background 0.18s ease;
@@ -166,7 +166,7 @@
   color: #fff;
   background: #e5553b;
   border: none;
-  border-radius: 10px;
+  border-radius: 7px;
   padding: 9px 16px;
   cursor: pointer;
   transition: background 0.18s ease;
@@ -185,7 +185,7 @@
   color: var(--text);
   background: var(--bg-elev);
   border: 1px solid var(--line);
-  border-radius: 11px;
+  border-radius: 7px;
   box-shadow: var(--shadow);
   padding: 11px 16px;
   animation: dialog-in 0.18s ease;

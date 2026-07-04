@@ -12,7 +12,7 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 0 22px;
+  padding: 0 16px;
   border-bottom: 1px solid var(--line-soft);
   background: var(--bg-elev);
 }
@@ -92,7 +92,7 @@
   align-items: center;
   justify-content: space-between;
   gap: 10px;
-  padding: 13px 18px;
+  padding: 13px 16px; /* one 16px gutter for the whole pane: header, tracker, feed, composer */
   min-height: 54px; /* keep both panes' header hairlines level across the divider */
   border-bottom: 1px solid var(--line-soft);
 }
@@ -162,7 +162,7 @@
   flex: none;
   display: grid;
   place-items: center;
-  border-radius: 6px;
+  border-radius: 5px;
   font-family: var(--mono);
   font-size: 10.5px;
   font-weight: 700;
@@ -196,7 +196,7 @@
   font-size: 10px;
   color: var(--faint);
   border: 1px solid var(--line);
-  border-radius: 5px;
+  border-radius: 4px;
   padding: 1px 6px;
 }
 .stepMarkTitle {
@@ -213,7 +213,7 @@
 .msg[data-role="user"] .msgText {
   background: var(--accent-soft);
   border: 1px solid color-mix(in srgb, var(--accent) 30%, transparent);
-  border-radius: 12px 12px 4px 12px;
+  border-radius: 7px 7px 4px 7px;
   padding: 8px 12px;
 }
 
@@ -227,7 +227,7 @@
   width: 96px;
   height: 96px;
   object-fit: cover;
-  border-radius: 8px;
+  border-radius: 5px;
   border: 1px solid var(--line);
   display: block;
 }
@@ -238,7 +238,7 @@
   font-weight: 600;
   letter-spacing: 0.04em;
   padding: 1px 6px;
-  border-radius: 5px;
+  border-radius: 4px;
   margin-right: 8px;
   color: var(--good);
   background: var(--good-soft);
@@ -249,7 +249,7 @@
 .composer {
   flex: none;
   border-top: 1px solid var(--line-soft);
-  padding: 12px 14px;
+  padding: 12px 16px;
   background: var(--bg-elev);
 }
 .attachStrip { margin-bottom: 9px; }
@@ -260,7 +260,7 @@
   gap: 6px;
   background: var(--surface);
   border: 1px solid var(--line);
-  border-radius: 12px;
+  border-radius: 7px;
   padding: 6px;
   transition: border-color 0.2s ease, box-shadow 0.2s ease;
 }
@@ -288,7 +288,7 @@
   display: grid;
   place-items: center;
   border: none;
-  border-radius: 9px;
+  border-radius: 7px;
   background: var(--accent);
   color: var(--on-accent);
   cursor: pointer;
@@ -309,7 +309,7 @@
   font-family: var(--body);
   font-weight: 600;
   font-size: 13.5px;
-  border-radius: 10px;
+  border-radius: 7px;
   padding: 10px 14px;
   cursor: pointer;
   transition: background 0.2s ease, border-color 0.2s ease;
@@ -335,7 +335,7 @@
   height: 28px;
   display: grid;
   place-items: center;
-  border-radius: 7px;
+  border-radius: 5px;
   border: 1px solid var(--line);
   background: var(--bg-elev);
   color: var(--dim);
@@ -364,7 +364,7 @@
   background: color-mix(in srgb, var(--bg-elev) 92%, transparent);
   backdrop-filter: blur(6px);
   border: 1px solid var(--line);
-  border-radius: 10px;
+  border-radius: 7px;
   padding: 7px 11px;
   cursor: pointer;
   box-shadow: var(--shadow);
@@ -381,7 +381,7 @@
   color: var(--dim);
   background: var(--surface-2);
   border: 1px solid var(--line-soft);
-  border-radius: 8px;
+  border-radius: 5px;
   padding: 4px 9px;
   white-space: nowrap;
 }
@@ -391,7 +391,7 @@
   color: var(--accent);
   background: var(--accent-soft);
   border: 1px solid color-mix(in srgb, var(--accent) 30%, transparent);
-  border-radius: 7px;
+  border-radius: 5px;
   padding: 3px 8px;
   white-space: nowrap;
 }
@@ -484,7 +484,7 @@
   color: var(--dim);
   background: transparent;
   border: 1px solid var(--line);
-  border-radius: 8px;
+  border-radius: 5px;
   padding: 5px 14px;
   cursor: pointer;
   transition: color 0.15s ease, background 0.15s ease, border-color 0.15s ease;
@@ -528,7 +528,7 @@
   color: var(--dim);
   background: transparent;
   border: none;
-  border-radius: 7px;
+  border-radius: 5px;
   padding: 7px 9px;
   cursor: pointer;
   transition: background 0.13s ease, color 0.13s ease;
@@ -599,7 +599,7 @@
   align-items: center;
   gap: 13px;
   padding: 9px 12px;
-  border-radius: 10px;
+  border-radius: 7px;
   border: 1px solid transparent;
   transition: background 0.2s ease, border-color 0.2s ease;
 }
@@ -629,7 +629,7 @@
   padding: 16px;
   background: var(--good-soft);
   border: 1px solid color-mix(in srgb, var(--good) 40%, transparent);
-  border-radius: 13px;
+  border-radius: 10px;
 }
 .completeIcon { width: 32px; height: 32px; border-radius: 50%; background: var(--good); display: grid; place-items: center; flex: none; }
 .completeIcon svg { width: 16px; height: 16px; color: #fff; }
@@ -663,7 +663,7 @@
 .fileCard {
   margin-top: 4px;
   border: 1px solid var(--line);
-  border-radius: 10px;
+  border-radius: 7px;
   overflow: hidden;
   background: var(--surface);
 }
@@ -693,7 +693,7 @@
   font-size: 11px;
   color: var(--good);
   background: var(--good-soft);
-  border-radius: 5px;
+  border-radius: 4px;
   padding: 1px 6px;
 }
 .fileCardChevron { flex: none; display: grid; place-items: center; color: var(--faint); transition: transform 0.2s ease; }

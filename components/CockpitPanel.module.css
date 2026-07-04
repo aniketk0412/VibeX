@@ -48,7 +48,7 @@
   background: var(--bg-elev);
   border: 1px solid var(--line-soft);
   border-left: 2px solid var(--good);
-  border-radius: 11px;
+  border-radius: 7px;
   padding: 10px 13px;
   font-size: 13.5px;
   color: var(--dim);
@@ -60,7 +60,7 @@
 .stream {
   background: var(--bg);
   border: 1px solid var(--line);
-  border-radius: 13px;
+  border-radius: 10px;
   padding: 14px 15px;
   display: flex;
   flex-direction: column;
@@ -98,8 +98,8 @@
 
 .active { display: flex; flex-direction: column; gap: 10px; }
 .progress { display: flex; align-items: center; gap: 10px; padding-left: 29px; }
-.bar { flex: 1; height: 6px; background: var(--surface-2); border-radius: 99px; overflow: hidden; }
-.bar i { display: block; height: 100%; width: 58%; background: var(--accent); border-radius: 99px; transition: width 0.6s ease; }
+.bar { flex: 1; height: 6px; background: var(--surface-2); border-radius: 12px; overflow: hidden; }
+.bar i { display: block; height: 100%; width: 58%; background: var(--accent); border-radius: 12px; transition: width 0.6s ease; }
 .pct { font-family: var(--mono); font-size: 11px; color: var(--faint); flex: none; }
 
 /* ── usage drawer (expands upward from the status bar) ──── */
@@ -131,7 +131,7 @@
   gap: 3px;
   background: var(--surface);
   border: 1px solid var(--line-soft);
-  border-radius: 10px;
+  border-radius: 7px;
   padding: 9px 11px;
 }
 .urow span { font-family: var(--mono); font-size: 10px; letter-spacing: 0.04em; text-transform: uppercase; color: var(--faint); }
@@ -139,8 +139,8 @@
 .urow b.acc { color: var(--accent); }
 
 .limit { padding: 12px 16px 16px; }
-.limitbar { height: 6px; background: var(--surface-2); border-radius: 99px; overflow: hidden; }
-.limitbar i { display: block; height: 100%; width: 34%; background: var(--good); border-radius: 99px; transition: width 0.6s ease; }
+.limitbar { height: 6px; background: var(--surface-2); border-radius: 12px; overflow: hidden; }
+.limitbar i { display: block; height: 100%; width: 34%; background: var(--good); border-radius: 12px; transition: width 0.6s ease; }
 .limitmeta {
   display: flex;
   justify-content: space-between;
@@ -175,7 +175,7 @@
   background: var(--surface-2);
   border: 1px solid var(--line-soft);
   padding: 3px 8px;
-  border-radius: 7px;
+  border-radius: 5px;
   white-space: nowrap;
   flex: none;
 }
@@ -190,7 +190,7 @@
   color: var(--dim);
   background: var(--surface-2);
   border: 1px solid var(--line-soft);
-  border-radius: 8px;
+  border-radius: 5px;
   padding: 5px 9px;
   cursor: pointer;
   transition: border-color 0.2s ease, color 0.2s ease;
@@ -212,7 +212,7 @@
   color: var(--on-accent);
   background: var(--accent);
   border: none;
-  border-radius: 9px;
+  border-radius: 7px;
   padding: 8px 13px;
   cursor: pointer;
   white-space: nowrap;

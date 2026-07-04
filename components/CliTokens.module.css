@@ -13,7 +13,7 @@
   padding: 12px 14px;
   background: var(--accent-soft);
   border: 1px solid color-mix(in srgb, var(--accent) 30%, transparent);
-  border-radius: 11px;
+  border-radius: 7px;
 }
 .revealNote {
   font-size: 12.5px;
@@ -34,7 +34,7 @@
   color: var(--text);
   background: var(--bg-elev);
   border: 1px solid var(--line);
-  border-radius: 8px;
+  border-radius: 5px;
   padding: 8px 10px;
   overflow-x: auto;
   white-space: nowrap;
@@ -64,7 +64,7 @@
   color: var(--dim);
   background: transparent;
   border: 1px solid var(--line);
-  border-radius: 9px;
+  border-radius: 7px;
   padding: 7px 13px;
   cursor: pointer;
   transition: color 0.15s ease, border-color 0.15s ease;
@@ -85,7 +85,7 @@
   color: var(--text);
   background: var(--surface);
   border: 1px solid var(--line);
-  border-radius: 10px;
+  border-radius: 7px;
   padding: 9px 12px;
   outline: none;
   transition: border-color 0.2s ease, box-shadow 0.2s ease;
@@ -100,7 +100,7 @@
   color: var(--on-accent);
   background: var(--accent);
   border: none;
-  border-radius: 10px;
+  border-radius: 7px;
   padding: 10px 16px;
   cursor: pointer;
   transition: background 0.2s ease, opacity 0.2s ease;

@@ -52,7 +52,7 @@
 .errBanner {
   margin-top: 18px;
   padding: 11px 14px;
-  border-radius: 11px;
+  border-radius: 7px;
   font-size: 13.5px;
   line-height: 1.45;
   color: #e5755b;
@@ -63,7 +63,7 @@
 .verifyIcon {
   width: 52px;
   height: 52px;
-  border-radius: 14px;
+  border-radius: 10px;
   display: grid;
   place-items: center;
   font-size: 24px;
@@ -85,7 +85,7 @@
   color: var(--text);
   background: var(--bg-elev);
   border: 1px solid var(--line);
-  border-radius: 11px;
+  border-radius: 7px;
   padding: 12px 16px;
   cursor: pointer;
   transition: border-color 0.2s ease, background 0.2s ease;
@@ -122,7 +122,7 @@
   color: var(--text);
   background: var(--bg-elev);
   border: 1px solid var(--line);
-  border-radius: 11px;
+  border-radius: 7px;
   padding: 12px 14px;
   transition: border-color 0.2s ease, box-shadow 0.2s ease;
 }

@@ -14,7 +14,7 @@
   align-items: center;
   gap: 10px;
   padding: 12px 14px;
-  border-radius: 12px;
+  border-radius: 7px;
   background: var(--bg-elev);
   border: 1px solid var(--line);
   box-shadow: var(--shadow);
@@ -33,7 +33,7 @@
   height: 22px;
   display: grid;
   place-items: center;
-  border-radius: 7px;
+  border-radius: 5px;
   font-size: 13px;
   font-weight: 700;
 }
