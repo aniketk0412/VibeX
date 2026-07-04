@@ -105,7 +105,7 @@ export default async function SettingsPage() {
           <div className={styles.cardHead}>
             <h2>CLI access</h2>
             <p>
-              Build from your terminal: <code>npm i -g vibex</code>, then <code>vibex login</code> with a token.
+              Build from your terminal: <code>npm i -g vibex-app</code>, then <code>vibex login</code> with a token.
               A token acts as your account — builds run against your plan and appear on your dashboard.
             </p>
           </div>

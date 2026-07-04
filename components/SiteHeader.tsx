@@ -21,6 +21,7 @@ export default async function SiteHeader() {
           <nav className={styles.links}>
             <a href="/#how">How it works</a>
             <Link href="/pricing">Pricing</Link>
+            <Link href="/download">Download</Link>
             <a href="/#faq">FAQ</a>
           </nav>
           <ThemeToggle />

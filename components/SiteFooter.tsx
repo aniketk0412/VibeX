@@ -26,6 +26,7 @@ export default function SiteFooter() {
             <span className={styles.colHead}>Product</span>
             <a href="/#how">How it works</a>
             <Link href="/pricing">Pricing</Link>
+            <Link href="/download">Download</Link>
             <a href="/#faq">FAQ</a>
           </div>
           <div className={styles.col}>

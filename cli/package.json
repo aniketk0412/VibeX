@@ -1,5 +1,5 @@
 {
-  "name": "vibex-cli",
+  "name": "vibex-app",
   "version": "0.1.0",
   "description": "Vibex from your terminal — describe an app, a Coder + Reviewer AI pair builds it into a local folder.",
   "license": "MIT",

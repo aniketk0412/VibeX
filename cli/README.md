@@ -4,12 +4,15 @@ Vibex from your terminal — describe an app, a Coder + Reviewer AI pair builds 
 files land in a local folder. Same account, plans, and dashboard as the web app.
 
 ```sh
-npm i -g vibex-cli
+npm i -g vibex-app
 
 vibex login                       # paste a token from Settings → CLI access
 vibex build "a habit tracker with streaks"
 vibex build "a trading journal" --dir ./journal
 ```
+
+> npm package is `vibex-app` (the bare `vibex` name is squatted and `vibex-cli` belongs to an
+> unrelated project) — the installed command is still `vibex`.
 
 ## Commands
 
