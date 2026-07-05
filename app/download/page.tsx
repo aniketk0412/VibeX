@@ -16,8 +16,11 @@ export const metadata: Metadata = {
   alternates: { canonical: "/download" },
 };
 
-// Set in Vercel once the installer is uploaded (e.g. a public release asset URL).
-const DESKTOP_URL = process.env.NEXT_PUBLIC_DESKTOP_DOWNLOAD_URL;
+// Public release asset (github.com/aniketk0412/vibex-releases). The /latest/download/ form
+// stays stable across re-releases with the same filename; env overrides if hosting moves.
+const DESKTOP_URL =
+  process.env.NEXT_PUBLIC_DESKTOP_DOWNLOAD_URL ??
+  "https://github.com/aniketk0412/vibex-releases/releases/latest/download/Vibex-Setup-0.1.0.exe";
 // Flip when `npm publish` has run from cli/ (package: vibex-app, command: vibex).
 const CLI_PUBLISHED = false;
 
