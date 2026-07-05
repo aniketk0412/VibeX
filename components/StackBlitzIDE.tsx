@@ -31,6 +31,9 @@ export default function StackBlitzIDE({ files: initial, projectId, title }: { fi
   const hostRef = useRef<HTMLDivElement>(null);
   const vmRef = useRef<VM | null>(null);
   const embeddedRef = useRef(false);
+  // If the project had no package.json we injected a Vite one just to boot the terminal — don't
+  // persist that scaffold back into a static project on Save.
+  const injectedPkg = useRef(!initial.some((f) => f.path === "package.json"));
   const [ready, setReady] = useState(false);
   const [slow, setSlow] = useState(false);
   const [saving, setSaving] = useState(false);
@@ -82,6 +85,7 @@ export default function StackBlitzIDE({ files: initial, projectId, title }: { fi
       if (!snap) throw new Error("no snapshot");
       const out: GenFile[] = Object.entries(snap)
         .filter(([p]) => !SKIP.test(p))
+        .filter(([p]) => !(injectedPkg.current && p === "package.json"))
         .map(([path, content]) => ({ path, content: String(content) }));
       const res = await saveProjectFiles(projectId, out);
       if (res?.ok) toast.success("Saved to Vibex"); else toast.error("Couldn’t save");
