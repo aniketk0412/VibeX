@@ -7,8 +7,17 @@
 // persists to the project. Loaded client-only (Monaco needs the DOM).
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import Editor, { loader, type BeforeMount, type OnMount } from "@monaco-editor/react";
+import Editor, { DiffEditor, loader, type BeforeMount, type OnMount } from "@monaco-editor/react";
 import type { editor as MonacoEditor } from "monaco-editor";
+import { emmetHTML, emmetCSS } from "emmet-monaco-es";
+import { GitRepo, type GitChange, type GitCommit } from "@/lib/gitRepo";
+import * as prettier from "prettier/standalone";
+import * as prettierHtml from "prettier/plugins/html";
+import * as prettierPostcss from "prettier/plugins/postcss";
+import * as prettierBabel from "prettier/plugins/babel";
+import * as prettierEstree from "prettier/plugins/estree";
+import * as prettierMarkdown from "prettier/plugins/markdown";
+import * as prettierTypescript from "prettier/plugins/typescript";
 type MonacoNS = Parameters<OnMount>[1];
 
 if (typeof window !== "undefined") {
@@ -134,6 +143,42 @@ const I: Record<string, React.ReactNode> = {
   warn: (<><path d="M10.3 3.9 1.8 18a2 2 0 0 0 1.7 3h16.9a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0z" /><path d="M12 9v4M12 17h.01" /></>),
 };
 
+// ── Prettier: real formatting wired to Monaco's Format Document (Shift+Alt+F / Edit menu). ──
+// Statically imported (into the already-lazy IDE chunk): a runtime dynamic import() stalls under
+// Monaco's AMD loader. Emmet + Prettier register once against the global monaco singleton.
+const pformat = (prettier.format ?? (prettier as { default?: { format?: typeof prettier.format } }).default?.format);
+const PRETTIER_LANGS: { id: string; parser: string; plugins: unknown[] }[] = [
+  { id: "html", parser: "html", plugins: [prettierHtml, prettierPostcss, prettierBabel, prettierEstree] },
+  { id: "css", parser: "css", plugins: [prettierPostcss] },
+  { id: "javascript", parser: "babel", plugins: [prettierBabel, prettierEstree] },
+  { id: "typescript", parser: "typescript", plugins: [prettierTypescript, prettierEstree] },
+  { id: "json", parser: "json", plugins: [prettierBabel, prettierEstree] },
+  { id: "markdown", parser: "markdown", plugins: [prettierMarkdown] },
+];
+// Format a Monaco model with Prettier and apply the edit directly. We DON'T use Monaco's
+// registerDocumentFormattingEditProvider / editor.action.formatDocument: in this AMD-loader setup
+// Monaco's built-in (worker-based) HTML/CSS formatters can't spin up their web worker, and Monaco
+// picks those over ours and silently no-ops. Running Prettier ourselves sidesteps the whole thing.
+async function formatModel(ed: MonacoEditor.IStandaloneCodeEditor): Promise<boolean> {
+  const model = ed.getModel();
+  if (!model || !pformat) return false;
+  const cfg = PRETTIER_LANGS.find((l) => l.id === model.getLanguageId());
+  if (!cfg) return false;
+  const text = await pformat(model.getValue(), { parser: cfg.parser, plugins: cfg.plugins as never[], tabWidth: 2 });
+  if (text === model.getValue()) return true;
+  ed.pushUndoStop();
+  ed.executeEdits("prettier", [{ range: model.getFullModelRange(), text }]);
+  ed.pushUndoStop();
+  return true;
+}
+
+let emmetRegistered = false;
+function registerTooling(monaco: MonacoNS) {
+  if (emmetRegistered) return;
+  emmetRegistered = true;
+  try { emmetHTML(monaco, ["html"]); emmetCSS(monaco, ["css"]); } catch { /* emmet optional */ }
+}
+
 type Prompt = { kind: "new-file" | "new-folder" | "rename"; base: string; original?: string } | null;
 type Menu = { x: number; y: number; path: string; isFolder: boolean } | null;
 type MenuItem = "sep" | { label: string; accel?: string; run: () => void; check?: boolean };
@@ -167,6 +212,16 @@ export default function CodeIDE({ files: initial, projectId }: { files: GenFile[
   const [menu, setMenu] = useState<Menu>(null);
 
   const [logs, setLogs] = useState<{ level: string; text: string }[]>([]);
+
+  // ── real git (Source Control) ──
+  const gitRef = useRef<GitRepo | null>(null);
+  const [gitReady, setGitReady] = useState(false);
+  const [gitChanges, setGitChanges] = useState<GitChange[]>([]);
+  const [gitLog, setGitLog] = useState<GitCommit[]>([]);
+  const [gitBranch, setGitBranch] = useState("main");
+  const [commitMsg, setCommitMsg] = useState("");
+  const [scmTab, setScmTab] = useState<"changes" | "history">("changes");
+  const [diff, setDiff] = useState<{ path: string; original: string } | null>(null);
 
   const editorRef = useRef<MonacoEditor.IStandaloneCodeEditor | null>(null);
   const monacoRef = useRef<MonacoNS | null>(null);
@@ -204,6 +259,35 @@ export default function CodeIDE({ files: initial, projectId }: { files: GenFile[
     return () => { window.removeEventListener("click", close); window.removeEventListener("keydown", onKey); };
   }, [menu, openMenu]);
 
+  // Initialize a real git repo (isomorphic-git in the browser) seeded with the current files.
+  // gitRef doubles as a once-guard so React StrictMode's double-invoke can't spawn two repos.
+  useEffect(() => {
+    if (gitRef.current) return;
+    const repo = new GitRepo(projectId ?? "untitled");
+    gitRef.current = repo;
+    (async () => {
+      try {
+        await repo.init(initial);
+        setGitBranch(await repo.currentBranch());
+        setGitChanges(await repo.changes());
+        setGitLog(await repo.log());
+        setGitReady(true);
+      } catch { /* git unavailable — SCM panel shows a notice */ }
+    })();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  // Mirror edits into the working tree (debounced) so the Changes list stays live.
+  useEffect(() => {
+    if (!gitReady) return;
+    const t = setTimeout(async () => {
+      const repo = gitRef.current;
+      if (!repo) return;
+      try { await repo.writeAll(files); setGitChanges(await repo.changes()); } catch { /* ignore */ }
+    }, 500);
+    return () => clearTimeout(t);
+  }, [files, gitReady]);
+
   const openFile = (path: string) => {
     setOpenPaths((p) => (p.includes(path) ? p : [...p, path]));
     setActivePath(path);
@@ -217,6 +301,34 @@ export default function CodeIDE({ files: initial, projectId }: { files: GenFile[
   };
   const toggleFolder = (path: string) =>
     setCollapsed((c) => (c.includes(path) ? c.filter((x) => x !== path) : [...c, path]));
+
+  // ── git actions ──
+  const refreshGit = async () => {
+    const repo = gitRef.current;
+    if (!repo) return;
+    try { setGitChanges(await repo.changes()); setGitLog(await repo.log()); } catch { /* ignore */ }
+  };
+  const doCommit = async () => {
+    const repo = gitRef.current;
+    const msg = commitMsg.trim();
+    if (!repo || !msg) return;
+    try {
+      await repo.writeAll(files);
+      const ok = await repo.commitAll(msg);
+      if (!ok) return toast.error("No changes to commit");
+      setCommitMsg("");
+      await refreshGit();
+      toast.success("Committed");
+      log(`git commit -m "${msg}"`);
+    } catch { toast.error("Commit failed"); }
+  };
+  const openDiff = async (path: string) => {
+    const repo = gitRef.current;
+    if (!repo) return;
+    const original = await repo.headContent(path);
+    setDiff({ path, original });
+    openFile(path);
+  };
 
   // ── file operations ─────────────────────────────────────────────────────────
   const createFile = (rawPath: string) => {
@@ -348,10 +460,27 @@ export default function CodeIDE({ files: initial, projectId }: { files: GenFile[
     setDirty(true);
   };
 
+  // Leaving the diffed file returns to the normal editor.
+  useEffect(() => { setDiff((d) => (d && d.path !== activePath ? null : d)); }, [activePath]);
+
+  const formatActive = async () => {
+    const ed = editorRef.current;
+    if (!ed) return;
+    try {
+      const ok = await formatModel(ed);
+      if (ok) { toast.success("Formatted with Prettier"); log("Formatted with Prettier"); }
+      else toast.error("No formatter for this file type");
+    } catch { toast.error("Format failed"); }
+  };
+  const formatRef = useRef(formatActive);
+  formatRef.current = formatActive;
+
   const onMount: OnMount = (editor, monaco) => {
     editorRef.current = editor;
     monacoRef.current = monaco;
+    registerTooling(monaco); // Emmet abbreviations
     editor.addCommand(monaco.KeyMod.CtrlCmd | monaco.KeyCode.KeyS, () => void saveRef.current());
+    editor.addCommand(monaco.KeyMod.Shift | monaco.KeyMod.Alt | monaco.KeyCode.KeyF, () => void formatRef.current());
     editor.onDidChangeCursorPosition((e) => setPos({ line: e.position.lineNumber, col: e.position.column }));
     const sync = () => setMarkers(monaco.editor.getModelMarkers({}));
     monaco.editor.onDidChangeMarkers(sync);
@@ -403,7 +532,7 @@ export default function CodeIDE({ files: initial, projectId }: { files: GenFile[
       { label: "Find", accel: "Ctrl+F", run: () => act("actions.find") },
       { label: "Replace", accel: "Ctrl+H", run: () => act("editor.action.startFindReplaceAction") },
       { label: "Toggle Line Comment", accel: "Ctrl+/", run: () => act("editor.action.commentLine") },
-      { label: "Format Document", accel: "Shift+Alt+F", run: () => act("editor.action.formatDocument") },
+      { label: "Format Document", accel: "Shift+Alt+F", run: () => void formatActive() },
     ] },
     { label: "Selection", items: [
       { label: "Select All", accel: "Ctrl+A", run: () => act("editor.action.selectAll") },
@@ -587,12 +716,53 @@ export default function CodeIDE({ files: initial, projectId }: { files: GenFile[
             )}
             {sidebarView === "scm" && (
               <>
-                <div className={styles.sideHead}><span>Source Control</span></div>
-                <div className={styles.sidePanelBody}>
-                  <div className={styles.scmHead}>CHANGES {dirty ? "1" : "0"}</div>
-                  {dirty ? <div className={styles.scmRow}><span className={styles.scmM}>M</span>{activePath || "working tree"}</div>
-                    : <div className={styles.treeEmpty}>No changes since last save.</div>}
+                <div className={styles.sideHead}>
+                  <span>Source Control</span>
+                  <span className={styles.sideHeadActions}>
+                    <button type="button" title="Refresh" aria-label="Refresh" onClick={() => void refreshGit()}><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round"><path d="M21 12a9 9 0 1 1-2.64-6.36L21 8" /><path d="M21 3v5h-5" /></svg></button>
+                  </span>
                 </div>
+                {!gitReady ? <div className={styles.treeEmpty}>Starting git…</div> : (
+                  <>
+                    <div className={styles.scmCommit}>
+                      <input className={styles.scmMsg} placeholder={`Message (Ctrl+Enter to commit on ${gitBranch})`} value={commitMsg}
+                        onChange={(e) => setCommitMsg(e.target.value)}
+                        onKeyDown={(e) => { if (e.key === "Enter" && (e.metaKey || e.ctrlKey)) { e.preventDefault(); void doCommit(); } }} />
+                      <button type="button" className={styles.scmCommitBtn} onClick={() => void doCommit()} disabled={!commitMsg.trim() || gitChanges.length === 0}>
+                        <svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"><path d="M20 6 9 17l-5-5" /></svg> Commit
+                      </button>
+                    </div>
+                    <div className={styles.scmTabsRow}>
+                      <button type="button" className={styles.scmTabBtn} data-active={scmTab === "changes"} onClick={() => setScmTab("changes")}>Changes{gitChanges.length > 0 && <span className={styles.scmCountPill}>{gitChanges.length}</span>}</button>
+                      <button type="button" className={styles.scmTabBtn} data-active={scmTab === "history"} onClick={() => setScmTab("history")}>History</button>
+                    </div>
+                    <div className={styles.sidePanelBody}>
+                      {scmTab === "changes" ? (
+                        gitChanges.length === 0 ? <div className={styles.treeEmpty}>No changes. Edit a file and it shows up here.</div> : (
+                          gitChanges.map((c) => (
+                            <button key={c.path} type="button" className={styles.scmChangeRow} onClick={() => void openDiff(c.path)} title={`Open diff — ${c.path}`}>
+                              <span className={styles.rowFileIcon} aria-hidden><FileGlyph path={c.path} /></span>
+                              <span className={styles.scmPath}>{c.path}</span>
+                              <span className={styles.scmBadge} data-s={c.status}>{c.status}</span>
+                            </button>
+                          ))
+                        )
+                      ) : (
+                        gitLog.length === 0 ? <div className={styles.treeEmpty}>No commits yet.</div> : (
+                          gitLog.map((c) => (
+                            <div key={c.oid} className={styles.commitRow}>
+                              <span className={styles.commitDot} aria-hidden />
+                              <div className={styles.commitBody}>
+                                <div className={styles.commitMsgText}>{c.message}</div>
+                                <div className={styles.commitMeta}>{c.author} · {c.oid.slice(0, 7)}</div>
+                              </div>
+                            </div>
+                          ))
+                        )
+                      )}
+                    </div>
+                  </>
+                )}
               </>
             )}
             {sidebarView === "run" && (
@@ -607,9 +777,19 @@ export default function CodeIDE({ files: initial, projectId }: { files: GenFile[
             {sidebarView === "extensions" && (
               <>
                 <div className={styles.sideHead}><span>Extensions</span></div>
+                <div className={styles.sideProject}>INSTALLED</div>
                 <div className={styles.sidePanelBody}>
-                  {[["Monaco (VS Code core)", "Editor, IntelliSense, minimap"], ["Emmet", "HTML/CSS abbreviations"], ["HTML / CSS / JS", "Built-in language services"], ["JSON", "Schema-aware editing"]].map(([n, d]) => (
-                    <div key={n} className={styles.extRow}><div className={styles.extIcon} aria-hidden><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">{I.ext}</svg></div><div><div className={styles.extName}>{n}</div><div className={styles.extDesc}>{d}</div></div></div>
+                  {[
+                    ["Prettier", "Code formatter — Format Document (Shift+Alt+F)"],
+                    ["Emmet", "HTML/CSS abbreviations — expand with Tab"],
+                    ["Git (isomorphic-git)", "Source control — commits, history, diffs"],
+                    ["Monaco (VS Code core)", "IntelliSense, multi-cursor, minimap, find/replace"],
+                    ["HTML · CSS · JS · JSON · Markdown", "Built-in language services"],
+                  ].map(([n, d]) => (
+                    <div key={n} className={styles.extRow}>
+                      <div className={styles.extIcon} aria-hidden><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">{I.ext}</svg></div>
+                      <div className={styles.extInfo}><div className={styles.extName}>{n} <span className={styles.extActive}>● active</span></div><div className={styles.extDesc}>{d}</div></div>
+                    </div>
                   ))}
                 </div>
               </>
@@ -653,7 +833,18 @@ export default function CodeIDE({ files: initial, projectId }: { files: GenFile[
             <div className={styles.panes}>
               {view !== "preview" && (
                 <div className={styles.editor}>
-                  {file ? (
+                  {diff ? (
+                    <div className={styles.diffWrap}>
+                      <div className={styles.diffBar}>
+                        <span className={styles.diffTitle}><span className={styles.diffIcon} aria-hidden><FileGlyph path={diff.path} /></span>{diff.path}<span className={styles.diffTag}>HEAD ↔ Working</span></span>
+                        <button type="button" className={styles.diffClose} onClick={() => setDiff(null)}>Close diff</button>
+                      </div>
+                      <div className={styles.diffHost}>
+                        <DiffEditor height="100%" language={langFor(diff.path)} original={diff.original} modified={files.find((f) => f.path === diff.path)?.content ?? ""} theme="vibex-ink" beforeMount={defineInkTheme}
+                          options={{ readOnly: true, renderSideBySide: true, minimap: { enabled: false }, automaticLayout: true, fontSize: 13, scrollBeyondLastLine: false }} />
+                      </div>
+                    </div>
+                  ) : file ? (
                     <Editor height="100%" path={file.path} language={langFor(file.path)} value={file.content} onChange={onChange} theme="vibex-ink" beforeMount={defineInkTheme} onMount={onMount}
                       loading={<div className={styles.editorLoading}>Loading VS Code editor…</div>}
                       options={{ fontSize: 13, fontFamily: "ui-monospace, 'Cascadia Code', Consolas, 'JetBrains Mono', monospace", minimap: { enabled: minimap }, scrollBeyondLastLine: false, tabSize: 2, wordWrap: wordWrap ? "on" : "off", automaticLayout: true, padding: { top: 10 }, smoothScrolling: true, renderLineHighlight: "all", fixedOverflowWidgets: true }} />
