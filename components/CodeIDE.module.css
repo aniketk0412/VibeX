@@ -323,6 +323,26 @@
 .extName { font-size: 12.5px; font-weight: 600; color: var(--vsc-text); }
 .extActive { font-size: 10px; color: #4ec98a; font-weight: 600; }
 .extDesc { font-size: 11px; color: var(--vsc-faint); margin-top: 1px; }
+.extGroup { font-size: 10.5px; letter-spacing: 0.05em; text-transform: uppercase; color: var(--vsc-faint); padding: 12px 2px 4px; }
+.extToggle {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+  font: inherit;
+  font-size: 12.5px;
+  color: var(--vsc-text);
+  background: transparent;
+  border: none;
+  border-radius: 6px;
+  padding: 7px 8px;
+  cursor: pointer;
+}
+.extToggle:hover { background: var(--vsc-hover); }
+.switch { flex: none; width: 32px; height: 18px; border-radius: 999px; background: var(--vsc-line); position: relative; transition: background 0.15s ease; }
+.switch[data-on="true"] { background: var(--vsc-accent); }
+.knob { position: absolute; top: 2px; left: 2px; width: 14px; height: 14px; border-radius: 50%; background: #fff; transition: transform 0.15s ease; }
+.switch[data-on="true"] .knob { transform: translateX(14px); }
 
 /* ── Source Control (real git) ─────────────────────────── */
 .scmCommit { display: flex; flex-direction: column; gap: 7px; padding: 8px 12px 4px; }

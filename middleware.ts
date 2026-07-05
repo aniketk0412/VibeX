@@ -33,8 +33,9 @@ const PROTECTED = ["/dashboard", "/settings", "/result", "/run", "/new", "/inter
 // Routes that embed the srcdoc preview iframe (see job #2). These skip the strict script-src.
 const PREVIEW = ["/run", "/result"];
 
-// CSP directives shared by both policies — script-src is the only difference.
-const COMMON_CSP = "object-src 'none'; base-uri 'self'; form-action 'self'; frame-ancestors 'self'";
+// CSP directives shared by both policies — script-src is the only difference. worker-src allows the
+// self-hosted Monaco language workers, which load via a blob: proxy (see CodeIDE MonacoEnvironment).
+const COMMON_CSP = "object-src 'none'; base-uri 'self'; form-action 'self'; frame-ancestors 'self'; worker-src 'self' blob:";
 
 function isMatch(pathname: string, prefixes: string[]): boolean {
   return prefixes.some((p) => pathname === p || pathname.startsWith(`${p}/`));

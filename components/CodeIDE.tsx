@@ -22,6 +22,16 @@ type MonacoNS = Parameters<OnMount>[1];
 
 if (typeof window !== "undefined") {
   loader.config({ paths: { vs: "/monaco/vs" } });
+  // Self-hosted AMD language workers. A blob proxy sets the base URL and imports workerMain, so
+  // Monaco's real language services run in web workers — IntelliSense, autocomplete, hover, and
+  // live diagnostics for JS/TS/HTML/CSS/JSON (needs the classic monaco layout, hence monaco 0.52).
+  (window as unknown as { MonacoEnvironment?: unknown }).MonacoEnvironment = {
+    getWorkerUrl() {
+      const origin = window.location.origin;
+      const src = `self.MonacoEnvironment={baseUrl:'${origin}/monaco/'};importScripts('${origin}/monaco/vs/base/worker/workerMain.js');`;
+      return URL.createObjectURL(new Blob([src], { type: "text/javascript" }));
+    },
+  };
 }
 import type { GenFile } from "@/lib/steps";
 import { buildPreview } from "@/lib/preview";
@@ -46,20 +56,35 @@ function langFor(path: string): string {
 function langName(path: string): string {
   return ({ html: "HTML", css: "CSS", javascript: "JavaScript", typescript: "TypeScript", markdown: "Markdown", json: "JSON", plaintext: "Plain Text" } as Record<string, string>)[langFor(path)] ?? "Plain Text";
 }
-function iconColor(path: string): string {
-  if (/\.html?$/i.test(path)) return "#e37933";
-  if (/\.css$/i.test(path)) return "#42a5f5";
-  if (/\.(js|jsx|mjs|cjs)$/i.test(path)) return "#e8d44d";
-  if (/\.tsx?$/i.test(path)) return "#3178c6";
-  if (/\.json$/i.test(path)) return "#cbcb41";
-  if (/\.md$/i.test(path)) return "#519aba";
-  return "var(--faint)";
+// Per-extension file icon: a colored badge with the type's label (VS Code-ish), so the tree,
+// tabs and breadcrumbs read at a glance instead of showing one generic document outline.
+function extMeta(path: string): { label: string; bg: string; fg: string } {
+  const ext = (path.split(".").pop() ?? "").toLowerCase();
+  const m: Record<string, { label: string; bg: string; fg: string }> = {
+    js: { label: "JS", bg: "#e8d44d", fg: "#1c1c1c" },
+    jsx: { label: "JS", bg: "#e8d44d", fg: "#1c1c1c" },
+    mjs: { label: "JS", bg: "#e8d44d", fg: "#1c1c1c" },
+    cjs: { label: "JS", bg: "#e8d44d", fg: "#1c1c1c" },
+    ts: { label: "TS", bg: "#3178c6", fg: "#ffffff" },
+    tsx: { label: "TS", bg: "#3178c6", fg: "#ffffff" },
+    html: { label: "<>", bg: "#e37933", fg: "#ffffff" },
+    htm: { label: "<>", bg: "#e37933", fg: "#ffffff" },
+    css: { label: "#", bg: "#42a5f5", fg: "#ffffff" },
+    scss: { label: "#", bg: "#cf649a", fg: "#ffffff" },
+    json: { label: "{}", bg: "#cbcb41", fg: "#1c1c1c" },
+    md: { label: "M", bg: "#519aba", fg: "#ffffff" },
+    py: { label: "PY", bg: "#3572a5", fg: "#ffd845" },
+    sh: { label: "$", bg: "#4caf50", fg: "#ffffff" },
+    txt: { label: "T", bg: "#607d8b", fg: "#ffffff" },
+  };
+  return m[ext] ?? { label: (ext.slice(0, 2) || "·").toUpperCase(), bg: "#565b6e", fg: "#ffffff" };
 }
 function FileGlyph({ path }: { path: string }) {
+  const { label, bg, fg } = extMeta(path);
   return (
-    <svg viewBox="0 0 24 24" fill="none" stroke={iconColor(path)} strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
-      <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
-      <path d="M14 2v6h6" />
+    <svg viewBox="0 0 20 20" aria-hidden>
+      <rect x="1.5" y="3.5" width="17" height="13" rx="3.5" fill={bg} />
+      <text x="10" y="12.7" textAnchor="middle" fontSize={label.length > 1 ? 7.4 : 9.5} fontWeight="700" fill={fg} fontFamily="ui-monospace, monospace">{label}</text>
     </svg>
   );
 }
@@ -191,7 +216,7 @@ export default function CodeIDE({ files: initial, projectId }: { files: GenFile[
   const [collapsed, setCollapsed] = useState<string[]>([]);
   const [dirty, setDirty] = useState(false);
   const [saving, setSaving] = useState(false);
-  const [view, setView] = useState<View>("split");
+  const [view, setView] = useState<View>("code");
 
   // VS Code shell state
   const [sidebarOpen, setSidebarOpen] = useState(true);
@@ -287,6 +312,19 @@ export default function CodeIDE({ files: initial, projectId }: { files: GenFile[
     }, 500);
     return () => clearTimeout(t);
   }, [files, gitReady]);
+
+  // Ctrl+` toggles the bottom panel to the Terminal tab (like VS Code).
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      if ((e.ctrlKey || e.metaKey) && e.code === "Backquote") {
+        e.preventDefault();
+        setPanelOpen((o) => !o);
+        setPanelTab("terminal");
+      }
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, []);
 
   const openFile = (path: string) => {
     setOpenPaths((p) => (p.includes(path) ? p : [...p, path]));
@@ -777,14 +815,24 @@ export default function CodeIDE({ files: initial, projectId }: { files: GenFile[
             {sidebarView === "extensions" && (
               <>
                 <div className={styles.sideHead}><span>Extensions</span></div>
-                <div className={styles.sideProject}>INSTALLED</div>
                 <div className={styles.sidePanelBody}>
+                  <div className={styles.extGroup}>Editor settings</div>
+                  {([
+                    { label: "Word Wrap", on: wordWrap, toggle: toggleWrap },
+                    { label: "Minimap", on: minimap, toggle: toggleMinimap },
+                    { label: "Auto Save", on: autoSave, toggle: () => setAutoSave((a) => !a) },
+                  ] as const).map((t) => (
+                    <button key={t.label} type="button" className={styles.extToggle} role="switch" aria-checked={t.on} onClick={t.toggle}>
+                      <span>{t.label}</span>
+                      <span className={styles.switch} data-on={t.on} aria-hidden><span className={styles.knob} /></span>
+                    </button>
+                  ))}
+                  <div className={styles.extGroup}>Enabled</div>
                   {[
-                    ["Prettier", "Code formatter — Format Document (Shift+Alt+F)"],
-                    ["Emmet", "HTML/CSS abbreviations — expand with Tab"],
-                    ["Git (isomorphic-git)", "Source control — commits, history, diffs"],
-                    ["Monaco (VS Code core)", "IntelliSense, multi-cursor, minimap, find/replace"],
-                    ["HTML · CSS · JS · JSON · Markdown", "Built-in language services"],
+                    ["IntelliSense", "Autocomplete, hover & diagnostics (JS/TS/HTML/CSS/JSON)"],
+                    ["Prettier", "Format Document — Shift+Alt+F"],
+                    ["Emmet", "Tab-expand HTML/CSS abbreviations"],
+                    ["Git", "Source control — commits, history, diffs"],
                   ].map(([n, d]) => (
                     <div key={n} className={styles.extRow}>
                       <div className={styles.extIcon} aria-hidden><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">{I.ext}</svg></div>
