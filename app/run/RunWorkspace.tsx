@@ -688,7 +688,7 @@ export default function RunWorkspace({ initialSpec, projectId, initialFiles, has
   }, [done, previewDoc]);
 
   return (
-    <div className={styles.page}>
+    <div className={styles.page} data-code={canvasTab === "code" ? "true" : undefined}>
       <header className={styles.topbar}>
         <Link href="/" aria-label="Vibex home">
           <Logo size={26} />
@@ -929,13 +929,17 @@ export default function RunWorkspace({ initialSpec, projectId, initialFiles, has
         {/* ── right: working canvas ────────────────────── */}
         <section className={styles.canvas} ref={canvasRef}>
           <div className={styles.paneHead}>
-            <div className={styles.canvasTabs} role="tablist">
-              <button type="button" role="tab" aria-selected={canvasTab === "preview"} className={styles.canvasTab} data-active={canvasTab === "preview"} onClick={() => setCanvasTab("preview")}>
-                Preview
-              </button>
-              <button type="button" role="tab" aria-selected={canvasTab === "code"} className={styles.canvasTab} data-active={canvasTab === "code"} onClick={() => setCanvasTab("code")}>
-                Code
-              </button>
+            <div className={styles.canvasHeadLeft}>
+              {/* In Code mode the logo topbar is hidden to give the IDE the full screen — keep Back reachable here. */}
+              {canvasTab === "code" && <BackLink href="/dashboard" label="Back" />}
+              <div className={styles.canvasTabs} role="tablist">
+                <button type="button" role="tab" aria-selected={canvasTab === "preview"} className={styles.canvasTab} data-active={canvasTab === "preview"} onClick={() => setCanvasTab("preview")}>
+                  Preview
+                </button>
+                <button type="button" role="tab" aria-selected={canvasTab === "code"} className={styles.canvasTab} data-active={canvasTab === "code"} onClick={() => setCanvasTab("code")}>
+                  Code
+                </button>
+              </div>
             </div>
             <div className={styles.canvasCtrls}>
               {/* Preview mode: chat is a left column, hidden/shown here. Code mode uses the drawer's

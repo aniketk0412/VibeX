@@ -697,9 +697,17 @@
   flex: 1;
   min-height: 0;
   display: flex;
-  padding: 12px;
+  padding: 0;
 }
-.ideFull > * { flex: 1; min-width: 0; min-height: 0; }
+/* Full-bleed IDE in code mode — square off its rounded border so it fills the canvas edge-to-edge. */
+.ideFull > * { flex: 1; min-width: 0; min-height: 0; border-radius: 0; border: none; }
+
+/* ── Code mode fills the screen ──────────────────────────
+   Hide the outer Vibex logo topbar and slim the canvas header so the IDE (which has its own full
+   VS Code chrome + status bar) gets the whole viewport. Back moves into the slim canvas header. */
+.page[data-code="true"] .topbar { display: none; }
+.page[data-code="true"] .canvas .paneHead { min-height: 0; padding: 7px 12px; }
+.canvasHeadLeft { display: flex; align-items: center; gap: 14px; min-width: 0; }
 .ideLoading {
   flex: 1;
   display: grid;
