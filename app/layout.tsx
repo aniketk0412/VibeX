@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { headers } from "next/headers";
 import { Inter, JetBrains_Mono, Space_Grotesk } from "next/font/google";
 import { Analytics } from "@vercel/analytics/next";
 import Toaster from "@/components/Toaster";
@@ -92,12 +93,16 @@ const themeInit = `
 `;
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
+  // Per-request CSP nonce set by middleware.ts — stamps the inline theme script so it survives the
+  // strict `script-src 'self' 'nonce-…'` policy. Undefined on the srcdoc-preview routes (no nonce
+  // in their CSP), where inline scripts are allowed anyway.
+  const nonce = headers().get("x-nonce") ?? undefined;
   return (
     // suppressHydrationWarning: themeInit intentionally rewrites data-theme before hydration
     // when the user has a stored preference — that mismatch is by design, not a bug.
     <html lang="en" data-theme="dark" suppressHydrationWarning className={`${sans.variable} ${display.variable} ${mono.variable}`}>
       <head>
-        <script dangerouslySetInnerHTML={{ __html: themeInit }} />
+        <script nonce={nonce} dangerouslySetInnerHTML={{ __html: themeInit }} />
         {/* Without JS the IntersectionObserver never fires — keep revealed content visible. */}
         <noscript>
           <style>{`.reveal{opacity:1!important;transform:none!important}`}</style>

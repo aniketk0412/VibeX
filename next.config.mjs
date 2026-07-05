@@ -1,24 +1,18 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   reactStrictMode: true,
-  // Baseline security headers. frame-ancestors 'self' stops other sites from framing the app
-  // (clickjacking on dashboard/settings); nosniff + referrer policy are free wins.
+  // Baseline security headers. nosniff + referrer policy are free wins; Permissions-Policy and
+  // HSTS lock down capabilities and transport.
   //
-  // The CSP here is the defense-in-depth subset that does NOT need per-request nonces, so it can
-  // ship without breaking the app's inline scripts (theme init, JSON-LD, Next hydration) or the
-  // srcdoc previews:
-  //   object-src 'none'   — no <embed>/<object>/plugin execution (a legacy XSS vector)
-  //   base-uri 'self'     — blocks <base> injection redirecting every relative URL to an attacker
-  //   form-action 'self'  — an injected <form> can't exfiltrate to an off-site endpoint
-  //                         (OAuth uses 302 redirects, which form-action doesn't govern)
-  // A full script-src (which requires threading a nonce through those inline scripts) is the
-  // remaining pass and is tracked separately.
+  // NOTE: Content-Security-Policy is NOT set here — it needs a per-request nonce (for script-src),
+  // so it's emitted from middleware.ts instead (a static header can't carry a fresh nonce). See
+  // middleware.ts for the strict `script-src 'self' 'nonce-…'` policy and the srcdoc-preview
+  // carve-out.
   async headers() {
     return [
       {
         source: "/:path*",
         headers: [
-          { key: "Content-Security-Policy", value: "frame-ancestors 'self'; object-src 'none'; base-uri 'self'; form-action 'self'" },
           { key: "X-Content-Type-Options", value: "nosniff" },
           { key: "Referrer-Policy", value: "strict-origin-when-cross-origin" },
           { key: "Permissions-Policy", value: "camera=(), microphone=(), geolocation=()" },

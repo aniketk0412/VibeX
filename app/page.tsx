@@ -1,3 +1,4 @@
+import { headers } from "next/headers";
 import Link from "next/link";
 import SiteHeader from "@/components/SiteHeader";
 import SiteFooter from "@/components/SiteFooter";
@@ -165,9 +166,11 @@ const JSON_LD = {
 };
 
 export default function Home() {
+  // CSP nonce (middleware.ts) so the JSON-LD block passes the strict script-src on this route.
+  const nonce = headers().get("x-nonce") ?? undefined;
   return (
     <>
-      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(JSON_LD) }} />
+      <script type="application/ld+json" nonce={nonce} dangerouslySetInnerHTML={{ __html: JSON.stringify(JSON_LD) }} />
       <SiteHeader />
 
       <main className="wrap">
