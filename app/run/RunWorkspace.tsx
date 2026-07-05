@@ -23,11 +23,11 @@ import CopyButton from "@/components/CopyButton";
 import OpenInStackBlitz from "@/components/OpenInStackBlitz";
 import styles from "./run.module.css";
 
-// Full editor (CodeMirror) for the Code tab once files exist and nothing is streaming —
-// client-only and heavy, so it loads on demand.
-const CodeIDE = dynamic(() => import("@/components/CodeIDE"), {
+// Full IDE (StackBlitz WebContainers — editor + real terminal + live preview) for the Code tab once
+// files exist and nothing is streaming. Client-only and heavy, so it loads on demand.
+const IDE = dynamic(() => import("@/components/StackBlitzIDE"), {
   ssr: false,
-  loading: () => <div className={styles.ideLoading}>Loading editor…</div>,
+  loading: () => <div className={styles.ideLoading}>Loading IDE…</div>,
 });
 
 function Check() {
@@ -978,7 +978,7 @@ export default function RunWorkspace({ initialSpec, projectId, initialFiles, has
               // Firebase-Studio-style Code mode: the real editor (tree + CodeMirror + split
               // preview + console), with Save wired to the project's latest run.
               <div className={styles.ideFull}>
-                <CodeIDE key={`b${buildSeq}`} files={files} projectId={projectId} />
+                <IDE key={`b${buildSeq}`} files={files} projectId={projectId} title={spec.idea} />
               </div>
             ) : canvasFiles.length ? (
               <div className={styles.ide}>

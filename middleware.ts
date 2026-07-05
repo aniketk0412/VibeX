@@ -34,8 +34,11 @@ const PROTECTED = ["/dashboard", "/settings", "/result", "/run", "/new", "/inter
 const PREVIEW = ["/run", "/result"];
 
 // CSP directives shared by both policies — script-src is the only difference. worker-src allows the
-// self-hosted Monaco language workers, which load via a blob: proxy (see CodeIDE MonacoEnvironment).
-const COMMON_CSP = "object-src 'none'; base-uri 'self'; form-action 'self'; frame-ancestors 'self'; worker-src 'self' blob:";
+// self-hosted Monaco language workers (blob: proxy). The StackBlitz IDE (embedded on /run + /result)
+// loads by POSTing the project to stackblitz.com and rendering it in an iframe, so it needs
+// stackblitz.com in both form-action and frame-src.
+const COMMON_CSP =
+  "object-src 'none'; base-uri 'self'; form-action 'self' https://stackblitz.com; frame-src 'self' blob: https://stackblitz.com https://*.stackblitz.com; frame-ancestors 'self'; worker-src 'self' blob:";
 
 function isMatch(pathname: string, prefixes: string[]): boolean {
   return prefixes.some((p) => pathname === p || pathname.startsWith(`${p}/`));

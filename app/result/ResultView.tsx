@@ -22,10 +22,10 @@ import { buildPreview } from "@/lib/preview";
 import type { GenFile } from "@/lib/steps";
 import styles from "./result.module.css";
 
-// The editor is client-only (CodeMirror needs the DOM), loaded on demand.
-const CodeIDE = dynamic(() => import("@/components/CodeIDE"), {
+// Full IDE (StackBlitz WebContainers — editor + real terminal + live preview), client-only, on demand.
+const IDE = dynamic(() => import("@/components/StackBlitzIDE"), {
   ssr: false,
-  loading: () => <div className={styles.ideLoading}>Loading editor…</div>,
+  loading: () => <div className={styles.ideLoading}>Loading IDE…</div>,
 });
 
 type Spec = { idea?: string; platform?: string; coder?: string; reviewer?: string };
@@ -266,7 +266,7 @@ export default function ResultView({
     <div className={styles.ideHost}>
       {/* Save writes to the LATEST run — hide it when viewing an older version so an edit can't
           silently overwrite the newest build from a stale base. */}
-      <CodeIDE files={files} projectId={!runs || !currentRunId || runs[0]?.id === currentRunId ? current?.id : undefined} />
+      <IDE files={files} projectId={!runs || !currentRunId || runs[0]?.id === currentRunId ? current?.id : undefined} title={title} />
     </div>
   );
 
