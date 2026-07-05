@@ -102,7 +102,10 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
     // when the user has a stored preference — that mismatch is by design, not a bug.
     <html lang="en" data-theme="dark" suppressHydrationWarning className={`${sans.variable} ${display.variable} ${mono.variable}`}>
       <head>
-        <script nonce={nonce} dangerouslySetInnerHTML={{ __html: themeInit }} />
+        {/* suppressHydrationWarning: the per-request CSP nonce differs between the server HTML and
+            React's dev hydration pass — a known Next.js + nonce quirk. The nonce IS applied
+            correctly in the shipped HTML (verified in prod); this only silences the dev warning. */}
+        <script nonce={nonce} suppressHydrationWarning dangerouslySetInnerHTML={{ __html: themeInit }} />
         {/* Without JS the IntersectionObserver never fires — keep revealed content visible. */}
         <noscript>
           <style>{`.reveal{opacity:1!important;transform:none!important}`}</style>
