@@ -54,8 +54,11 @@ export function middleware(req: NextRequest) {
   }
 
   // 2) Per-request nonce + CSP. 128-bit hex — opaque token, no base64 padding to escape in a header.
+  // Dev needs 'unsafe-eval': Next's HMR / react-refresh evals modules, which a nonce-only
+  // script-src would block (blank page under `next dev`). Production never evals, so it stays strict.
   const nonce = crypto.randomUUID().replace(/-/g, "");
-  const csp = isPreview ? COMMON_CSP : `script-src 'self' 'nonce-${nonce}'; ${COMMON_CSP}`;
+  const evalSrc = process.env.NODE_ENV === "production" ? "" : " 'unsafe-eval'";
+  const csp = isPreview ? COMMON_CSP : `script-src 'self' 'nonce-${nonce}'${evalSrc}; ${COMMON_CSP}`;
 
   const requestHeaders = new Headers(req.headers);
   requestHeaders.set("x-nonce", nonce);

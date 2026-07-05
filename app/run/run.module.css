@@ -50,19 +50,84 @@
   user-select: none;
 }
 
-/* Code mode (Firebase-Studio arrangement): the editor takes the stage, chat docks right */
+/* Code mode (Firebase-Studio arrangement): the editor takes the full stage; the conversation
+   becomes a slide-in drawer over the canvas's right edge, opened by the floating Chat button and
+   closed by the chevron in the drawer header. */
 @media (min-width: 901px) {
-  .workspace[data-flip="true"] { grid-template-columns: 1fr 7px var(--convo-w, 400px); }
-  .workspace[data-flip="true"] .convo { order: 3; border-right: none; border-left: 1px solid var(--line-soft); }
-  .workspace[data-flip="true"] .divider { order: 2; }
+  .workspace[data-flip="true"] { grid-template-columns: 1fr; }
+  .workspace[data-flip="true"] .divider { display: none; }
   .workspace[data-flip="true"] .canvas { order: 1; }
+  .workspace[data-flip="true"] .convo {
+    position: absolute;
+    top: 0;
+    right: 0;
+    bottom: 0;
+    width: var(--convo-w, 400px);
+    max-width: 92vw;
+    z-index: 30;
+    border-right: none;
+    border-left: 1px solid var(--line-soft);
+    box-shadow: -22px 0 48px -28px rgba(0, 0, 0, 0.6);
+    transform: translateX(0);
+    transition: transform 0.3s cubic-bezier(0.22, 0.61, 0.36, 1);
+  }
+  .workspace[data-flip="true"][data-chat-hidden="true"] .convo {
+    transform: translateX(100%);
+    box-shadow: none;
+    pointer-events: none;
+  }
 
-  /* Chat hidden (toggle in the canvas header) — canvas gets the whole stage. A single 1fr
-     column (not 0 0 1fr): with flip active the canvas is the FIRST placed item, so fixed
-     zero-width columns would swallow it. display:none removes chat + divider from the grid. */
-  .workspace[data-chat-hidden="true"] { grid-template-columns: 1fr; }
-  .workspace[data-chat-hidden="true"] .convo,
-  .workspace[data-chat-hidden="true"] .divider { display: none; }
+  /* Preview mode keeps the original behavior: chat is a real left column, hidden via display:none. */
+  .workspace:not([data-flip="true"])[data-chat-hidden="true"] { grid-template-columns: 1fr; }
+  .workspace:not([data-flip="true"])[data-chat-hidden="true"] .convo,
+  .workspace:not([data-flip="true"])[data-chat-hidden="true"] .divider { display: none; }
+}
+
+/* chat drawer controls */
+.paneHeadRight { display: flex; align-items: center; gap: 8px; flex: none; }
+.convoClose {
+  flex: none;
+  display: grid;
+  place-items: center;
+  width: 26px;
+  height: 26px;
+  border-radius: 6px;
+  border: 1px solid var(--line);
+  background: var(--bg-elev);
+  color: var(--dim);
+  cursor: pointer;
+  transition: color 0.15s ease, border-color 0.15s ease, background 0.15s ease;
+}
+.convoClose:hover { color: var(--text); border-color: var(--faint); background: var(--surface-2); }
+
+/* floating "Chat" button that slides the drawer back in (Code mode) */
+.chatReopen {
+  position: absolute;
+  top: 66px;
+  right: 16px;
+  z-index: 25;
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  font-family: var(--font);
+  font-weight: 600;
+  font-size: 12.5px;
+  color: var(--text);
+  background: color-mix(in srgb, var(--bg-elev) 92%, transparent);
+  backdrop-filter: blur(6px);
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  padding: 8px 14px 8px 12px;
+  cursor: pointer;
+  box-shadow: var(--shadow);
+  animation: chat-pop 0.25s cubic-bezier(0.2, 0.7, 0.2, 1);
+  transition: border-color 0.15s ease, background 0.15s ease;
+}
+.chatReopen:hover { border-color: var(--faint); background: var(--surface-2); }
+.chatReopen svg { width: 15px; height: 15px; color: var(--accent); }
+@keyframes chat-pop {
+  from { opacity: 0; transform: translateX(10px); }
+  to { opacity: 1; transform: translateX(0); }
 }
 /* canvas maximize → conversation collapses; minimize → canvas collapses */
 
