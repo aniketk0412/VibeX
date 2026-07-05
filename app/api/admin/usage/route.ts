@@ -10,6 +10,7 @@
 
 import type { NextRequest } from "next/server";
 import { prisma } from "@/lib/prisma";
+import { safeEqual } from "@/lib/crypto";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -30,7 +31,7 @@ async function totalsSince(since: Date) {
 export async function GET(req: NextRequest) {
   const secret = process.env.ADMIN_SECRET || process.env.SEED_SECRET;
   const provided = req.headers.get("x-admin-secret") ?? new URL(req.url).searchParams.get("secret");
-  if (!secret || provided !== secret) return new Response("Forbidden", { status: 403 });
+  if (!secret || !provided || !safeEqual(provided, secret)) return new Response("Forbidden", { status: 403 });
 
   const now = Date.now();
   const [day, week, month, topWindows, users] = await Promise.all([

@@ -29,3 +29,12 @@ export function decryptSecret({ ciphertext, iv, authTag }: EncryptedSecret): str
   const plain = Buffer.concat([decipher.update(Buffer.from(ciphertext, "base64")), decipher.final()]);
   return plain.toString("utf8");
 }
+
+// Constant-time secret comparison (admin / seed tokens). Hashing both sides to a fixed length
+// first makes it safe for unequal-length inputs and keeps the compare timing-independent — a
+// plain `a === b` short-circuits on the first differing byte, leaking the secret one char at a time.
+export function safeEqual(a: string, b: string): boolean {
+  const ha = crypto.createHash("sha256").update(a).digest();
+  const hb = crypto.createHash("sha256").update(b).digest();
+  return crypto.timingSafeEqual(ha, hb);
+}

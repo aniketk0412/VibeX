@@ -379,9 +379,11 @@ export async function removeApiKey(provider: ProviderId) {
   revalidatePath("/settings");
 }
 
-// Dev-only plan switch (no billing) — gated by ALLOW_DEV_PLAN so it can't run in prod.
+// Dev-only plan switch (no billing) — gated by ALLOW_DEV_PLAN so it can't run in prod. The extra
+// NODE_ENV check is belt-and-suspenders: even if ALLOW_DEV_PLAN leaks into the prod environment,
+// this self-serve upgrade to any plan (incl. "scale") must never be reachable in production.
 export async function devSetPlan(plan: string) {
-  if (process.env.ALLOW_DEV_PLAN !== "true") return;
+  if (process.env.NODE_ENV === "production" || process.env.ALLOW_DEV_PLAN !== "true") return;
   const session = await auth();
   if (!session?.user) return;
   const p = ["free", "starter", "pro", "scale"].includes(plan) ? plan : "free";
