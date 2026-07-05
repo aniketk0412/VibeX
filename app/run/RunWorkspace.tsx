@@ -975,8 +975,8 @@ export default function RunWorkspace({ initialSpec, projectId, initialFiles, has
                 </div>
               )
             ) : canEdit ? (
-              // Firebase-Studio-style Code mode: the real editor (tree + CodeMirror + split
-              // preview + console), with Save wired to the project's latest run.
+              // Firebase-Studio-style Code mode: the real StackBlitz IDE (editor + file tree +
+              // terminal + live preview), with "Save to Vibex" wired to the project's latest run.
               <div className={styles.ideFull}>
                 <IDE key={`b${buildSeq}`} files={files} projectId={projectId} title={spec.idea} />
               </div>

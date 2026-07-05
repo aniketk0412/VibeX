@@ -37,10 +37,12 @@
   color: var(--text);
 }
 
+/* On mobile the nav links + auth buttons move into the MobileNav dropdown, so the header stays
+   uncluttered: logo + theme toggle + (avatar) + hamburger. */
+.authBtns { display: contents; }
 @media (max-width: 860px) {
-  .links {
-    display: none;
-  }
+  .links { display: none; }
+  .authBtns, .authBtn { display: none; }
 }
 
 /* phones: icon-only logo + compact actions so the signed-in header (toggle + Dashboard +

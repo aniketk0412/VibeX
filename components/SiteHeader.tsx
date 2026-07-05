@@ -3,6 +3,7 @@ import { auth } from "@/auth";
 import Logo from "./Logo";
 import ThemeToggle from "./ThemeToggle";
 import UserMenu from "./UserMenu";
+import MobileNav from "./MobileNav";
 import styles from "./SiteHeader.module.css";
 
 // Auth-aware marketing header: signed-out visitors get Sign in / Start free; signed-in users
@@ -27,15 +28,16 @@ export default async function SiteHeader() {
           <ThemeToggle />
           {user ? (
             <>
-              <Link href="/dashboard" className="btn btn-primary">Dashboard →</Link>
+              <Link href="/dashboard" className={`btn btn-primary ${styles.authBtn}`}>Dashboard →</Link>
               <UserMenu name={user.name} email={user.email} image={user.image} />
             </>
           ) : (
-            <>
+            <span className={styles.authBtns}>
               <Link href="/signin" className="btn btn-ghost">Sign in</Link>
               <Link href="/new" className="btn btn-primary">Start free</Link>
-            </>
+            </span>
           )}
+          <MobileNav signedIn={!!user} />
         </div>
       </div>
     </header>
