@@ -21,8 +21,8 @@ export const metadata: Metadata = {
 const DESKTOP_URL =
   process.env.NEXT_PUBLIC_DESKTOP_DOWNLOAD_URL ??
   "https://github.com/aniketk0412/vibex-releases/releases/latest/download/Vibex-Setup-0.1.0.exe";
-// Flip when `npm publish` has run from cli/ (package: vibex-app, command: vibex).
-const CLI_PUBLISHED = false;
+// vibex-app@0.1.0 is live on the npm registry (published July 5, 2026).
+const CLI_PUBLISHED = true;
 
 export default function DownloadPage() {
   return (

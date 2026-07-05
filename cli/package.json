@@ -5,7 +5,7 @@
   "license": "MIT",
   "type": "module",
   "bin": {
-    "vibex": "./dist/index.js"
+    "vibex": "dist/index.js"
   },
   "files": [
     "dist",
