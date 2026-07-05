@@ -104,6 +104,12 @@ export default function StackBlitzIDE({ files: initial, projectId, title }: { fi
       </div>
       <div className={styles.hostWrap}>
         <div ref={hostRef} className={styles.host} />
+        {!ready && !slow && (
+          <div className={styles.booting} aria-live="polite">
+            <span className={styles.spinner} aria-hidden />
+            <p className={styles.fbText}>Booting the IDE… the first launch spins up a container, so it takes ~10–20s.</p>
+          </div>
+        )}
         {slow && !ready && (
           <div className={styles.fallback}>
             <p className={styles.fbText}>The embedded IDE is taking a moment (some browsers block embedded editors).</p>
