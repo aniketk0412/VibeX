@@ -122,7 +122,7 @@ export default async function SettingsPage() {
         <section className={styles.card}>
           <div className={styles.cardHead}>
             <h2>Plan</h2>
-            <p>You&apos;re on the <b>{plan}</b> plan. <Link href="/pricing">See plans →</Link></p>
+            <p>You&apos;re on the <b style={{ textTransform: "capitalize" }}>{plan}</b> plan. <Link href="/pricing">See plans →</Link></p>
           </div>
           {devPlans && (
             <div className={styles.devPlans}>
