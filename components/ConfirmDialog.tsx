@@ -4,7 +4,7 @@
 // (already-bound) server action inside a transition, shows a pending state, and closes on success.
 // Used for destructive actions — deleting a project, removing an API key.
 
-import { useEffect, useState, useTransition } from "react";
+import { useEffect, useRef, useState, useTransition } from "react";
 import { toast } from "@/lib/toast";
 import styles from "./ConfirmDialog.module.css";
 
@@ -31,6 +31,7 @@ export default function ConfirmDialog({
 }) {
   const [open, setOpen] = useState(false);
   const [pending, start] = useTransition();
+  const dialogRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     if (!open) return;
@@ -39,12 +40,27 @@ export default function ConfirmDialog({
     return () => document.removeEventListener("keydown", onKey);
   }, [open, pending]);
 
-  // Return focus to the trigger when the dialog closes (a11y). Keyed on `open` only so a
-  // pending change mid-action doesn't yank focus.
+  // Focus management (a11y). Keyed on `open` only so a pending change mid-action doesn't yank focus:
+  //  • move focus into the dialog on open (Cancel first — the safe default for a destructive action)
+  //  • trap Tab inside the dialog so it can't wander to the page behind the modal
+  //  • return focus to the trigger on close
   useEffect(() => {
     if (!open) return;
     const prev = document.activeElement as HTMLElement | null;
-    return () => prev?.focus?.();
+    const dialog = dialogRef.current;
+    const focusables = () => (dialog ? Array.from(dialog.querySelectorAll<HTMLElement>("button:not([disabled])")) : []);
+    focusables()[0]?.focus();
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key !== "Tab") return;
+      const els = focusables();
+      if (els.length < 2) return;
+      const first = els[0];
+      const last = els[els.length - 1];
+      if (e.shiftKey && document.activeElement === first) { e.preventDefault(); last.focus(); }
+      else if (!e.shiftKey && document.activeElement === last) { e.preventDefault(); first.focus(); }
+    };
+    dialog?.addEventListener("keydown", onKey);
+    return () => { dialog?.removeEventListener("keydown", onKey); prev?.focus?.(); };
   }, [open]);
 
   const confirm = () =>
@@ -68,7 +84,7 @@ export default function ConfirmDialog({
 
       {open && (
         <div className={styles.overlay} onMouseDown={() => !pending && setOpen(false)}>
-          <div className={styles.dialog} role="dialog" aria-modal="true" aria-label={title} onMouseDown={(e) => e.stopPropagation()}>
+          <div ref={dialogRef} className={styles.dialog} role="dialog" aria-modal="true" aria-label={title} onMouseDown={(e) => e.stopPropagation()}>
             <h2 className={styles.title}>{title}</h2>
             <p className={styles.message}>{message}</p>
             <div className={styles.actions}>
