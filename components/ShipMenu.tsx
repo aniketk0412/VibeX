@@ -45,13 +45,17 @@ export default function ShipMenu({
 }) {
   const [open, setOpen] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
+  const btnRef = useRef<HTMLButtonElement>(null);
+  const menuRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     if (!open) return;
+    // Move focus into the menu on open; Escape closes and returns focus to the trigger.
+    menuRef.current?.querySelector<HTMLElement>("a, button")?.focus();
     const onDown = (e: MouseEvent) => {
       if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false);
     };
-    const onKey = (e: KeyboardEvent) => e.key === "Escape" && setOpen(false);
+    const onKey = (e: KeyboardEvent) => { if (e.key === "Escape") { setOpen(false); btnRef.current?.focus(); } };
     document.addEventListener("mousedown", onDown);
     document.addEventListener("keydown", onKey);
     return () => {
@@ -62,12 +66,12 @@ export default function ShipMenu({
 
   return (
     <div className={styles.wrap} ref={ref}>
-      <button type="button" className="btn btn-primary btn-sm" aria-haspopup="menu" aria-expanded={open} onClick={() => setOpen((v) => !v)}>
+      <button ref={btnRef} type="button" className="btn btn-primary btn-sm" aria-haspopup="menu" aria-expanded={open} onClick={() => setOpen((v) => !v)}>
         Ship
         <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round" aria-hidden><path d="m6 9 6 6 6-6" /></svg>
       </button>
       {open && (
-        <div className={styles.menu} role="menu">
+        <div ref={menuRef} className={styles.menu} role="menu">
           <OpenInStackBlitz files={files} title={title} className={styles.item} />
           {projectId && previewable && <DeployToVercel projectId={projectId} className={styles.item} />}
           {projectId && previewable && <DeployToNetlify projectId={projectId} className={styles.item} />}
