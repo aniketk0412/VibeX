@@ -29,6 +29,7 @@ export default function UserMenu({
   const [dropUp, setDropUp] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
   const btnRef = useRef<HTMLButtonElement>(null);
+  const menuRef = useRef<HTMLDivElement>(null);
 
   const toggle = () => {
     if (!open && btnRef.current) {
@@ -42,10 +43,12 @@ export default function UserMenu({
 
   useEffect(() => {
     if (!open) return;
+    // Move focus into the menu on open; Escape closes and returns focus to the avatar button.
+    menuRef.current?.querySelector<HTMLElement>("a, button")?.focus();
     const onDown = (e: MouseEvent) => {
       if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false);
     };
-    const onKey = (e: KeyboardEvent) => e.key === "Escape" && setOpen(false);
+    const onKey = (e: KeyboardEvent) => { if (e.key === "Escape") { setOpen(false); btnRef.current?.focus(); } };
     document.addEventListener("mousedown", onDown);
     document.addEventListener("keydown", onKey);
     return () => {
@@ -74,7 +77,7 @@ export default function UserMenu({
       </button>
 
       {open && (
-        <div className={`${styles.menu} ${dropUp ? styles.menuUp : ""}`} role="menu">
+        <div ref={menuRef} className={`${styles.menu} ${dropUp ? styles.menuUp : ""}`} role="menu">
           <div className={styles.identity}>
             <span className={styles.name}>{name || "Signed in"}</span>
             {email && <span className={styles.email}>{email}</span>}
