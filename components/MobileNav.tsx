@@ -17,11 +17,15 @@ const LINKS = [
 export default function MobileNav({ signedIn }: { signedIn: boolean }) {
   const [open, setOpen] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
+  const toggleRef = useRef<HTMLButtonElement>(null);
+  const menuRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     if (!open) return;
+    // Move focus into the menu on open; Escape closes and returns focus to the toggle.
+    menuRef.current?.querySelector<HTMLElement>("a")?.focus();
     const onDown = (e: MouseEvent) => { if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false); };
-    const onKey = (e: KeyboardEvent) => e.key === "Escape" && setOpen(false);
+    const onKey = (e: KeyboardEvent) => { if (e.key === "Escape") { setOpen(false); toggleRef.current?.focus(); } };
     document.addEventListener("mousedown", onDown);
     document.addEventListener("keydown", onKey);
     return () => { document.removeEventListener("mousedown", onDown); document.removeEventListener("keydown", onKey); };
@@ -29,13 +33,13 @@ export default function MobileNav({ signedIn }: { signedIn: boolean }) {
 
   return (
     <div className={styles.wrap} ref={ref}>
-      <button type="button" className={styles.toggle} aria-label={open ? "Close menu" : "Open menu"} aria-expanded={open} aria-haspopup="true" onClick={() => setOpen((o) => !o)}>
+      <button ref={toggleRef} type="button" className={styles.toggle} aria-label={open ? "Close menu" : "Open menu"} aria-expanded={open} aria-haspopup="true" onClick={() => setOpen((o) => !o)}>
         <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
           {open ? <path d="M6 6l12 12M18 6L6 18" /> : <path d="M3 6h18M3 12h18M3 18h18" />}
         </svg>
       </button>
       {open && (
-        <div className={styles.menu} role="menu">
+        <div ref={menuRef} className={styles.menu} role="menu">
           {LINKS.map((l) => (
             <Link key={l.href} href={l.href} className={styles.item} role="menuitem" onClick={() => setOpen(false)}>{l.label}</Link>
           ))}
