@@ -150,6 +150,7 @@ export default function QuestionCard({
                 className={styles.option}
                 data-active={highlight === i}
                 data-selected={isSelected}
+                aria-pressed={multi ? isSelected : undefined}
                 onMouseEnter={() => setHighlight(i)}
                 onClick={() => activate(i)}
               >
