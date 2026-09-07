@@ -2,6 +2,8 @@
 
 # Vibex
 
+https://vibe-x-liart.vercel.app/
+
 ### From idea to code, automatically.
 
 **You have the idea. You hate writing 20 prompts manually. We do it for you.**
